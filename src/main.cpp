@@ -26,7 +26,8 @@ int main() {
     
     float time;
     GLuint  U_RESOLUTION, U_MOUSE, U_SCROLL, U_TIME, U_CAMERA, U_WORLD, \
-            U_SPELL_LIFE, U_CAST_LIFE, U_SPELL_FOCUS, U_SPELL_HEAD;
+            U_SPELL_LIFE, U_CAST_LIFE, U_SPELL_FOCUS, U_SPELL_HEAD,
+            U_TIME_G;
     GLuint subroutine_index;
     CameraMats mats;
 
@@ -53,6 +54,8 @@ int main() {
             book_shader.Load();
             book_shader.Activate();
             texture_library.linkGrimoireLibrary(book_shader.ID);
+
+            U_TIME_G = glGetUniformLocation(book_shader.ID, "u_time");
             
             uniforms->last_time         = glfwGetTime();
             uniforms->loading           = false;
@@ -98,7 +101,9 @@ int main() {
         player_context.drawPlayerCellVAOs();
 
         book_shader.Activate();
- 
+
+        glUniform1f(U_TIME_G, time);
+
         spell_log.drawGrimoireVAOs();
 
         glfwSwapBuffers(window);

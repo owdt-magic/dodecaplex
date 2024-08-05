@@ -26,14 +26,14 @@ GLfloat SpellLog::curved_page_verts[PAGE_LOD*6*2];
 GLuint SpellLog::curved_page_indeces[PAGE_LOD*2*3];
 
 void SpellLog::populateCurvedPageData() {
-    float upper_bound = 0.0f,
-          lower_bound = -1.0f,
-          left_bound  = 0.0f,
-          right_bound = 1.0f,
-          depth = 0.75f;
-          
-    float inter_vert, inter_text;
-    int vi = 0, pi = 0;
+    static float upper_bound = 0.0f,
+                lower_bound = 1.0f,
+                left_bound  = 0.0f,
+                right_bound = 1.0f,
+                depth = 0.75f;
+
+    static float inter_vert, inter_text;
+    static int vi = 0, pi = 0;
 
     for (int i = 0; i < PAGE_LOD; i++) {
         inter_vert = glm::mix(left_bound, right_bound, float(i) / float(PAGE_LOD-1));
