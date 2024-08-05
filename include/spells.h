@@ -7,6 +7,8 @@ void teleportA(float progress, glm::vec3 start, glm::vec3 start_up, glm::vec3 ta
 void teleportAStart(glm::vec3 start, glm::vec3 start_up, glm::vec3 target, int target_index, WorldCell* cell, PlayerContext* context);
 
 const int MAX_SPELLS = 2;
+const uint PAGE_LOD = 10;
+
 struct SpellLog
 {
     SpellLog();
@@ -62,7 +64,6 @@ struct SpellLog
         spell_head  [active_spell] = head;
     };
 
-    static const uint PAGE_LOD = 5;    
     static GLfloat curved_page_verts[PAGE_LOD*6*2];
     static GLuint curved_page_indeces[PAGE_LOD*2*3];
     
