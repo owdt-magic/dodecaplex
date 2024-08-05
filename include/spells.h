@@ -9,6 +9,7 @@ void teleportAStart(glm::vec3 start, glm::vec3 start_up, glm::vec3 target, int t
 const int MAX_SPELLS = 2;
 struct SpellLog
 {
+    SpellLog();
     // {no-spell, teleport_a}
     int active_spell = 1;
     float click_times               [MAX_SPELLS] = {};
@@ -60,28 +61,16 @@ struct SpellLog
         spell_focus [active_spell] = focus;
         spell_head  [active_spell] = head;
     };
-    GLfloat verts[4*4] = {
-        // Positions    // Texture Coords
-        0.3f, -0.3f,     0.0f, 1.0f,
-        0.9f, -0.3f,     1.0f, 1.0f,
-        0.9f, -0.9f,     1.0f, 0.0f,
-        0.3f, -0.9f,     0.0f, 0.0f
-    };
 
-    GLuint indices[6] = {
-        0, 1, 2,
-        2, 3, 0
-    };
+    static const uint PAGE_LOD = 5;    
+    static GLfloat curved_page_verts[PAGE_LOD*6*2];
+    static GLuint curved_page_indeces[PAGE_LOD*2*3];
+    
+    void populateCurvedPageData();
+    void linkGrimoireVAOs();
+    void drawGrimoireVAOs();
 
-    GLfloat* vert_ptr = verts;
-    GLuint* indx_ptr = indices;
-    GLsizei vert_size = sizeof(verts);
-    GLsizei indx_size = sizeof(indices);
-
-    VAO grimoire_vao = VAO(vert_ptr, vert_size, indx_ptr, indx_size);
-
-    void linkGrimoireVAO();
-    void drawGrimoireVAO();
+    VAO grimoire_vao;
 };
 
 #endif

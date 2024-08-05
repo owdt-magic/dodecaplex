@@ -37,6 +37,7 @@ void UBO::Unbind()	{ glBindBuffer(GL_UNIFORM_BUFFER, 0); }
 void UBO::Delete() 	{ glDeleteBuffers(1, &ID); }
 
 // Vertext Array Object
+VAO::VAO() {}
 VAO::VAO(GLfloat* vertices, GLsizeiptr verticesSize, \
 			GLuint* indices, GLsizeiptr indicesSize) {
 	glGenVertexArrays(1, &ID);

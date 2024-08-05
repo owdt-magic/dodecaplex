@@ -54,7 +54,8 @@ public:
 	VBO vbo;
 	VBO cbo;
 	EBO ebo;
-	
+
+	VAO();
 	VAO(GLfloat* vertices, GLsizeiptr verticesSize, GLuint* indices, GLsizeiptr indicesSize);
 	VAO(GLfloat* vertices, GLsizeiptr verticesSize, GLfloat* colors, GLsizeiptr colorsSize, \
 		GLuint* indices, GLsizeiptr indicesSize);

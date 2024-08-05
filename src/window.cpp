@@ -1,7 +1,13 @@
 #include "window.h"
 #include "debug.h"
+#include <deque>
+#include <iostream>
+#include <typeinfo>
 
 bool window_is_focused = false;
+
+std::deque<std::pair<double, double>> mouse_positions;
+const size_t max_positions = 10; // Adjust this value for more/less smoothing
 
 void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mods) {
     Uniforms* uniforms = getUniforms(window);
@@ -48,8 +54,9 @@ void resizeCallback(GLFWwindow* window, int width, int height) {
 
 void mouseCallback(GLFWwindow* window, double xpos, double ypos) {
     Uniforms* uniforms = getUniforms(window);
-    uniforms->mouseX = float(xpos);
-    uniforms->mouseY = float(ypos);
+
+    uniforms->mouseX = float(xpos) / float(uniforms->windWidth);
+    uniforms->mouseY = float(ypos) / float(uniforms->windHeight);
 }
 
 void scrollCallback(GLFWwindow* window, double xoffset, double yoffset) {
@@ -59,8 +66,8 @@ void scrollCallback(GLFWwindow* window, double xoffset, double yoffset) {
 
 GLFWwindow* initializeWindow(unsigned int start_width, unsigned int start_height, const char* title) {
     glfwInit();
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 0);
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 
     GLFWwindow* window = glfwCreateWindow(start_width, start_height, title, NULL, NULL);
@@ -119,20 +126,19 @@ void accountCameraControls(Uniforms* uniforms, CameraMats &camera_mats) {
     
     // Projection matrix: 90° Field of View, display range: 0.1 unit <-> 100 units
     camera_mats.Projection  = glm::perspective(glm::radians(89.0f), ratio, 0.1f, 10.0f);
-    camera_mats.View        = player_location->getView( uniforms->mouseX/float(uniforms->windWidth),
-                                                        uniforms->mouseY/float(uniforms->windHeight), dt);
+    camera_mats.View        = player_location->getView( uniforms->mouseX,
+                                                        uniforms->mouseY, dt);
     camera_mats.Model       = player_location->getModel( uniforms->getWASD(), dt);
 }
 
-void accountSpells(Uniforms* uniforms, SpellLog &spell_log, GLuint shader_id) {
-    GLuint subroutine_index;
+GLuint getSpellSubroutine(Uniforms* uniforms, SpellLog &spell_log, GLuint shader_id) {
+    static GLuint subroutine_index = 0;
     float current_time = glfwGetTime();
     if (uniforms->click_states[0] && !spell_log.spell_life[spell_log.active_spell]) {
         // The mouse is being held down... AND the spell is not currently running.
         if(!spell_log.click_times[spell_log.active_spell]) {
             subroutine_index = glGetSubroutineIndex(shader_id, GL_FRAGMENT_SHADER, "castTeleportA");
             // And it's the first frame of it being held down...
-            glUniformSubroutinesuiv(GL_FRAGMENT_SHADER, 1, &subroutine_index);
             spell_log.click_times[spell_log.active_spell] = current_time;
         }
         spell_log.chargeSpell(current_time, 
@@ -141,7 +147,6 @@ void accountSpells(Uniforms* uniforms, SpellLog &spell_log, GLuint shader_id) {
     } else if (spell_log.click_times[spell_log.active_spell]) {
         subroutine_index = glGetSubroutineIndex(shader_id, GL_FRAGMENT_SHADER, "releaseTeleportA");
         // The mouse was JUST released
-        glUniformSubroutinesuiv(GL_FRAGMENT_SHADER, 1, &subroutine_index);
         spell_log.startSpell(current_time, 
                 uniforms->player_context->player_location->getFocus(),
                 uniforms->player_context->player_location->getHead(),
@@ -155,7 +160,7 @@ void accountSpells(Uniforms* uniforms, SpellLog &spell_log, GLuint shader_id) {
         if (spell_log.spell_life[spell_log.active_spell] == 0.0f) {
             subroutine_index = glGetSubroutineIndex(shader_id, GL_FRAGMENT_SHADER, "emptySpell");
             // The spell is complete, we change the subroutine for the last pass..
-            glUniformSubroutinesuiv(GL_FRAGMENT_SHADER, 1, &subroutine_index);
         }
-    }
+    }    
+    return subroutine_index;
 }

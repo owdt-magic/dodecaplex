@@ -31,7 +31,7 @@ struct CameraMats
     glm::mat4 Model;
 };
 void accountCameraControls(Uniforms* uniforms, CameraMats& camera_mats);
-void accountSpells(Uniforms* uniforms, SpellLog &spell_log, GLuint shader_id);
+GLuint getSpellSubroutine(Uniforms* uniforms, SpellLog &spell_log, GLuint shader_id);
 
 GLFWwindow* initializeWindow(unsigned int start_width, unsigned int start_height, const char* title);
 void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mods);
