@@ -27,7 +27,7 @@ int main() {
     float time;
     GLuint  U_RESOLUTION, U_MOUSE, U_SCROLL, U_TIME, U_CAMERA, U_WORLD, \
             U_SPELL_LIFE, U_CAST_LIFE, U_SPELL_FOCUS, U_SPELL_HEAD,
-            U_TIME_G;
+            U_FLIP_PROGRESS, U_CAMERA_BOOK;
     GLuint subroutine_index;
     CameraMats mats;
 
@@ -55,8 +55,9 @@ int main() {
             book_shader.Activate();
             texture_library.linkGrimoireLibrary(book_shader.ID);
 
-            U_TIME_G = glGetUniformLocation(book_shader.ID, "u_time");
-            
+            U_FLIP_PROGRESS = glGetUniformLocation(book_shader.ID, "u_flip_progress");
+            U_CAMERA_BOOK   = glGetUniformLocation(book_shader.ID, "CAMERA");
+
             uniforms->last_time         = glfwGetTime();
             uniforms->loading           = false;
             uniforms->player_context    = &player_context;
@@ -101,10 +102,10 @@ int main() {
         player_context.drawPlayerCellVAOs();
 
         book_shader.Activate();
+        
+        glUniformMatrix4fv(U_CAMERA_BOOK, 1, GL_FALSE, &(mats.Projection)[0][0]);
 
-        glUniform1f(U_TIME_G, time);
-
-        spell_log.drawGrimoireVAOs();
+        spell_log.drawGrimoireVAOs(U_FLIP_PROGRESS);
 
         glfwSwapBuffers(window);
         glfwPollEvents();

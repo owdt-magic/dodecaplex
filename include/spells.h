@@ -30,48 +30,25 @@ struct SpellLog
     void (*updateSpellFunction[MAX_SPELLS])(float, glm::vec3, glm::vec3, glm::vec3, int, WorldCell*, PlayerContext*) = {NULL, teleportA};
     void (*startSpellFunction[MAX_SPELLS])(glm::vec3, glm::vec3, glm::vec3, int, WorldCell*, PlayerContext*) = {NULL, teleportAStart};
 
-    void updateSpellLife(float time, PlayerContext* context) {
-        spell_life[active_spell] = 1.0f-std::max(0.0f, std::min(1.0f, (time-release_times[active_spell])/spell_durrations[active_spell]));
-        updateSpellFunction[active_spell](
-            spell_life          [active_spell], 
-            spell_head          [active_spell], 
-            cast_player_up      [active_spell],
-            cast_intercepts     [active_spell], 
-            intercept_indeces   [active_spell], 
-            world_cells         [active_spell], context);
-    };
-    void startSpell(float time, glm::vec3 focus, glm::vec3 head, glm::vec3 player_up, InterceptResult intercept_result, PlayerContext* context) {
-        spell_life          [active_spell] = 1.0f;
-        release_times       [active_spell] = time;
-        spell_focus         [active_spell] = focus;
-        spell_head          [active_spell] = head;
-        cast_player_up      [active_spell] = player_up;
-        world_cells         [active_spell] = intercept_result.cell;
-        cast_intercepts     [active_spell] = intercept_result.point;
-        intercept_indeces   [active_spell] = intercept_result.index;
-        click_times         [active_spell] = NULL;
-        startSpellFunction[active_spell](
-            spell_head          [active_spell], 
-            cast_player_up      [active_spell],
-            cast_intercepts     [active_spell], 
-            intercept_indeces   [active_spell], 
-            world_cells         [active_spell], context);
+    void updateSpellLife(float time, PlayerContext* context);
+    void startSpell(float time, glm::vec3 focus, glm::vec3 head, glm::vec3 player_up, InterceptResult intercept_result, PlayerContext* context);
+    void chargeSpell(float time, glm::vec3 focus, glm::vec3 head);    
+    
+    // Variables/Methods for drawing the Grimoire
+    float flip_start, flip_progress = 0.0f, flip_durration = 0.333f;
+    bool flip_direction = true;
 
-    };
-    void chargeSpell(float time, glm::vec3 focus, glm::vec3 head) {
-        cast_life   [active_spell] = std::max(0.0f, std::min(1.0f, (time-click_times[active_spell])/cast_durrations[active_spell]));
-        spell_focus [active_spell] = focus;
-        spell_head  [active_spell] = head;
-    };
+    void populateCurvedPageData();
+    void linkGrimoireVAOs();
+    void drawGrimoireVAOs(GLuint flip_uniform_index);
+    void flipRight(float time);
+    void flipLeft(float time);
+    void updateFlip(float time);
 
     static GLfloat curved_page_verts[PAGE_LOD*6*2];
     static GLuint curved_page_indeces[PAGE_LOD*2*3];
     
-    void populateCurvedPageData();
-    void linkGrimoireVAOs();
-    void drawGrimoireVAOs();
-
-    VAO grimoire_vao;
+    VAO covers_vao, pages_vao;
 };
 
 #endif
