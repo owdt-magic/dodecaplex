@@ -17,7 +17,7 @@ struct Uniforms
     PlayerContext* player_context;
     bool key_states[1024] = {false};
     bool click_states[3] = {false};
-    float click_times[3] = {NULL};
+    float click_times[3] = {0.0f};
     std::array<bool, 4> getWASD();
     float last_time = 0.0f;
     float this_time = 0.0f;
@@ -31,7 +31,7 @@ struct CameraMats
     glm::mat4 Model;
 };
 void accountCameraControls(Uniforms* uniforms, CameraMats& camera_mats);
-GLuint getSpellSubroutine(Uniforms* uniforms, SpellLog &spell_log, GLuint shader_id);
+GLuint getSpellSubroutine(Uniforms* uniforms, Grimoire& grimoire, GLuint shader_id);
 
 GLFWwindow* initializeWindow(unsigned int start_width, unsigned int start_height, const char* title);
 void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mods);

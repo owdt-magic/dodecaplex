@@ -1,30 +1,33 @@
 #include "spells.h"
 #include <iostream>
 
-void teleportA(float progress, glm::vec3 start, glm::vec3 start_up, glm::vec3 target, int target_index, WorldCell* cell, PlayerContext* context){
+void teleportA(SpellContext sc){
     static glm::vec3 target_head;
     static glm::vec3 direction;
-    target_head = target+cell->floor_norms[target_index]*context->player_location->getHeight();
-    direction = normalize(target_head-start)*0.01f;
-    context->player_location->teleportHead(mix(target_head, start, progress));
-    context->player_location->teleportPUp(mix(cell->floor_norms[target_index], start_up, progress));
+    target_head = sc.target+sc.cell->floor_norms[sc.target_index]*sc.context->player_location->getHeight();
+    direction = normalize(target_head-sc.start)*0.01f;
+    sc.context->player_location->teleportHead(mix(target_head, sc.start, sc.progress));
+    sc.context->player_location->teleportPUp(mix(sc.cell->floor_norms[sc.target_index], sc.start_up, sc.progress));
 };
-void teleportAStart(glm::vec3 start, glm::vec3 start_up, glm::vec3 target, int target_index, WorldCell* cell, PlayerContext* context){
-    context->player_location->setFloorIndex(target_index);
-    context->player_location->reference_cell = cell;
+void teleportAStart(SpellContext sc){
+    sc.context->player_location->setFloorIndex(sc.target_index);
+    sc.context->player_location->reference_cell = sc.cell;
 };
 
-void SpellLog::updateSpellLife(float time, PlayerContext* context) {
+void Grimoire::updateSpellLife(float time, PlayerContext* player_context) {
     spell_life[active_spell] = 1.0f-std::max(0.0f, std::min(1.0f, (time-release_times[active_spell])/spell_durrations[active_spell]));
     updateSpellFunction[active_spell](
-        spell_life          [active_spell], 
-        spell_head          [active_spell], 
-        cast_player_up      [active_spell],
-        cast_intercepts     [active_spell], 
-        intercept_indeces   [active_spell], 
-        world_cells         [active_spell], context);
+        SpellContext(            
+            spell_head          [active_spell], 
+            cast_player_up      [active_spell],
+            cast_intercepts     [active_spell], 
+            intercept_indeces   [active_spell], 
+            world_cells         [active_spell], player_context,
+            spell_life          [active_spell]
+        )
+    );
 };
-void SpellLog::startSpell(float time, glm::vec3 focus, glm::vec3 head, glm::vec3 player_up, InterceptResult intercept_result, PlayerContext* context) {
+void Grimoire::startSpell(float time, glm::vec3 focus, glm::vec3 head, glm::vec3 player_up, InterceptResult intercept_result, PlayerContext* player_context) {
     spell_life          [active_spell] = 1.0f;
     release_times       [active_spell] = time;
     spell_focus         [active_spell] = focus;
@@ -33,31 +36,34 @@ void SpellLog::startSpell(float time, glm::vec3 focus, glm::vec3 head, glm::vec3
     world_cells         [active_spell] = intercept_result.cell;
     cast_intercepts     [active_spell] = intercept_result.point;
     intercept_indeces   [active_spell] = intercept_result.index;
-    click_times         [active_spell] = NULL;
+    click_times         [active_spell] = 0.0f;
     startSpellFunction[active_spell](
-        spell_head          [active_spell], 
-        cast_player_up      [active_spell],
-        cast_intercepts     [active_spell], 
-        intercept_indeces   [active_spell], 
-        world_cells         [active_spell], context);
+        SpellContext(
+            spell_head          [active_spell], 
+            cast_player_up      [active_spell],
+            cast_intercepts     [active_spell], 
+            intercept_indeces   [active_spell], 
+            world_cells         [active_spell], player_context, 0.0f
+        )
+    );
 
 };
-void SpellLog::chargeSpell(float time, glm::vec3 focus, glm::vec3 head){
+void Grimoire::chargeSpell(float time, glm::vec3 focus, glm::vec3 head){
     cast_life   [active_spell] = std::max(0.0f, std::min(1.0f, (time-click_times[active_spell])/cast_durrations[active_spell]));
     spell_focus [active_spell] = focus;
     spell_head  [active_spell] = head;
 };
-void SpellLog::flipRight(float time){
+void Grimoire::flipRight(float time){
     flip_direction = true;
     flip_start = time;
     flip_progress = -1.0f;
 };
-void SpellLog::flipLeft(float time){
+void Grimoire::flipLeft(float time){
     flip_direction = false;
     flip_start = time;
     flip_progress = 1.0f;    
 };
-void SpellLog::updateFlip(float time){
+void Grimoire::updateFlip(float time){
     static float start = -1.0f;
     static float end = 1.0f;
     flip_progress = glm::mix(-1.0f, 1.0f, (time-flip_start)/flip_durration);
@@ -66,11 +72,11 @@ void SpellLog::updateFlip(float time){
     }
     if (!flip_direction) flip_progress *= -1.0f;
 };
-void SpellLog::linkGrimoireVAOs(){
+void Grimoire::linkGrimoireVAOs(){
     pages_vao.LinkAttrib(pages_vao.vbo, 0, 3, GL_FLOAT, 6 * sizeof(float), (void*)0); // Position attribute
     pages_vao.LinkAttrib(pages_vao.vbo, 1, 3, GL_FLOAT, 6 * sizeof(float), (void*)(3 * sizeof(float))); // Texture coord attribute
 };
-void SpellLog::drawGrimoireVAOs(GLuint flip_uniform_index){
+void Grimoire::drawGrimoireVAOs(GLuint flip_uniform_index){
     glDisable(GL_DEPTH_TEST);
     glUniform1f(flip_uniform_index, -1.0f);
     pages_vao.DrawElements(GL_TRIANGLES);
@@ -84,10 +90,10 @@ void SpellLog::drawGrimoireVAOs(GLuint flip_uniform_index){
     
 };
 
-GLfloat SpellLog::curved_page_verts[PAGE_LOD*6*2];
-GLuint SpellLog::curved_page_indeces[PAGE_LOD*2*3];
+GLfloat Grimoire::curved_page_verts[PAGE_LOD*6*2];
+GLuint Grimoire::curved_page_indeces[PAGE_LOD*2*3];
 
-void SpellLog::populateCurvedPageData() {
+void Grimoire::populateCurvedPageData() {
     static float upper_bound = 0.0f,
                 lower_bound = 1.0f,
                 left_bound  = 0.0f,
@@ -135,7 +141,7 @@ void SpellLog::populateCurvedPageData() {
 
 }
 
-SpellLog::SpellLog() {
+Grimoire::Grimoire() {
     // Initialize other members...
     populateCurvedPageData();
 }

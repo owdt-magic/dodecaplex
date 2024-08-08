@@ -19,8 +19,8 @@ int main() {
     PlayerContext player_context;
     player_context.linkPlayerCellVAOs();
     
-    SpellLog spell_log;    
-    spell_log.linkGrimoireVAOs();
+    Grimoire grimoire;    
+    grimoire.linkGrimoireVAOs();
 
     Uniforms* uniforms = getUniforms(window);
     
@@ -81,18 +81,18 @@ int main() {
         glUniform1f(U_SCROLL,       uniforms->scroll);
         glUniform1f(U_TIME, time);
 
-        subroutine_index = getSpellSubroutine(uniforms, spell_log, world_shader.ID);
+        subroutine_index = getSpellSubroutine(uniforms, grimoire, world_shader.ID);
         
         glUniformSubroutinesuiv(GL_FRAGMENT_SHADER, 1, &subroutine_index);
 
-        glUniform1f(U_CAST_LIFE,    spell_log.cast_life[spell_log.active_spell]);
-        glUniform1f(U_SPELL_LIFE,   spell_log.spell_life[spell_log.active_spell]);
-        glUniform3f(U_SPELL_FOCUS,  spell_log.spell_focus[spell_log.active_spell].x,
-                                    spell_log.spell_focus[spell_log.active_spell].y,
-                                    spell_log.spell_focus[spell_log.active_spell].z);
-        glUniform3f(U_SPELL_HEAD,   spell_log.spell_head[spell_log.active_spell].x,
-                                    spell_log.spell_head[spell_log.active_spell].y,
-                                    spell_log.spell_head[spell_log.active_spell].z);
+        glUniform1f(U_CAST_LIFE,    grimoire.cast_life[grimoire.active_spell]);
+        glUniform1f(U_SPELL_LIFE,   grimoire.spell_life[grimoire.active_spell]);
+        glUniform3f(U_SPELL_FOCUS,  grimoire.spell_focus[grimoire.active_spell].x,
+                                    grimoire.spell_focus[grimoire.active_spell].y,
+                                    grimoire.spell_focus[grimoire.active_spell].z);
+        glUniform3f(U_SPELL_HEAD,   grimoire.spell_head[grimoire.active_spell].x,
+                                    grimoire.spell_head[grimoire.active_spell].y,
+                                    grimoire.spell_head[grimoire.active_spell].z);
 
         accountCameraControls(uniforms, mats);
 
@@ -105,7 +105,7 @@ int main() {
         
         glUniformMatrix4fv(U_CAMERA_BOOK, 1, GL_FALSE, &(mats.Projection)[0][0]);
 
-        spell_log.drawGrimoireVAOs(U_FLIP_PROGRESS);
+        grimoire.drawGrimoireVAOs(U_FLIP_PROGRESS);
 
         glfwSwapBuffers(window);
         glfwPollEvents();

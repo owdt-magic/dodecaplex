@@ -131,33 +131,33 @@ void accountCameraControls(Uniforms* uniforms, CameraMats &camera_mats) {
     camera_mats.Model       = player_location->getModel( uniforms->getWASD(), dt);
 }
 
-GLuint getSpellSubroutine(Uniforms* uniforms, SpellLog &spell_log, GLuint shader_id) {
+GLuint getSpellSubroutine(Uniforms* uniforms, Grimoire& grimoire, GLuint shader_id) {
     static GLuint subroutine_index = 0;
     float current_time = glfwGetTime();
-    if (uniforms->click_states[0] && !spell_log.spell_life[spell_log.active_spell] && !spell_log.flip_progress) {
+    if (uniforms->click_states[0] && !grimoire.spell_life[grimoire.active_spell] && !grimoire.flip_progress) {
         // The mouse is being held down... AND the spell is not currently running.
-        if(!spell_log.click_times[spell_log.active_spell]) {
+        if(!grimoire.click_times[grimoire.active_spell]) {
             subroutine_index = glGetSubroutineIndex(shader_id, GL_FRAGMENT_SHADER, "castTeleportA");
             // And it's the first frame of it being held down...
-            spell_log.click_times[spell_log.active_spell] = current_time;
+            grimoire.click_times[grimoire.active_spell] = current_time;
         }
-        spell_log.chargeSpell(current_time, 
+        grimoire.chargeSpell(current_time, 
                 uniforms->player_context->player_location->getFocus(),
                 uniforms->player_context->player_location->getHead());
-    } else if (spell_log.click_times[spell_log.active_spell]) {
+    } else if (grimoire.click_times[grimoire.active_spell]) {
         subroutine_index = glGetSubroutineIndex(shader_id, GL_FRAGMENT_SHADER, "releaseTeleportA");
         // The mouse was JUST released
-        spell_log.startSpell(current_time, 
+        grimoire.startSpell(current_time, 
                 uniforms->player_context->player_location->getFocus(),
                 uniforms->player_context->player_location->getHead(),
                 uniforms->player_context->player_location->getPUp(),
                 uniforms->player_context->player_location->getIntercept(),
                 uniforms->player_context);
-    } else if (spell_log.spell_life[spell_log.active_spell]) {
+    } else if (grimoire.spell_life[grimoire.active_spell]) {
         // The spell has been cast, and will decay from 1.0f to 0.0f
         // If its at 0.0f this will not be triggered..
-        spell_log.updateSpellLife(current_time, uniforms->player_context);
-        if (spell_log.spell_life[spell_log.active_spell] == 0.0f) {
+        grimoire.updateSpellLife(current_time, uniforms->player_context);
+        if (grimoire.spell_life[grimoire.active_spell] == 0.0f) {
             subroutine_index = glGetSubroutineIndex(shader_id, GL_FRAGMENT_SHADER, "emptySpell");
             // The spell is complete, we change the subroutine for the last pass..
         }
@@ -165,11 +165,11 @@ GLuint getSpellSubroutine(Uniforms* uniforms, SpellLog &spell_log, GLuint shader
         // This is the condition where the player can change pages of their grimoire and
         // not interfere with their spells.
         if (uniforms->key_states[GLFW_KEY_E]) {
-            spell_log.flipRight(current_time);
+            grimoire.flipRight(current_time);
         } else if (uniforms->key_states[GLFW_KEY_Q]) {
-            spell_log.flipLeft(current_time);
-        } else {
-            spell_log.updateFlip(current_time);
+            grimoire.flipLeft(current_time);
+        } else if ( abs(current_time-grimoire.flip_start) < grimoire.flip_durration) {
+            grimoire.updateFlip(current_time);
         }
 
 
