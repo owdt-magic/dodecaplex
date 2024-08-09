@@ -66,11 +66,12 @@ void Grimoire::flipLeft(float time){
 void Grimoire::updateFlip(float time){
     static float start = -1.0f;
     static float end = 1.0f;
-    flip_progress = glm::mix(-1.0f, 1.0f, (time-flip_start)/flip_durration);
-    if (flip_progress > 1.0f) {
+    flip_progress = glm::mix(start, end, (time-flip_start)/flip_durration);
+    if (flip_progress > end) {
         flip_progress = 0.0f;
+    } else {
+        if (!flip_direction) flip_progress *= -1.0f;
     }
-    if (!flip_direction) flip_progress *= -1.0f;
 };
 void Grimoire::linkGrimoireVAOs(){
     pages_vao.LinkAttrib(pages_vao.vbo, 0, 3, GL_FLOAT, 6 * sizeof(float), (void*)0); // Position attribute

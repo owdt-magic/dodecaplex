@@ -168,7 +168,7 @@ GLuint getSpellSubroutine(Uniforms* uniforms, Grimoire& grimoire, GLuint shader_
             grimoire.flipRight(current_time);
         } else if (uniforms->key_states[GLFW_KEY_Q]) {
             grimoire.flipLeft(current_time);
-        } else if ( abs(current_time-grimoire.flip_start) < grimoire.flip_durration) {
+        } else if ( abs(current_time-grimoire.flip_start) < grimoire.flip_durration*1.1f) {
             grimoire.updateFlip(current_time);
         }
 
