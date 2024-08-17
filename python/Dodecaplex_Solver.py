@@ -1,8 +1,9 @@
+import random
 import numpy as np
+import matplotlib.pyplot as plt
 from sympy.utilities.iterables import multiset_permutations
-from itertools import combinations
 
-PHI = 1.61803
+PHI = (1+(5**0.5))/2
 
 def calculate_parity(permutation):
     inversions = 0
@@ -26,61 +27,96 @@ def unsigned_permutations(a,b,c,d, even=False):
         all_permutations.extend(sign_permutation)
     return {*all_permutations}
 
-# Function to check if four points are co-planar in 4D
-def are_coplanar_4d(p1, p2, p3, p4):
-    matrix = np.array([
-        [p2[i] - p1[i] for i in range(4)],
-        [p3[i] - p1[i] for i in range(4)],
-        [p4[i] - p1[i] for i in range(4)]
-    ])
-    return np.isclose(np.linalg.det(matrix.T @ matrix), 0)
+vertices = tuple(\
+tuple(unsigned_permutations(0,       0,              2,          2           )) +\
+tuple(unsigned_permutations(PHI,     PHI,            PHI,        (PHI**(-2)) )) +\
+tuple(unsigned_permutations(1,       1,              1,          (5**(0.5))  )) +\
+tuple(unsigned_permutations((1/PHI), (1/PHI),        (1/PHI),    (PHI*PHI)   )) +\
+tuple(unsigned_permutations(0,       (1/PHI),        PHI,        (5**(0.5)), even=True)) +\
+tuple(unsigned_permutations(0,       (PHI**(-2)),    1,          (PHI**2),   even=True)) +\
+tuple(unsigned_permutations((1/PHI), 1,              PHI,        2,          even=True)))
 
-vertices =\
-list(unsigned_permutations(0,       0,              2,          2           )) +\
-list(unsigned_permutations(PHI,     PHI,            PHI,        (PHI**(-2)) )) +\
-list(unsigned_permutations(1,       1,              1,          (5**(0.5))  )) +\
-list(unsigned_permutations((1/PHI), (1/PHI),        (1/PHI),    (PHI*PHI)   )) +\
-list(unsigned_permutations(0,       (1/PHI),        PHI,        (5**(0.5)), even=True)) +\
-list(unsigned_permutations(0,       (PHI**(-2)),    1,          (PHI**2),   even=True)) +\
-list(unsigned_permutations((1/PHI), 1,              PHI,        2,          even=True))
+def plot_2d_projection(vertices):
+    colors =  [(len([None for vx in vertices if np.linalg.norm(np.array(v)-np.array(vx)) < .765])**4)/10 \
+                    for v in vertices]
+
+    plt.figure(figsize=(8, 8))
+    plt.scatter(vertices[:, 0], vertices[:, 2], c=colors, s=colors)
+    for v, color in zip(vertices, colors):
+        neighbors = np.array([vx-v for vx in vertices if np.linalg.norm(np.array(v)-np.array(vx)) < .765])
+        if len(neighbors) == 5 : continue
+        plt.quiver([v[0] for x in range(len(neighbors))], 
+                   [v[1] for y in range(len(neighbors))], neighbors[:,0], neighbors[:,1], 
+                   color=['red' for c in range(len(neighbors))], angles='xy', scale_units='xy', scale=1,
+                   headwidth=4, headlength=3, width=0.002)
+
+    plt.title(f'2D Projection of vertices')
+    plt.grid(True)
+    plt.axis('equal')
+    plt.show()
+
+def plot_3d_projection(vertices):
+    scaled_vertices = vertices/abs(vertices[:,-1])[:, np.newaxis]
+    fig = plt.figure(figsize=(8, 8))
+    ax = fig.add_subplot(projection='3d')
+    ax.scatter3D(scaled_vertices[:, 0], scaled_vertices[:, 1], scaled_vertices[:, 2], s=0.1)
+    for v,vs in zip(vertices, scaled_vertices):
+        #if np.linalg.norm(vs) > 1.0 : continue
+        neighbors = np.array([sv-vs for sv, vx in zip(scaled_vertices, vertices) if np.linalg.norm(np.array(v)-np.array(vx)) < .765])
+        if (len(neighbors) == 5) : continue
+        color_new = random.choice(['red', 'green', 'blue', 'yellow', 'purple', 'cyan'])
+        plt.quiver([vs[0] for x in range(len(neighbors))], 
+                   [vs[1] for y in range(len(neighbors))], 
+                   [vs[2] for z in range(len(neighbors))], neighbors[:,0], neighbors[:,1], neighbors[:,2],
+                   color=[color_new for c in range(len(neighbors))], alpha=0.4)
+
+    plt.title(f'3D Projection of vertices')
+    plt.show()
 
 
+"""
+For every point: find it's neighbors. (there will be 48 redundant square neighbor points)
 
+Create triangles from the neighbors. Skip 7 points - they should be accounted last.
 
+Determine whether 7 points were safe to ignore (already accounted by preceeding triangles)
 
-# Find co-planar groups in 4D
-coplanar_groups = []
-import tqdm
-""" while vertices:
-    p1 = vertices.pop() """
-for p1 in vertices:
-    nearby_vertices = [v for v in vertices if np.linalg.norm(np.array(v)-np.array(p1)) < .765]
-    """     coplanar_group = [p1]
-    for p2, p3, p4 in tqdm.tqdm(list(combinations(nearby_vertices, 3))):
-        if p1 != p2 and p1 != p3 and p1 != p4 and are_coplanar_4d(p1, p2, p3, p4):
-            coplanar_group.append(p2)
-            coplanar_group.append(p3)
-            coplanar_group.append(p4) """
-    # Remove duplicates and check the size of the group
-    coplanar_group = list(set(nearby_vertices))
-    if len(coplanar_group) > 2:
-        coplanar_groups.append(coplanar_group)
+"""
+EDGE = 3 - (5**0.5)
 
-# Remove duplicate groups
-unique_coplanar_groups = []
-for group in coplanar_groups:
-    group_set = frozenset(group)
-    if group_set not in unique_coplanar_groups:
-        unique_coplanar_groups.append(group_set)
+neighborhoods = {}
 
-# Convert back to list of lists if needed
-unique_coplanar_groups = [list(group) for group in unique_coplanar_groups]
+for four_d_point in vertices:    
+    neighborhood = [v for v in vertices if 0.0 < np.linalg.norm(np.array(v)-np.array(four_d_point)) < EDGE+0.01]
+    neighborhoods[four_d_point] = neighborhood
 
-print(f"Found {len(unique_coplanar_groups)} co-planar groups")
-lengths = [len(x) for x in unique_coplanar_groups]
-dicti = {}
-for length in lengths:
-    dicti[length] = dicti.get(length, 0)
-    dicti[length] += 1
-print(f"Lengths of each group : {dicti}")
+triangles = []
+index_pattern = ((0, 1, 2), (0, 1, 3), (0, 1, 4), (0, 2, 3), (0, 2, 4))
+blacklist= []
+for origin, neighbors in neighborhoods.items():
+    if origin in blacklist: continue
+    if len(neighbors) != 4: continue
+    #if any([n[-1] == 0 for n in neighbors]): continue
 
+    for a,b in ((0, 1), (0, 2), (0, 3), (1, 2), (1, 3), (2, 3)):
+        triangles.append([origin, neighbors[a], neighbors[b]])
+    for neighbor in neighbors:
+        blacklist.append(neighbor)
+triangles = np.array(triangles)
+
+import mpl_toolkits.mplot3d as a3
+import matplotlib.colors as colors
+import pylab as pl
+
+fig = plt.figure()
+
+ax = a3.Axes3D(fig)
+b = 2
+ax.set(xlim=(-b,b), ylim=(-b,b), zlim=(-b,b))
+fig.add_axes(ax)
+for x in range(50):
+    tri = a3.art3d.Poly3DCollection([triangles[x, :, :3]]) #/(triangles[x, :,-1]**2)[:, np.newaxis]
+    tri.set_color(colors.rgb2hex(np.random.rand(3)))
+    tri.set_edgecolor('k')
+    ax.add_collection3d(tri)
+plt.show()
