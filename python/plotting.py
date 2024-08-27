@@ -3,7 +3,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import mpl_toolkits.mplot3d as a3
 import matplotlib.colors as colors
-from fourdsolids import PHI, EDGE_120CELL, EDGE_600CELL, RADIUS_120CELL, gen_dodecaplex_vertices, gen_tetraplex_vertices
+from fourdsolids import *
 
 def plot_2d_projection(vertices):
     vertices = np.array(vertices)
@@ -73,59 +73,53 @@ def plot_triangles(vertices, EDGE=EDGE_120CELL):
         ax.add_collection3d(tri)
     plt.show()
 
-dodecaplex_4d_verts = gen_dodecaplex_vertices()
-tetraplex_4d_verts = gen_tetraplex_vertices()
+def plot_isolated_cells(dodecaplex_4d_verts, tetraplex_4d_verts):
 
-def yield_dodecahedrons_from_dodecaplex():
-    for ov in tetraplex_4d_verts:
-        yield tuple(v for v in dodecaplex_4d_verts if RADIUS_120CELL-0.01 < np.linalg.norm(np.array(v)-np.array(ov)) < RADIUS_120CELL+0.01)
+    fig = plt.figure(figsize=(8, 8))
+    ax = fig.add_subplot(projection='3d')
+    count = 0
+    all_d_verts = yield_dodecahedrons_from_dodecaplex(dodecaplex_4d_verts, tetraplex_4d_verts)
 
-fig = plt.figure(figsize=(8, 8))
-ax = fig.add_subplot(projection='3d')
-count = 0
-all_d_verts = yield_dodecahedrons_from_dodecaplex()
+    color_dict = {}
+    origin = np.array(random.choice(tetraplex_4d_verts))
 
-color_dict = {}
-origin = np.array(random.choice(tetraplex_4d_verts))
-print("origin: ", origin)
-the_colors = ['black', 'orange', 'purple', 'magenta', 'green', 'red', 'black', 'yellow', 'grey', 'magenta', 'orange', 'black']
+    the_colors = ['black', 'orange', 'purple', 'magenta', 'green', 'red', 'black', 'yellow', 'grey', 'magenta', 'orange']
 
-vs, os, svs, ots = [],[],[],[]
+    np20sOff, os, svs, numpyDisps = [],[],[],[]
 
-for dodec_verts in all_d_verts:
-    vertices = np.array(dodec_verts)
-    offset = vertices-origin[np.newaxis,:]
-    #scaled_vertices = (offset)*(PHI**abs(offset[:,-1]-RADIUS_120CELL))[:, np.newaxis] 
-    scaled_vertices = vertices
-    outter_shell =  max([np.linalg.norm(x) for x in offset/(2**(offset[:,-1]/10))[:, np.newaxis] ])
-    vs.append(vertices)
-    svs.append(scaled_vertices)
-    ots.append(outter_shell)
+    for set20verts, center in zip(all_d_verts, tetraplex_4d_verts):
+        np20verts = np.array(list(set20verts))
+        np20sOff.append(np20verts-origin[np.newaxis,:])
+        disp =  np.linalg.norm(np.array(center)-origin)
+        numpyDisps.append(disp)
 
-print(set(list(ots)))
-minimum_dist = min(list(ots))
-average_dist = sum(set(list(ots)))/len(set(list(ots)))
+    minDisp = min(list(numpyDisps))
+    avrgDisp = sum(set(list(numpyDisps)))/len(set(list(numpyDisps)))
 
-for vertices, scaled_vertices, outter_shell in zip(vs, svs, ots):
-    
-    #if outter_shell > average_dist: continue
-    
-    color_new = color_dict.get(outter_shell, the_colors[len(color_dict.keys())%len(the_colors)])
-    color_dict[outter_shell] = color_new
-    
-    ax.scatter3D(scaled_vertices[:, 0], scaled_vertices[:, 1], scaled_vertices[:, 2], s=0.1)
-    for ov,osv in zip(vertices, scaled_vertices):
-        neighbors = np.array([sv-osv for v, sv in zip(vertices, scaled_vertices) if ((EDGE_120CELL-0.01) < np.linalg.norm(np.array(ov)-np.array(v)) < (EDGE_120CELL+0.01))]) 
-        plt.quiver([osv[0] for x in range(len(neighbors))], 
-                   [osv[1] for y in range(len(neighbors))], 
-                   [osv[2] for z in range(len(neighbors))], neighbors[:,0], neighbors[:,1], neighbors[:,2],
-                   color=[color_new for c in range(len(neighbors))], alpha=(1./(outter_shell**3)) if outter_shell!=minimum_dist else 1)
-    count += 1
+    for np20off, disp in zip(np20sOff, numpyDisps):
+        
+        if disp > avrgDisp: continue
+        
+        color_new = color_dict.get(disp, the_colors[len(color_dict.keys())%len(the_colors)])
+        color_dict[disp] = color_new
+        
+        for ov in np20off:
+            quiverArrows = np.array([v-ov for v in np20off if isclose(get_seperation(ov, v), EDGE_120CELL)])
+            plt.quiver([ov[0] for x in range(len(quiverArrows))], 
+                    [ov[1] for y in range(len(quiverArrows))], 
+                    [ov[2] for z in range(len(quiverArrows))], quiverArrows[:,0], quiverArrows[:,1], quiverArrows[:,2],
+                    color=[color_new for c in range(len(quiverArrows))], alpha=(1./(disp*2)**4) if disp!=minDisp else 1)
+        count += 1
 
-plt.title(f'3D Projection of vertices with {count} primitives')
-plt.show()
- 
-#plot_2d_projection(dodecaplex_4d_verts)
-#plot_3d_projection(tetraplex_4d_verts, EDGE=EDGE_600CELL)
-#plot_triangles(dodecaplex_4d_verts)
+    ax.set_xlim(-3, 3)
+    ax.set_ylim(-3, 3)
+    ax.set_zlim(-3, 3)
 
+    plt.title(f'3D Projection of vertices with {count} primitives')
+    plt.show()
+
+
+if __name__ == "__main__":
+    d4vs, t4vs = gen_dodecaplex_vertices(), gen_tetraplex_vertices()
+
+    plot_isolated_cells(d4vs, t4vs)
