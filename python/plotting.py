@@ -1,3 +1,4 @@
+import pprint
 import random
 import numpy as np
 import matplotlib.pyplot as plt
@@ -19,20 +20,24 @@ def plot_2d_projection(vertices):
     plt.title(f'2D Projection of vertices')
     plt.show()
 
-def plot_3d_projection(vertices, EDGE=EDGE_120CELL):
+def plot_3d_projection(vertices, EDGE=EDGE_120CELL, scale=3):
     vertices = np.array(vertices)
-    #scaled_vertices = vertices/abs(vertices[:,-1])[:, np.newaxis]
-    scaled_vertices = vertices/(PHI**(vertices[:,-1]/10))[:, np.newaxis]
     fig = plt.figure(figsize=(8, 8))
     ax = fig.add_subplot(projection='3d')
-    ax.scatter3D(scaled_vertices[:, 0], scaled_vertices[:, 1], scaled_vertices[:, 2], s=0.1)
-    for ov,osv in zip(vertices, scaled_vertices):
-        neighbors = np.array([sv-osv for v, sv in zip(vertices, scaled_vertices) if ((EDGE-0.01) < np.linalg.norm(np.array(ov)-np.array(v)) < (EDGE+0.01))]) 
+    ax.scatter3D(vertices[:, 0], vertices[:, 1], vertices[:, 2], s=0.1)
+    for ov,osv in zip(vertices, vertices):
+        neighbors = np.array([sv-osv for v, sv in zip(vertices, vertices) if ((EDGE-0.01) < np.linalg.norm(np.array(ov)-np.array(v)) < (EDGE+0.01))]) 
         color_new = random.choice(['red', 'green', 'blue', 'yellow', 'purple', 'cyan'])
+        if len(neighbors) < 3: 
+            continue
         plt.quiver([osv[0] for x in range(len(neighbors))], 
                    [osv[1] for y in range(len(neighbors))], 
                    [osv[2] for z in range(len(neighbors))], neighbors[:,0], neighbors[:,1], neighbors[:,2],
                    color=[color_new for c in range(len(neighbors))], alpha=0.4)
+
+    ax.set_xlim(-scale, scale)
+    ax.set_ylim(-scale, scale)
+    ax.set_zlim(-scale, scale)
 
     plt.title(f'3D Projection of vertices')
     plt.show()
@@ -73,7 +78,7 @@ def plot_triangles(vertices, EDGE=EDGE_120CELL):
         ax.add_collection3d(tri)
     plt.show()
 
-def plot_isolated_cells(dodecaplex_4d_verts, tetraplex_4d_verts):
+def plot_isolated_cells(dodecaplex_4d_verts, tetraplex_4d_verts, transformation=None):
 
     fig = plt.figure(figsize=(8, 8))
     ax = fig.add_subplot(projection='3d')
@@ -89,6 +94,7 @@ def plot_isolated_cells(dodecaplex_4d_verts, tetraplex_4d_verts):
 
     for set20verts, center in zip(all_d_verts, tetraplex_4d_verts):
         np20verts = np.array(list(set20verts))
+        if transformation is not None: np20verts = np20verts@transformation
         np20sOff.append(np20verts-origin[np.newaxis,:])
         disp =  np.linalg.norm(np.array(center)-origin)
         numpyDisps.append(disp)
@@ -117,9 +123,126 @@ def plot_isolated_cells(dodecaplex_4d_verts, tetraplex_4d_verts):
 
     plt.title(f'3D Projection of vertices with {count} primitives')
     plt.show()
+        
+def characterize_displacements(d4vs, t4vs, neighbor_map):    
+    all20sets = list(yield_dodecahedrons_from_dodecaplex(d4vs, t4vs))
+    isolated_sides = {i :
+        { n: 
+            {'points' : sub20set & all20sets[n],
+            'displacement' : tuple(t-c for c,t in zip(center,t4vs[n]))}
+            for n in neighbor_map[i]
+        } for (i, sub20set), center in zip(enumerate(all20sets), t4vs)
+    }
+    unique_displacements = []
+    all_displacements = []
+
+    for _, cell_data in isolated_sides.items():
+        for _, side_data in cell_data.items():
+            if not any( [are_close(other_disp, side_data['displacement']) for other_disp in unique_displacements] ):
+                unique_displacements.append(side_data['displacement'])
+            all_displacements.append(side_data['displacement'])
+
+                    
+    # there are 120 unique relative displacements....
+    # while there are 1440 total displacements
+
+    print(len(unique_displacements))
+    print(len(all_displacements))
+
+def plot_translated_neighbor_maps(t4vs):        
+    neighbor_map = get_neighbor_map(t4vs)
+
+    for o_idx in range(len(t4vs)):
+
+        starting_origins = []
+        neighbor_origins = []
+        for n_idx in neighbor_map[o_idx]:
+            starting_origins.append(t4vs[n_idx])
+            neighbor_origins.append(np.array([t4vs[nn_idx] for nn_idx in neighbor_map[n_idx]]))
+        starting_origins = np.array(starting_origins)
+        
+        for n_idx, (nPoints, oPoint) in enumerate(zip(neighbor_origins, starting_origins)):
+            nMean = np.mean(nPoints, axis=0)
+            assert are_close((nMean)*(2/PHI), oPoint)
+            fPoints = (nPoints-nMean[np.newaxis, :])*(2/PHI)
+            print(f"origin: {o_idx}, neighbor: {n_idx}")
+            plot_3d_projection(fPoints, scale = 0.66)
 
 
 if __name__ == "__main__":
     d4vs, t4vs = gen_dodecaplex_vertices(), gen_tetraplex_vertices()
+    nmap = get_neighbor_map(t4vs)
+    set20s = list(yield_dodecahedrons_from_dodecaplex(d4vs, t4vs))
 
-    plot_isolated_cells(d4vs, t4vs)
+    """     fig = plt.figure(figsize=(8, 8))
+    ax = fig.add_subplot(projection='3d') """
+
+    colorlist = ['red', 'green', 'blue']
+    cell_idx = 0
+
+    def add_dodec(points):
+        for ov in points:            
+            quiverArrows = np.array([v-ov for v in points if isclose(get_seperation(ov, v), EDGE_120CELL)])
+            if quiverArrows.size > 0:
+                plt.quiver([ov[0] for x in range(len(quiverArrows))], 
+                        [ov[1] for y in range(len(quiverArrows))], 
+                        [ov[2] for z in range(len(quiverArrows))], quiverArrows[:,0], quiverArrows[:,1], quiverArrows[:,2],
+                        color=colorlist[(cell_idx)%len(colorlist)], alpha=1.0)        
+
+
+    org_20_set = set20s[0]
+    all_vert_lut = np.zeros((600), np.uint8)
+    rotation_lut = {}
+    colors_ = ['red', 'green', 'blue']
+    for adj_idx in nmap[0]:
+        print(f'Neighbor {adj_idx}')
+        adj_20_set  = set20s[adj_idx]
+        adj_cent    = t4vs[adj_idx]
+        adj_rot     = mat_180_around(adj_cent[:3])
+        adj_wall    = adj_20_set & org_20_set
+
+        adj_wall_list = list(adj_wall)
+        clockwise_wall = adj_wall_list.copy()
+        mean_wall = np.mean(np.array(adj_wall_list), axis=0)
+        """ 
+        clockwise_wall.sort(key=lambda x: 
+                            np.inner(np.array(x)-mean_wall,
+                            np.array(adj_wall_list[0])-mean_wall)
+                            )
+        for start, end in zip(clockwise_wall, clockwise_wall[1:]+[clockwise_wall[0]]):
+            plt.quiver(start[0]+adj_cent[0],start[1]+adj_cent[1],start[2]+adj_cent[2], end[0]-start[0],end[1]-start[1],end[2]-start[2], color=colors_[adj_idx%len(colors_)])
+         """
+        rot_axis            = adj_cent[:3]
+        rot_mat             = mat_180_around(rot_axis)
+        adj_20_arr          = np.array(list(adj_20_set))
+        dst_20_arr          = np.array(list(org_20_set))
+        org_20_arr          = np.copy(dst_20_arr)
+        dst_20_arr[:,:3]    = np.matmul(rot_mat, dst_20_arr[:,:3].T).T
+
+        idx_map = np.zeros((20), np.uint)
+        for in_adj_idx, adj_point in enumerate(adj_20_arr):
+            for dst_idx, dst_point in enumerate(dst_20_arr):
+                if np.all(np.linalg.norm(np.cross(np.array(rot_axis), np.array(adj_point-dst_point)[:3])) < 0.01):
+                    idx_map[in_adj_idx] = dst_idx
+        
+        print(adj_20_arr.shape)
+        print(dst_20_arr.shape)
+
+        adj_20_arr_old = np.copy(adj_20_arr)
+
+        for t,f in enumerate(idx_map):
+            adj_20_arr[f, :] = adj_20_arr_old[t, :]
+
+        fourdee = np.linalg.lstsq(adj_20_arr, dst_20_arr)
+        print(fourdee)
+        #a @ x = b
+
+        plot_3d_projection(np.concatenate((adj_20_arr@fourdee[0],adj_20_arr)))
+        
+        
+
+    """ ax.set_xlim(-3, 3)
+    ax.set_ylim(-3, 3)
+    ax.set_zlim(-3, 3) """
+
+    # plt.show()
