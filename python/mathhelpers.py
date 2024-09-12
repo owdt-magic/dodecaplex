@@ -55,6 +55,22 @@ def get_str_repr(v):
     elif v == 2.0:                  return f'   {o}2'
     else: return o+str(v)
 
+def get_cpp_repr(v):
+    o = ' ' if v >= 0 else '-'
+    v = abs(v)
+    if   v == 1.618033988749895:    return f'            {o}PHI'
+    elif v == 0.38196601125010515:  return f' {o}1.0f/(PHI*PHI)'
+    elif v == 2.23606797749979:     return f'      {o}ROOT_FIVE'
+    elif v == 0.6180339887498948:   return f'       {o}1.0f/PHI'
+    elif v == 2.618033988749895:    return f'        {o}PHI*PHI'
+    elif v == 0.3090169943749474:   return f'{o}1.0f/(2.0f*PHI)'
+    elif v == 0.8090169943749475:   return f'       {o}PHI/2.0f'
+    elif v == 1:                    return f'           {o}1.0f'
+    elif v == 0:                    return f'           {o}0.0f'
+    elif v == 0.5:                  return f'           {o}0.5f'
+    elif v == 2.0:                  return f'           {o}2.0f'
+    else: return o+str(v)
+
 def mat_180_around(invec3):
     invec3 = np.array(invec3)
     x, y, z = invec3/np.linalg.norm(invec3)

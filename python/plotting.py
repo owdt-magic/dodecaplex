@@ -1,3 +1,4 @@
+import os
 import pprint
 import random
 import matplotlib.animation
@@ -8,6 +9,7 @@ import matplotlib.colors as colors
 import matplotlib
 from fourdsolids import *
 from scipy.spatial import ConvexHull
+from scipy.spatial.qhull import QhullError
 
 def plot_2d_projection(vertices):
     vertices = np.array(vertices)
@@ -187,8 +189,8 @@ def solve_primary_neighbor_transforms(d4vs, t4vs):
 
     org_20_set = set20s[0]
     
-    core_transforms = {}
-    
+    #core_transforms = {}
+    all_transforms = {}
     for adj_idx in get_neighbors(t4vs[0], t4vs):
         adj_20_set  = set20s[adj_idx]
         adj_cent    = t4vs[adj_idx]
@@ -197,6 +199,7 @@ def solve_primary_neighbor_transforms(d4vs, t4vs):
         rot_mat             = mat_180_around(rot_axis)
         adj_20_arr          = np.array(list(adj_20_set))
         dst_20_arr          = np.array(list(org_20_set))
+        org_20_arr          = np.copy(dst_20_arr)
         dst_20_arr[:,:3]    = dst_20_arr[:,:3]@rot_mat
 
         idx_map = np.zeros((20), np.uint)
@@ -208,15 +211,82 @@ def solve_primary_neighbor_transforms(d4vs, t4vs):
         for t,f in enumerate(idx_map):
             adj_20_arr[f, :] = adj_20_arr_old[t, :]
 
-        fourdee = np.linalg.lstsq(adj_20_arr, dst_20_arr)
-        translated = adj_20_arr@fourdee[0]
-        
+        fourdee = np.linalg.lstsq(adj_20_arr, org_20_arr)
+        #translated = adj_20_arr@fourdee[0]
+        all_transforms[adj_cent] = fourdee[0]
         #translated[:,:3] =translated[:,:3]@np.linalg.inv(rot_mat)
-        plot_3d_hulls([adj_20_arr, translated])
-        core_transforms[rot_axis] = tuple(rot_mat, fourdee)
+        #plot_3d_hulls([adj_20_arr, translated])
+        #core_transforms[rot_axis] = tuple(rot_mat, fourdee)
+    return all_transforms
 
+def write_declarations(d4vs, t4vs):
+    vertices = '\n'.join([f"{a}, {b}, {c}, {d}," for a,b,c,d in d4vs])
+    d4v_arr = np.array(list(d4vs))
+    print(d4v_arr.shape)
+    indeces = []
+    fourdee_mats = solve_primary_neighbor_transforms(d4vs, t4vs)
+    #fourdee = fourdee_mats[list(fourdee_mats.keys())[0]] # Arbitrary transform
+
+    raw_indeces = {}
+
+    def format_indeces(x, super_index, cell_idx):
+        out_str = ''
+        raw_indeces[cell_idx] = []
+        for i, (a,b,c) in enumerate(x):
+            if i%6 == 0:
+                out_str+= '\n'
+            tri_str = f"{super_index[a]}, {super_index[b]}, {super_index[c]},"
+            gap = " "*(15 - len(tri_str))
+            out_str += gap+tri_str
+            raw_indeces[cell_idx].append((super_index[a], super_index[b], super_index[c]))
+        return out_str
+
+    for cell_idx, d in enumerate(yield_indexed_dodecahedrons_from_dodecaplex(d4vs, t4vs)):
+        hull=None
+        point_array = np.array([list(p[1]) for p in d])        
+        while hull == None:
+            try:
+                hull = ConvexHull(point_array[:,:3])
+                assert len(hull.simplices) == 36
+            except AssertionError:
+                print(len(hull.simplices))
+            except QhullError:
+                hull=None                
+                point_array = point_array@fourdee_mats[random.choice(list(fourdee_mats.keys()))]
+                # The current dodecahedron is currently flat in 3D, so we apply a transform to make it 
+                # solvable to the hull alg.
+        indeces.append(format_indeces(hull.simplices, [p[0] for p in d], cell_idx))
+
+    np.set_printoptions(suppress=True)
+
+    axiis, mats = [], []
+
+    for key, value in fourdee_mats.items():
+        axiis.append(f"glm::vec4({','.join([str(k) for k in list(key)])})")
+        mats.append('{'+','.join(['{0:0.8f}'.format(f).rstrip('0').rstrip('.') for f in value.flat])+'}')
+
+    neighbor_data = {}
+    for key_a, value_a in raw_indeces.items():
+        neighbor_data[key_a] = [None]*36
+        for key_b, value_b in raw_indeces.items():
+            if key_a == key_b: continue
+            all_trips = []
+            for b, trip_b in enumerate(value_b):
+                all_trips.extend(trip_b)
+            for a, trip_a in enumerate(value_a):
+                if len(set(trip_a).intersection(set(all_trips))) == 3:
+                    neighbor_data[key_a][a] = key_b
+
+    with open('dodecaplex.h', 'w') as dph:
+        dph.write(',\n'.join([str(nd[::3]).strip('[]') for k, nd  in neighbor_data.items()]))
+        #dph.write(vertices)
+        #dph.write('\n'+'\n'.join([f'//------Cell {i}------{x}'for i, x in enumerate(indeces)]))
+        """ dph.write('\n'+'\n'.join(axiis))
+        dph.write('\n'+'\n'.join(mats)) """
+    
 if __name__ == "__main__":   
     d4vs, t4vs = gen_dodecaplex_vertices(), gen_tetraplex_vertices()
-    solve_primary_neighbor_transforms(d4vs, t4vs)
-    #nmap = get_neighbor_map(t4vs)
-    #neighbor_arr = np.array([t4vs[ni] for ni in nmap[x]])
+    write_declarations(d4vs, t4vs)
+    """ core_transforms = solve_primary_neighbor_transforms(d4vs, t4vs)
+    nmap = get_neighbor_map(t4vs)
+    for key, value in nmap.items(): """

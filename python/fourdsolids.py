@@ -38,7 +38,7 @@ def _assemble_perms(points, evens):
     out = []
     for p,e in zip(points, evens):
         out.extend([
-                tuple(NamedFloat(x, get_str_repr(x)) for x in q) 
+                tuple(NamedFloat(x, get_cpp_repr(x)) for x in q) 
                     for q in unsigned_permutations(p,e)])
     return tuple(out)
 
@@ -59,6 +59,12 @@ def get_neighbors(origin, others):
 def yield_dodecahedrons_from_dodecaplex(dodecaplex_4d_verts, tetraplex_4d_verts):
     for ov in tetraplex_4d_verts:
         cell_points = set(v for v in dodecaplex_4d_verts if isclose(get_seperation(v, ov), RADIUS_120CELL))
+        assert len(cell_points) == 20
+        yield cell_points
+
+def yield_indexed_dodecahedrons_from_dodecaplex(dodecaplex_4d_verts, tetraplex_4d_verts):
+    for ov in tetraplex_4d_verts:
+        cell_points = set(tuple((i,v)) for i,v in enumerate(dodecaplex_4d_verts) if isclose(get_seperation(v, ov), RADIUS_120CELL))
         assert len(cell_points) == 20
         yield cell_points
 

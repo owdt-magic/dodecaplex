@@ -3,6 +3,7 @@
 
 #include "cell.h"
 #include "bufferObjects.h"
+#include "dodecaplex.h"
 #include <time.h>
 #include <vector>
 
@@ -49,6 +50,8 @@ private:
 struct PlayerContext {
     void linkPlayerCellVAOs();
     void drawPlayerCellVAOs();
+    void linkDodecaplexVAOs();
+    void drawDodecaplexVAOs();
     PlayerLocation* player_location = NULL;
     PlayerContext();
 private:

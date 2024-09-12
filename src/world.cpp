@@ -12,7 +12,7 @@ PlayerContext::PlayerContext() {
     if (player_location == NULL) {
         player_location = new PlayerLocation();
     }
-    srand(time(NULL)); // Randomize the map...
+    //srand(time(NULL)); // Randomize the map...
 };
 VAO cellToVAO(WorldCell& cell, GLfloat* cell_vert_buff, GLuint* cell_indx_buff,\
                              std::size_t v_buff_size, std::size_t i_buff_size) {
@@ -34,11 +34,12 @@ VAO cellToVAO(WorldCell& cell, GLfloat* cell_vert_buff, GLuint* cell_indx_buff,\
 
 std::vector<WorldCell*> PlayerContext::establishNeighborhood() {    
     std::vector<WorldCell*> neighbors = {player_location->reference_cell};
-    int n, generation_size;
-    int max_adjacent = 5;
-    int max_attempts = 5;
-    int max_generations = 3;
-    int last_generation = 0;
+    static int n, generation_size, last_generation = 0;
+    static const int 
+        max_adjacent = 1,
+        max_attempts = 100,
+        max_generations = 1;
+
     WorldCell* new_cell;
 
     auto notTooClose = [&](WorldCell* cell) {
@@ -47,7 +48,7 @@ std::vector<WorldCell*> PlayerContext::establishNeighborhood() {
         return true;
     };
     auto assignNeighbors = [&](WorldCell* cell) {
-        for (int i = 0; i < rand()%max_adjacent; i++) {
+        for (int i = 0; i < max_adjacent; i++) {
             for (int j = 0; j < max_attempts; j++) {
                 n = rand()%12;
                 if (!cell->canAddDoor(n)) continue;
@@ -71,6 +72,65 @@ std::vector<WorldCell*> PlayerContext::establishNeighborhood() {
     }
     return neighbors;
 };
+
+std::size_t initializeDodecaplexStates(GLuint* index_buffer){
+    int dest = 0,
+        read = 0;
+    bool load_cell[120];
+    
+    for (int ci = 1; ci < 120; ci++){
+        load_cell[ci] = (rand()%2);
+    }
+    load_cell[0] = true;
+
+    for (int ci = 0; ci < 120; ci++) {
+        if (load_cell[ci]) {
+            for (int ord_idx = ci*12; ord_idx < ci*12 + 12; ord_idx++){
+                if (!load_cell[neighbor_side_orders[ord_idx]]) {
+                    // Current cell is being drawn, neighbor is not...
+                    // the requires we draw the wall / face...
+                    for (int nine = 0; nine < 9; nine++) {
+                        // 3 triangles / face * 3 points / triangle
+                        index_buffer[dest++] = dodecaplex_cell_indxs[read++];
+                    }
+
+                } else {
+                    read += 9;
+                }
+            }
+        } else {
+            read += 108;
+        }
+    }
+
+    return (std::size_t) sizeof(GLuint)*dest;
+};
+
+void PlayerContext::linkDodecaplexVAOs() {
+    std::size_t index_max_size = 120*36*3*sizeof(GLuint);
+    
+    GLuint* index_buffer = (GLuint*) malloc(index_max_size);
+    
+    std::size_t index_real_size = initializeDodecaplexStates(index_buffer);
+
+    VAO dodecaplex_vao(
+        (GLfloat*) &dodecaplex_cell_verts, sizeof(GLfloat)*600*4,
+        (GLuint*) index_buffer, index_real_size
+    );
+
+    dodecaplex_vao.LinkAttrib(dodecaplex_vao.vbo, 0, 4, GL_FLOAT, 4*sizeof(float), (void*)0);
+    all_vaos.push_back(dodecaplex_vao);
+
+    free(index_buffer);
+
+};
+
+void PlayerContext::drawDodecaplexVAOs() {
+    for (int i = 0; i < all_vaos.size(); i++){
+        all_vaos[i].DrawElements(GL_TRIANGLES);
+    }    
+};
+
 void PlayerContext::linkPlayerCellVAOs() {
     std::vector<WorldCell*> neighborhood = establishNeighborhood();
 
@@ -96,8 +156,8 @@ void PlayerContext::drawPlayerCellVAOs() {
 PlayerLocation::PlayerLocation() {
     if (reference_cell == NULL) reference_cell = new WorldCell();
     floor_indx  = getFloorIndex(); 
-    player_up   = reference_cell->floor_norms[floor_indx];
-    vec3 floor  = reference_cell->sides[floor_indx].findIntercept(vec3(0.),-player_up);
+    player_up   = vec3(0,0,1);//reference_cell->floor_norms[floor_indx];
+    vec3 floor  = vec3(0,0,-1);//reference_cell->sides[floor_indx].findIntercept(vec3(0.),-player_up);
 
     head = floor + player_up*height;
 };
