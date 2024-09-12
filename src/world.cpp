@@ -79,9 +79,10 @@ std::size_t initializeDodecaplexStates(GLuint* index_buffer){
     bool load_cell[120];
     
     for (int ci = 1; ci < 120; ci++){
-        load_cell[ci] = (rand()%2);
+        load_cell[ci] = false;//(rand()%2);
     }
     load_cell[0] = true;
+    load_cell[73] = true;
 
     for (int ci = 0; ci < 120; ci++) {
         if (load_cell[ci]) {
@@ -115,10 +116,13 @@ void PlayerContext::linkDodecaplexVAOs() {
 
     VAO dodecaplex_vao(
         (GLfloat*) &dodecaplex_cell_verts, sizeof(GLfloat)*600*4,
+        (GLfloat*) &neighbor_transforms[6], sizeof(glm::mat4),
         (GLuint*) index_buffer, index_real_size
     );
 
     dodecaplex_vao.LinkAttrib(dodecaplex_vao.vbo, 0, 4, GL_FLOAT, 4*sizeof(float), (void*)0);
+    dodecaplex_vao.LinkMat4(dodecaplex_vao.cbo, 1);
+
     all_vaos.push_back(dodecaplex_vao);
 
     free(index_buffer);

@@ -220,9 +220,11 @@ def solve_primary_neighbor_transforms(d4vs, t4vs):
     return all_transforms
 
 def write_declarations(d4vs, t4vs):
+
     vertices = '\n'.join([f"{a}, {b}, {c}, {d}," for a,b,c,d in d4vs])
+
     d4v_arr = np.array(list(d4vs))
-    print(d4v_arr.shape)
+    
     indeces = []
     fourdee_mats = solve_primary_neighbor_transforms(d4vs, t4vs)
     #fourdee = fourdee_mats[list(fourdee_mats.keys())[0]] # Arbitrary transform
@@ -266,6 +268,7 @@ def write_declarations(d4vs, t4vs):
         mats.append('{'+','.join(['{0:0.8f}'.format(f).rstrip('0').rstrip('.') for f in value.flat])+'}')
 
     neighbor_data = {}
+    
     for key_a, value_a in raw_indeces.items():
         neighbor_data[key_a] = [None]*36
         for key_b, value_b in raw_indeces.items():
@@ -276,11 +279,35 @@ def write_declarations(d4vs, t4vs):
             for a, trip_a in enumerate(value_a):
                 if len(set(trip_a).intersection(set(all_trips))) == 3:
                     neighbor_data[key_a][a] = key_b
+    points = []
+
+    def characterize_deltas(points, key):
+        np_points = np.array([d4vs[y] for y in list(set(points))])
+        change = np_points-np_points[key,:]
+        lens = [np.linalg.norm(x) for x in change]
+        closers = [i for i,x in enumerate(lens) if isclose(x, 0.763932, rel_tol=0.001)]
+        futhurs = [i for i,x in enumerate(lens) if isclose(x, 1.236067, rel_tol=0.001)]
+        return (closers, futhurs)
+
+    texture_corners = []
+
+    for cell_id in range(120):
+        for i, x in enumerate(raw_indeces[cell_id]):
+            points.extend(x)
+            if (i+1)%3==0:
+                csa, fsa = characterize_deltas(points, 0)
+                csb, fsb = characterize_deltas(points, fsa[0])
+
+                order = [0, list(set(csa).intersection(set(csb))).pop(), fsa[0], fsa[1], list(set(csa).intersection(set(fsb))).pop()]
+                texture_corners.append(order)
+                points=[]
+
 
     with open('dodecaplex.h', 'w') as dph:
-        dph.write(',\n'.join([str(nd[::3]).strip('[]') for k, nd  in neighbor_data.items()]))
+        #dph.write(',\n'.join([str(nd[::3]).strip('[]') for k, nd  in neighbor_data.items()]))
         #dph.write(vertices)
         #dph.write('\n'+'\n'.join([f'//------Cell {i}------{x}'for i, x in enumerate(indeces)]))
+        dph.write(',\n'.join([str(x).strip('[]') for x in texture_corners]))
         """ dph.write('\n'+'\n'.join(axiis))
         dph.write('\n'+'\n'.join(mats)) """
     
