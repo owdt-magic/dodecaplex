@@ -25,7 +25,7 @@ static GLfloat dodecaplex_cell_verts[600*4] = { // points*dimensions
             2.0f,             0.0f,             0.0f,             2.0f,
             0.0f,             0.0f,            -2.0f,            -2.0f,
             0.0f,             2.0f,             0.0f,             2.0f,
-            0.0f,             0.0f,             2.0f,             -2.0f,
+            0.0f,             0.0f,             2.0f,            -2.0f,
            -2.0f,            -2.0f,             0.0f,             0.0f,
            -2.0f,             0.0f,             0.0f,             2.0f,
             0.0f,            -2.0f,             0.0f,             2.0f,
@@ -1579,92 +1579,97 @@ static uint neighbor_side_orders[120*12] = { //cells*neighbors
 };
 
 static glm::vec4 neighbor_offsets[12] = {
-     glm::vec4(            0.5f, 1.0f/(2.0f*PHI),            0.0f,        PHI/2.0f),
-     glm::vec4( 1.0f/(2.0f*PHI),            0.0f,           -0.5f,        PHI/2.0f),
-     glm::vec4(            0.0f,            0.5f,-1.0f/(2.0f*PHI),        PHI/2.0f),
-     glm::vec4(           -0.5f,-1.0f/(2.0f*PHI),            0.0f,        PHI/2.0f),
-     glm::vec4(            0.5f,-1.0f/(2.0f*PHI),            0.0f,        PHI/2.0f),
-     glm::vec4(-1.0f/(2.0f*PHI),            0.0f,            0.5f,        PHI/2.0f),
-     glm::vec4(            0.0f,           -0.5f, 1.0f/(2.0f*PHI),        PHI/2.0f),
-     glm::vec4(-1.0f/(2.0f*PHI),            0.0f,           -0.5f,        PHI/2.0f),
-     glm::vec4( 1.0f/(2.0f*PHI),            0.0f,            0.5f,        PHI/2.0f),
-     glm::vec4(            0.0f,           -0.5f,-1.0f/(2.0f*PHI),        PHI/2.0f),
-     glm::vec4(           -0.5f, 1.0f/(2.0f*PHI),            0.0f,        PHI/2.0f),
-     glm::vec4(            0.0f,            0.5f, 1.0f/(2.0f*PHI),        PHI/2.0f)
+     glm::vec4( 0.0f,              0.5f,    1.0f/(2.0f*PHI),        PHI/2.0f),
+     glm::vec4( 0.0f,             -0.5f,   -1.0f/(2.0f*PHI),        PHI/2.0f),
+     glm::vec4( 0.0f,              0.5f,   -1.0f/(2.0f*PHI),        PHI/2.0f),
+     glm::vec4( 0.0f,             -0.5f,    1.0f/(2.0f*PHI),        PHI/2.0f),
+
+     glm::vec4( 1.0f/(2.0f*PHI),   0.0f,               0.5f,        PHI/2.0f),
+     glm::vec4(-1.0f/(2.0f*PHI),   0.0f,              -0.5f,        PHI/2.0f),
+     glm::vec4(-1.0f/(2.0f*PHI),   0.0f,               0.5f,        PHI/2.0f),
+     glm::vec4( 1.0f/(2.0f*PHI),   0.0f,              -0.5f,        PHI/2.0f),
+
+     glm::vec4( 0.5f,   1.0f/(2.0f*PHI),               0.0f,        PHI/2.0f),
+     glm::vec4(-0.5f,  -1.0f/(2.0f*PHI),               0.0f,        PHI/2.0f),
+     glm::vec4( 0.5f,  -1.0f/(2.0f*PHI),               0.0f,        PHI/2.0f),
+     glm::vec4(-0.5f,   1.0f/(2.0f*PHI),               0.0f,        PHI/2.0f),
 };
 
 static glm::mat4 neighbor_transforms[12] = {
+     glm::mat4({
+         -1.0f,    0.0f,               0.0f,               0.0f,
+          0.0f,    1.0f/(2.0f*PHI),    PHI/2.0f,           0.5f,
+          0.0f,    PHI/2.0f,          -0.5f,               1.0f/(2.0f*PHI),
+          0.0f,   -0.5f,              -1.0f/(2.0f*PHI),    PHI/2.0f
+     }),
+     glm::mat4({
+         -1.0f,    0.0f,               0.0f,               0.0f,
+          0.0f,    1.0f/(2.0f*PHI),    PHI/2.0f,          -0.5f,
+          0.0f,    PHI/2.0f,          -0.5f,              -1.0f/(2.0f*PHI),
+          0.0f,    0.5f,               1.0f/(2.0f*PHI),    PHI/2.0f
+     }),
+     glm::mat4({
+         -1.0f,    0.0f,                0.0f,              0.0f,
+          0.0f,    1.0f/(2.0f*PHI),    -PHI/2.0f,          0.5f,
+          0.0f,   -PHI/2.0f,           -0.5f,             -1.0f/(2.0f*PHI),
+          0.0f,   -0.5f,                1.0f/(2.0f*PHI),   PHI/2.0f
+     }),
+     glm::mat4({
+         -1.0f,    0.0f,                0.0f,              0.0f,
+          0.0f,    1.0f/(2.0f*PHI),    -PHI/2.0f,         -0.5f,
+          0.0f,   -PHI/2.0f,           -0.5f,              1.0f/(2.0f*PHI),
+          0.0f,    0.5f,               -1.0f/(2.0f*PHI),   PHI/2.0f
+     }),
+
+     glm::mat4({
+         -0.5f,              0.0f,     PHI/2.0f,           1.0f/(2.0f*PHI),
+          0.0f,             -1.0f,     0.0f,               0.0f,
+          PHI/2.0f,          0.0f,     1.0f/(2.0f*PHI),    0.5f,
+         -1.0f/(2.0f*PHI),   0.0f,    -0.5f,               PHI/2.0f
+     }),
+     glm::mat4({
+         -0.5f,              0.0f,     PHI/2.0f,          -1.0f/(2.0f*PHI),
+          0.0f,             -1.0f,     0.0f,               0.0f,
+          PHI/2.0f,          0.0f,     1.0f/(2.0f*PHI),   -0.5f,
+          1.0f/(2.0f*PHI),   0.0f,     0.5f,               PHI/2.0f
+     }),
+     glm::mat4({
+         -0.5f,              0.0f,    -PHI/2.0f,          -1.0f/(2.0f*PHI),
+          0.0f,             -1.0f,     0.0f,               0.0f,
+         -PHI/2.0f,          0.0f,     1.0f/(2.0f*PHI),    0.5f,
+          1.0f/(2.0f*PHI),   0.0f,    -0.5f,               PHI/2.0f
+     }),
+     glm::mat4({
+         -0.5f ,             0.0f,    -PHI/2.0f,           1.0f/(2.0f*PHI),
+          0.0f,             -1.0f,     0.0f,               0.0f,
+         -PHI/2.0f,          0.0f,     1.0f/(2.0f*PHI),   -0.5f,
+         -1.0f/(2.0f*PHI),   0.0f,     0.5f,               PHI/2.0f
+     }),
+
      glm::mat4({    
-          (PHI-1.0f)/2.0f,     PHI/2.0f,          0.0f,      0.5f, 
-          PHI/2.0f,          -0.5f,              0.0f,      (PHI-1.0f)/2.0f,
-          0.0f,               0.0f,             -1.0f,      0.0f, 
-          -0.5f,              -(PHI-1.0f)/2.0f,   0.0f,      PHI/2.0f 
+          1.0f/(2.0f*PHI),   PHI/2.0f,          0.0f,      0.5f, 
+          PHI/2.0f,         -0.5f,              0.0f,      1.0f/(2.0f*PHI),
+          0.0f,              0.0f,             -1.0f,      0.0f, 
+         -0.5f,             -1.0f/(2.0f*PHI),   0.0f,      PHI/2.0f 
      }),
      glm::mat4({
-          -0.5f,              0.0f,     -PHI/2.0f,          (PHI-1.0f)/2.0f,
-          0.0f,             -1.0f,     0.0f,                0.0f,
-          -PHI/2.0f,          0.0f,     (PHI-1.0f)/2.0f,    -0.5f,
-          -(PHI-1.0f)/2.0f,   0.0f,     0.5f,               PHI/2.0f
+          1.0f/(2.0f*PHI),   PHI/2.0f,          0.0f,     -0.5f,
+          PHI/2.0f,         -0.5f,              0.0f,     -1.0f/(2.0f*PHI),
+          0.0f,              0.0f,             -1.0f,      0.0f,
+          0.5f,              1.0f/(2.0f*PHI),   0.0f,      PHI/2.0f
      }),
      glm::mat4({
-          -1.0f,    0.0f,                0.0f,              0.0f,
-          0.0f,    (PHI-1.0f)/2.0f,    -PHI/2.0f,          0.5f,
-          0.0f,    -PHI/2.0f,          -0.5f,              -(PHI-1.0f)/2.0f,
-          0.0f,    -0.5f,              (PHI-1.0f)/2.0f,    PHI/2.0f
+          1.0f/(2.0f*PHI),  -PHI/2.0f,          0.0f,      0.5f,
+         -PHI/2.0f,         -0.5f,              0.0f,     -1.0f/(2.0f*PHI),
+          0.0f,              0.0f,             -1.0f,      0.0f,
+         -0.5f,              1.0f/(2.0f*PHI),   0.0f,      PHI/2.0f
      }),
+
      glm::mat4({
-          (PHI-1.0f)/2.0f,    PHI/2.0f,           0.0f,     -0.5f,
-          PHI/2.0f,           -0.5f,              0.0f,     -(PHI-1.0f)/2.0f,
-          0.0f,                0.0f,             -1.0f,     0.0f,
-          0.5f,               (PHI-1.0f)/2.0f,    0.0f,     PHI/2.0f
-     }),
-     glm::mat4({
-          (PHI-1.0f)/2.0f,    -PHI/2.0f,          0.0f,     0.5f,
-          -PHI/2.0f,          -0.5f,              0.0f,     -(PHI-1.0f)/2.0f,
-          0.0f,               0.0f,              -1.0f,     0.0f,
-          -0.5f,              (PHI-1.0f)/2.0f,    0.0f,     PHI/2.0f
-     }),
-     glm::mat4({
-          -0.5f,              0.0f,     -PHI/2.0f,          -(PHI-1.0f)/2.0f,
-          0.0f,              -1.0f,     0.0f,               0.0f,
-          -PHI/2.0f,          0.0f,     (PHI-1.0f)/2.0f,    0.5f,
-          (PHI-1.0f)/2.0f,    0.0f,     -0.5f,              PHI/2.0f
-     }),
-     glm::mat4({
-          -1.0f,    0.0f,               0.0f,               0.0f,
-          0.0f,    (PHI-1.0f)/2.0f,    -PHI/2.0f,          -0.5f,
-          0.0f,    -PHI/2.0f,          -0.5f,              (PHI-1.0f)/2.0f,
-          0.0f,    0.5f,               -(PHI-1.0f)/2.0f,   PHI/2.0f
-     }),
-     glm::mat4({
-          -0.5f,              0.0f,     PHI/2.0f,           -(PHI-1.0f)/2.0f,
-          0.0f,              -1.0f,     0.0f,               0.0f,
-          PHI/2.0f,           0.0f,     (PHI-1.0f)/2.0f,    -0.5f,
-          (PHI-1.0f)/2.0f,    0.0f,     0.5f,               PHI/2.0f
-     }),
-     glm::mat4({
-          -0.5f,              0.0f,     PHI/2.0f,           (PHI-1.0f)/2.0f,
-          0.0f,              -1.0f,     0.0f,               0.0f,
-          PHI/2.0f,           0.0f,     (PHI-1.0f)/2.0f,    0.5f,
-          -(PHI-1.0f)/2.0f,   0.0f,     -0.5f,              PHI/2.0f
-     }),
-     glm::mat4({
-          -1.0f,    0.0f,               0.0f,               0.0f,
-          0.0f,    (PHI-1.0f)/2.0f,    PHI/2.0f,           -0.5f,
-          0.0f,    PHI/2.0f,           -0.5f,              -(PHI-1.0f)/2.0f,
-          0.0f,    0.5f,               (PHI-1.0f)/2.0f,    PHI/2.0f
-     }),
-     glm::mat4({
-          (PHI-1.0f)/2.0f,    -PHI/2.0f,          0.0f,     -0.5f,
-          -PHI/2.0f,          -0.5f,              0.0f,     (PHI-1.0f)/2.0f,
-          0.0f,               0.0f,              -1.0f,     0.0f,
-          0.5f,               -(PHI-1.0f)/2.0f,   0.0f,     PHI/2.0f
-     }),
-     glm::mat4({
-          -1.0f,    0.0f,               0.0f,               0.0f,
-          0.0f,    (PHI-1.0f)/2.0f,    PHI/2.0f,           0.5f,
-          0.0f,    PHI/2.0f,           -0.5f,              (PHI-1.0f)/2.0f,
-          0.0f,    -0.5f,              -(PHI-1.0f)/2.0f,   PHI/2.0f
+          1.0f/(2.0f*PHI),  -PHI/2.0f,          0.0f,     -0.5f,
+         -PHI/2.0f,         -0.5f,              0.0f,      1.0f/(2.0f*PHI),
+          0.0f,              0.0f,             -1.0f,      0.0f,
+          0.5f,             -1.0f/(2.0f*PHI),   0.0f,      PHI/2.0f
      })
 };
 

@@ -1,4 +1,5 @@
 import numpy as np
+import matplotlib
 from math import isclose
 from sympy.utilities.iterables import multiset_permutations
 
@@ -79,3 +80,7 @@ def mat_180_around(invec3):
         [2*x*y,     2*y*y-1,    2*z*y   ],
         [2*x*z,     2*y*z,      2*z*z-1 ]
     ])
+
+def vector_to_rgb(disp):
+    disp = disp/np.linalg.norm(disp)
+    return matplotlib.colors.hsv_to_rgb((disp[0]/2+.5, 1, 1))

@@ -1,4 +1,5 @@
 #include "world.h"
+#include "glm/gtx/string_cast.hpp"
 
 #define MAX_CELL_VERTS 60 
     // 20 corners x3 redundancy for unique sides. 
@@ -75,14 +76,28 @@ std::vector<WorldCell*> PlayerContext::establishNeighborhood() {
 
 std::size_t initializeDodecaplexStates(GLuint* index_buffer){
     int dest = 0,
-        read = 0;
+        read = 0,
+        n,m;
     bool load_cell[120];
     
     for (int ci = 1; ci < 120; ci++){
-        load_cell[ci] = false;//(rand()%2);
+        load_cell[ci] = false;//!(rand()%10);
+    }
+    
+    for (int i =0; i < 12; i++) {
+        n = neighbor_side_orders[i];
+        for (int j=0; j < 12; j++) {
+            m = neighbor_side_orders[n*12 + j];
+            load_cell[m] = rand()%2;
+            /* for (int k=0; k < 12; k++) {
+                if (!load_cell[neighbor_side_orders[m*12 + k]]){
+                    load_cell[neighbor_side_orders[m*12 + k]] = (rand()%10);//true;
+                }
+            } */
+        }
+        load_cell[n]= rand()%2;
     }
     load_cell[0] = true;
-    load_cell[73] = true;
 
     for (int ci = 0; ci < 120; ci++) {
         if (load_cell[ci]) {
@@ -114,9 +129,24 @@ void PlayerContext::linkDodecaplexVAOs() {
     
     std::size_t index_real_size = initializeDodecaplexStates(index_buffer);
 
+    glm::vec3 ax = glm::normalize(glm::vec3(neighbor_offsets[3]));
+
+    /* glm::mat4 rotation = glm::mat4({
+        (2.0f*ax[0]*ax[0])-1.0f,  2.0f*ax[1]*ax[0],      2.0f*ax[2]*ax[0],        0.0f,
+        2.0f*ax[0]*ax[1],       (2.0f*ax[1]*ax[1])-1.0f, 2.0f*ax[2]*ax[1],        0.0f,
+        2.0f*ax[0]*ax[2],       2.0f*ax[1]*ax[2],      (2.0f*ax[2]*ax[2])-1.0f,   0.0f,
+        0.0f,                   0.0f,                  0.0f,                    1.0f
+    }); */
+
+    glm::mat4 rotation = glm::rotate(glm::mat4(1.0f), glm::radians(180.0f), ax);
+
+    glm::mat4 transform = neighbor_transforms[3]*rotation;
+
+    std::cout << glm::to_string(transform) << std::endl;
+
     VAO dodecaplex_vao(
         (GLfloat*) &dodecaplex_cell_verts, sizeof(GLfloat)*600*4,
-        (GLfloat*) &neighbor_transforms[6], sizeof(glm::mat4),
+        (GLfloat*) &transform, sizeof(glm::mat4),
         (GLuint*) index_buffer, index_real_size
     );
 
@@ -278,9 +308,9 @@ mat4 PlayerLocation::getModel(std::array<bool, 4> WASD, float dt) {
     if (WASD[2]) direction -= front_back; normalize(direction);
     if (WASD[3]) direction += left_right; normalize(direction);
     direction *= movement_scale*dt;
-    if ( accountBoundary(direction) ) {
+    //if ( accountBoundary(direction) ) {
         head -= direction;
-    }
+    //}
     return mat4(
         vec4(1.0f, 0.0f, 0.0f, 0.0f),
         vec4(0.0f, 1.0f, 0.0f, 0.0f),

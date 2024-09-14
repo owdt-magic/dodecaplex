@@ -94,6 +94,18 @@ def plot_3d_hulls(hulls, scale = 3):
     ax.set_zlim(-scale, scale)
     plt.show()
 
+def plot_center_movements(t4vs, t4vs_disp, scale=3):
+    fig = plt.figure()
+    ax = fig.add_subplot(projection='3d')
+    for start, end in zip(t4vs, t4vs_disp):
+        c = vector_to_rgb(end-start)
+        plt.quiver(start[0], start[1], start[2], 
+                    end[0]-start[0], end[1]-start[1], end[2]-start[2],color=c, alpha=0.6)
+    ax.set_xlim(-scale, scale)
+    ax.set_ylim(-scale, scale)
+    ax.set_zlim(-scale, scale)                   
+    plt.show()
+
 def plot_isolated_cells(dodecaplex_4d_verts, tetraplex_4d_verts, transformation=None):
 
     fig = plt.figure(figsize=(8, 8))
@@ -212,10 +224,23 @@ def solve_primary_neighbor_transforms(d4vs, t4vs):
             adj_20_arr[f, :] = adj_20_arr_old[t, :]
 
         fourdee = np.linalg.lstsq(adj_20_arr, org_20_arr)
-        #translated = adj_20_arr@fourdee[0]
+        translated = adj_20_arr@fourdee[0]
         all_transforms[adj_cent] = fourdee[0]
-        #translated[:,:3] =translated[:,:3]@np.linalg.inv(rot_mat)
+        translated[:,:3] =translated[:,:3]@np.linalg.inv(rot_mat)
         #plot_3d_hulls([adj_20_arr, translated])
+        t4vs = d4vs
+        sis = [0]*len(t4vs)
+        for i, t4v in enumerate(t4vs):
+            for t4vo in t4vs:
+                if t4v[0]==t4vo[0]:
+                    if t4v[1]==t4vo[1]:
+                        if t4v[2]==t4vo[2]:
+                            sis[i] += 1
+        t4vs = np.array([x for x, s in zip(t4vs, sis) if s == 1])
+        t4vs_disp = t4vs@fourdee[0]
+        t4vs_disp[:,:3] = t4vs_disp[:,:3]@np.linalg.inv(rot_mat)
+        plot_center_movements(t4vs, t4vs_disp, scale=2)
+
         #core_transforms[rot_axis] = tuple(rot_mat, fourdee)
     return all_transforms
 
@@ -313,7 +338,20 @@ def write_declarations(d4vs, t4vs):
     
 if __name__ == "__main__":   
     d4vs, t4vs = gen_dodecaplex_vertices(), gen_tetraplex_vertices()
-    write_declarations(d4vs, t4vs)
+    solve_primary_neighbor_transforms(d4vs, t4vs)
+    #t4vs=d4vs
+    sis = [0]*len(t4vs)
+    for i, t4v in enumerate(t4vs):
+        for t4vo in t4vs:
+            if t4v[0]==t4vo[0]:
+                if t4v[1]==t4vo[1]:
+                    if t4v[2]==t4vo[2]:
+                        sis[i] += 1
+    print('1s', sis.count(1))
+    print('2s', sis.count(2))
+
+
+    
     """ core_transforms = solve_primary_neighbor_transforms(d4vs, t4vs)
     nmap = get_neighbor_map(t4vs)
     for key, value in nmap.items(): """
