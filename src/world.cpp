@@ -1,4 +1,5 @@
 #include "world.h"
+#define GLM_ENABLE_EXPERIMENTAL
 #include "glm/gtx/string_cast.hpp"
 
 #define MAX_CELL_VERTS 60 
@@ -13,7 +14,7 @@ PlayerContext::PlayerContext() {
     if (player_location == NULL) {
         player_location = new PlayerLocation();
     }
-    //srand(time(NULL)); // Randomize the map...
+    srand(time(NULL)); // Randomize the map...
 };
 VAO cellToVAO(WorldCell& cell, GLfloat* cell_vert_buff, GLuint* cell_indx_buff,\
                              std::size_t v_buff_size, std::size_t i_buff_size) {
@@ -37,9 +38,9 @@ std::vector<WorldCell*> PlayerContext::establishNeighborhood() {
     std::vector<WorldCell*> neighbors = {player_location->reference_cell};
     static int n, generation_size, last_generation = 0;
     static const int 
-        max_adjacent = 1,
+        max_adjacent = 5,
         max_attempts = 100,
-        max_generations = 1;
+        max_generations = 3;
 
     WorldCell* new_cell;
 
@@ -81,7 +82,7 @@ std::size_t initializeDodecaplexStates(GLuint* index_buffer){
     bool load_cell[120];
     
     for (int ci = 1; ci < 120; ci++){
-        load_cell[ci] = false;//!(rand()%10);
+        load_cell[ci] = !(rand()%10);
     }
     
     for (int i =0; i < 12; i++) {
@@ -190,8 +191,8 @@ void PlayerContext::drawPlayerCellVAOs() {
 PlayerLocation::PlayerLocation() {
     if (reference_cell == NULL) reference_cell = new WorldCell();
     floor_indx  = getFloorIndex(); 
-    player_up   = vec3(0,0,1);//reference_cell->floor_norms[floor_indx];
-    vec3 floor  = vec3(0,0,-1);//reference_cell->sides[floor_indx].findIntercept(vec3(0.),-player_up);
+    player_up   = reference_cell->floor_norms[floor_indx];
+    vec3 floor  = reference_cell->sides[floor_indx].findIntercept(vec3(0.),-player_up);
 
     head = floor + player_up*height;
 };
@@ -308,9 +309,9 @@ mat4 PlayerLocation::getModel(std::array<bool, 4> WASD, float dt) {
     if (WASD[2]) direction -= front_back; normalize(direction);
     if (WASD[3]) direction += left_right; normalize(direction);
     direction *= movement_scale*dt;
-    //if ( accountBoundary(direction) ) {
+    if ( accountBoundary(direction) ) {
         head -= direction;
-    //}
+    }
     return mat4(
         vec4(1.0f, 0.0f, 0.0f, 0.0f),
         vec4(0.0f, 1.0f, 0.0f, 0.0f),

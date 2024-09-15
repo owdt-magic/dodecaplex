@@ -10,15 +10,15 @@
 int main() {
     GLFWwindow* window = initializeWindow(768, 768, "DODECAPLEX");
 
-    ShaderProgram world_shader( SHADER_DIR "/displacement_dodecaplex.vert", \
-                                SHADER_DIR "/spell_dodecaplex.frag", false);
+    ShaderProgram world_shader( SHADER_DIR "/displacement.vert", \
+                                SHADER_DIR "/spell.frag", false);
     ShaderProgram book_shader(  SHADER_DIR "/book.vert",\
                                 SHADER_DIR "/book.frag", false);
     
     
     PlayerContext player_context;
-    //player_context.linkPlayerCellVAOs();
-    player_context.linkDodecaplexVAOs();
+    player_context.linkPlayerCellVAOs();
+    //player_context.linkDodecaplexVAOs();
     
     Grimoire grimoire;    
     grimoire.linkGrimoireVAOs();
@@ -100,8 +100,8 @@ int main() {
         glUniformMatrix4fv(U_CAMERA, 1, GL_FALSE, &(mats.Projection*mats.View)[0][0]);
         glUniformMatrix4fv(U_WORLD,  1, GL_FALSE, &(mats.Model)[0][0]);
         
-        //player_context.drawPlayerCellVAOs();
-        player_context.drawDodecaplexVAOs();
+        player_context.drawPlayerCellVAOs();
+        //player_context.drawDodecaplexVAOs();
 
         book_shader.Activate();
         
