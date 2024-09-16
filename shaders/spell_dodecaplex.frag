@@ -50,7 +50,7 @@ vec4 hueShifter(vec4 color, float u_theta){
     return  vec4(mat3( 1.0, 1.0, 1.0, 0.5696804, -0.1620848, -0.6590654, 0.3235513, -0.3381869, 0.8901581 ) * yiqColor, 1.0);
 }
 void main(){
-    color = abs(world_position);
+    color = (sin(world_position)+1)/2;
     //color = hueShifter(color, world_position.x/5.);
     //color = color*2.0;
     color = currentSpell(color);

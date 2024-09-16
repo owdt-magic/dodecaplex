@@ -14,13 +14,11 @@ out vec4 world_position;
 out float zDepth;
 
 void main(){
-    vec4 world_Pos = vec4((mix(DISP*model_verts, model_verts, (sin(u_time)+1)/2)).xyz, 1.0);//DISP * vec4(model_verts, 1.0); // Cell DISPlacement
+    vec4 world_Pos = mix(DISP*model_verts, model_verts, (sin(u_time)+1)/2);//DISP * vec4(model_verts, 1.0); // Cell DISPlacement
+    world_Pos = vec4(world_Pos.xyz/pow((world_Pos.w+sqrt(5)),3.0)*10, 1.0);
+    //world_Pos = vec4(world_Pos.xyz, 1.0);
+
     world_position = world_Pos;
-    /*mat3 REFLECT_ONLY = mat3(DISP);
-    vec3 normal = normalize(REFLECT_ONLY * model_verts);
-    world_Pos -= vec4(normal * (
-        texture(depthTexture, textureCoord).g
-        ), 0.0); */
     world_Pos = WORLD * world_Pos; // Player movement in WORLD
     gl_Position = CAMERA * world_Pos; // Player camera
     zDepth = gl_Position.z;

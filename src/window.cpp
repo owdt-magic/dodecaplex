@@ -125,7 +125,7 @@ void accountCameraControls(Uniforms* uniforms, CameraMats &camera_mats) {
     float dt = std::min( float(uniforms->this_time-uniforms->last_time), 0.01f);
     
     // Projection matrix: 90° Field of View, display range: 0.1 unit <-> 100 units
-    camera_mats.Projection  = glm::perspective(glm::radians(89.0f), ratio, 0.1f, 10.0f);
+    camera_mats.Projection  = glm::perspective(glm::radians(89.0f), ratio, 0.1f, 100.0f);
     camera_mats.View        = player_location->getView( uniforms->mouseX,
                                                         uniforms->mouseY, dt);
     camera_mats.Model       = player_location->getModel( uniforms->getWASD(), dt);

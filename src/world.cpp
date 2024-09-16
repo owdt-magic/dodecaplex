@@ -82,14 +82,17 @@ std::size_t initializeDodecaplexStates(GLuint* index_buffer){
     bool load_cell[120];
     
     for (int ci = 1; ci < 120; ci++){
-        load_cell[ci] = !(rand()%10);
+        load_cell[ci] = false;//!(rand()%10);
     }
     
     for (int i =0; i < 12; i++) {
         n = neighbor_side_orders[i];
+        load_cell[n] = true;
         for (int j=0; j < 12; j++) {
             m = neighbor_side_orders[n*12 + j];
-            load_cell[m] = rand()%2;
+            if (!load_cell[m]){
+                load_cell[m] = rand()%2;
+            }
             /* for (int k=0; k < 12; k++) {
                 if (!load_cell[neighbor_side_orders[m*12 + k]]){
                     load_cell[neighbor_side_orders[m*12 + k]] = (rand()%10);//true;
@@ -99,7 +102,7 @@ std::size_t initializeDodecaplexStates(GLuint* index_buffer){
         load_cell[n]= rand()%2;
     }
     load_cell[0] = true;
-
+    load_cell[73] = true;
     for (int ci = 0; ci < 120; ci++) {
         if (load_cell[ci]) {
             for (int ord_idx = ci*12; ord_idx < ci*12 + 12; ord_idx++){
@@ -142,8 +145,6 @@ void PlayerContext::linkDodecaplexVAOs() {
     glm::mat4 rotation = glm::rotate(glm::mat4(1.0f), glm::radians(180.0f), ax);
 
     glm::mat4 transform = neighbor_transforms[3]*rotation;
-
-    std::cout << glm::to_string(transform) << std::endl;
 
     VAO dodecaplex_vao(
         (GLfloat*) &dodecaplex_cell_verts, sizeof(GLfloat)*600*4,
@@ -190,9 +191,16 @@ void PlayerContext::drawPlayerCellVAOs() {
 
 PlayerLocation::PlayerLocation() {
     if (reference_cell == NULL) reference_cell = new WorldCell();
-    floor_indx  = getFloorIndex(); 
+    floor_indx  = getFloorIndex();
+    
+    #ifdef LEGACY
     player_up   = reference_cell->floor_norms[floor_indx];
     vec3 floor  = reference_cell->sides[floor_indx].findIntercept(vec3(0.),-player_up);
+    #endif
+    #ifndef LEGACY
+    player_up   = vec3(0,0,1);
+    vec3 floor  = vec3(0,0,-1);
+    #endif
 
     head = floor + player_up*height;
 };
@@ -309,9 +317,16 @@ mat4 PlayerLocation::getModel(std::array<bool, 4> WASD, float dt) {
     if (WASD[2]) direction -= front_back; normalize(direction);
     if (WASD[3]) direction += left_right; normalize(direction);
     direction *= movement_scale*dt;
+
+    #ifdef LEGACY
     if ( accountBoundary(direction) ) {
         head -= direction;
     }
+    #endif
+    #ifndef LEGACY
+    head -= direction;
+    #endif
+
     return mat4(
         vec4(1.0f, 0.0f, 0.0f, 0.0f),
         vec4(0.0f, 1.0f, 0.0f, 0.0f),
