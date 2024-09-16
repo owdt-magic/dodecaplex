@@ -31,7 +31,7 @@ struct PlayerLocation {
 private:
     float mx = 0.0f;
     float my = 0.0f;
-    const float height = 0.333f;//... seems good to me
+    const float height = 0.666f;//... seems good to me
     const float movement_scale = 2.0f;
     const float mouse_scale = 500.0f;
     uint floor_indx;

@@ -5,7 +5,7 @@
 #include "models.h"
 #include <chrono>
 #include <thread>
-#include "helper.h"
+#include "debug.h"
 
 int main() {
     GLFWwindow* window = initializeWindow(768, 768, "DODECAPLEX");
