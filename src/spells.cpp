@@ -1,9 +1,9 @@
 #include "spells.h"
-#include <iostream>
+using namespace glm;
 
 void teleportA(SpellContext sc){
-    static glm::vec3 target_head;
-    static glm::vec3 direction;
+    static vec3 target_head;
+    static vec3 direction;
     target_head = sc.target+sc.cell->floor_norms[sc.target_index]*sc.context->player_location->getHeight();
     direction = normalize(target_head-sc.start)*0.01f;
     sc.context->player_location->teleportHead(mix(target_head, sc.start, sc.progress));
@@ -27,7 +27,7 @@ void Grimoire::updateSpellLife(float time, PlayerContext* player_context) {
         )
     );
 };
-void Grimoire::startSpell(float time, glm::vec3 focus, glm::vec3 head, glm::vec3 player_up, InterceptResult intercept_result, PlayerContext* player_context) {
+void Grimoire::startSpell(float time, vec3 focus, vec3 head, vec3 player_up, InterceptResult intercept_result, PlayerContext* player_context) {
     spell_life          [active_spell] = 1.0f;
     release_times       [active_spell] = time;
     spell_focus         [active_spell] = focus;
@@ -48,7 +48,7 @@ void Grimoire::startSpell(float time, glm::vec3 focus, glm::vec3 head, glm::vec3
     );
 
 };
-void Grimoire::chargeSpell(float time, glm::vec3 focus, glm::vec3 head){
+void Grimoire::chargeSpell(float time, vec3 focus, vec3 head){
     cast_life   [active_spell] = std::max(0.0f, std::min(1.0f, (time-click_times[active_spell])/cast_durrations[active_spell]));
     spell_focus [active_spell] = focus;
     spell_head  [active_spell] = head;
@@ -66,7 +66,7 @@ void Grimoire::flipLeft(float time){
 void Grimoire::updateFlip(float time){
     static float start = -1.0f;
     static float end = 1.0f;
-    flip_progress = glm::mix(start, end, (time-flip_start)/flip_durration);
+    flip_progress = mix(start, end, (time-flip_start)/flip_durration);
     if (flip_progress > end) {
         flip_progress = 0.0f;
     } else {
@@ -109,9 +109,9 @@ void Grimoire::populateCurvedPageData() {
     static int vi = 0, pi = 0;
 
     for (int i = 0; i < PAGE_LOD; i++) {
-        inter_vert = glm::mix(left_bound, right_bound, float(i) / float(PAGE_LOD-1));
-        inter_text = glm::mix(texture_left, texture_right, float(i) / float(PAGE_LOD-1));
-        depth = glm::sin((float(i) / float(PAGE_LOD-1))*3.14f)*-0.3f;
+        inter_vert = mix(left_bound, right_bound, float(i) / float(PAGE_LOD-1));
+        inter_text = mix(texture_left, texture_right, float(i) / float(PAGE_LOD-1));
+        depth = sin((float(i) / float(PAGE_LOD-1))*3.14f)*-0.3f;
         
         curved_page_verts[vi++] = inter_vert;
         curved_page_verts[vi++] = upper_bound;

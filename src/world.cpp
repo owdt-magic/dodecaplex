@@ -1,6 +1,4 @@
 #include "world.h"
-#define GLM_ENABLE_EXPERIMENTAL
-#include "glm/gtx/string_cast.hpp"
 
 #define MAX_CELL_VERTS 60 
     // 20 corners x3 redundancy for unique sides. 
@@ -24,7 +22,7 @@ VAO cellToVAO(WorldCell& cell, GLfloat* cell_vert_buff, GLuint* cell_indx_buff,\
     
     VAO cell_vao(
         (GLfloat*) cell_vert_buff, verts_size,
-        (GLfloat*) &cell.cell_matrix, sizeof(glm::mat4),
+        (GLfloat*) &cell.cell_matrix, sizeof(mat4),
         (GLuint*) cell_indx_buff, indxs_size
     );
 
@@ -78,7 +76,7 @@ std::vector<WorldCell*> PlayerContext::establishNeighborhood() {
 std::size_t initializeDodecaplexStates(GLuint* index_buffer){
     int dest = 0,
         read = 0,
-        n,m;
+        n,m,o;
     bool load_cell[120];
     
     for (int ci = 1; ci < 120; ci++){
@@ -91,13 +89,14 @@ std::size_t initializeDodecaplexStates(GLuint* index_buffer){
         for (int j=0; j < 12; j++) {
             m = neighbor_side_orders[n*12 + j];
             if (!load_cell[m]){
-                load_cell[m] = rand()%2;
+                load_cell[m] = true;//rand()%2;
             }
-            /* for (int k=0; k < 12; k++) {
-                if (!load_cell[neighbor_side_orders[m*12 + k]]){
-                    load_cell[neighbor_side_orders[m*12 + k]] = (rand()%10);//true;
+            for (int k=0; k < 12; k++) {
+                o = neighbor_side_orders[m*12 + k];
+                if (!load_cell[o]){
+                    load_cell[o] = !(rand()%100);//true;
                 }
-            } */
+            }
         }
         load_cell[n]= rand()%2;
     }
@@ -133,22 +132,22 @@ void PlayerContext::linkDodecaplexVAOs() {
     
     std::size_t index_real_size = initializeDodecaplexStates(index_buffer);
 
-    glm::vec3 ax = glm::normalize(glm::vec3(neighbor_offsets[3]));
+    vec3 ax = normalize(vec3(neighbor_offsets[3]));
 
-    /* glm::mat4 rotation = glm::mat4({
+    /* mat4 rotation = mat4({
         (2.0f*ax[0]*ax[0])-1.0f,  2.0f*ax[1]*ax[0],      2.0f*ax[2]*ax[0],        0.0f,
         2.0f*ax[0]*ax[1],       (2.0f*ax[1]*ax[1])-1.0f, 2.0f*ax[2]*ax[1],        0.0f,
         2.0f*ax[0]*ax[2],       2.0f*ax[1]*ax[2],      (2.0f*ax[2]*ax[2])-1.0f,   0.0f,
         0.0f,                   0.0f,                  0.0f,                    1.0f
     }); */
 
-    glm::mat4 rotation = glm::rotate(glm::mat4(1.0f), glm::radians(180.0f), ax);
+    mat4 rotation = rotate(mat4(1.0f), radians(180.0f), ax);
 
-    glm::mat4 transform = neighbor_transforms[3]*rotation;
+    mat4 transform = neighbor_transforms[3]*rotation;
 
     VAO dodecaplex_vao(
         (GLfloat*) &dodecaplex_cell_verts, sizeof(GLfloat)*600*4,
-        (GLfloat*) &transform, sizeof(glm::mat4),
+        (GLfloat*) &transform, sizeof(mat4),
         (GLuint*) index_buffer, index_real_size
     );
 
@@ -223,10 +222,10 @@ vec3 PlayerLocation::getPUp() {
 float PlayerLocation::getHeight() {
     return height;
 };
-void PlayerLocation::teleportHead(glm::vec3 target) {
+void PlayerLocation::teleportHead(vec3 target) {
     head = target;
 };
-void PlayerLocation::teleportPUp(glm::vec3 target) {
+void PlayerLocation::teleportPUp(vec3 target) {
     player_up = target;
 };
 
