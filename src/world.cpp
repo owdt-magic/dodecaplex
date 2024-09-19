@@ -76,32 +76,28 @@ std::vector<WorldCell*> PlayerContext::establishNeighborhood() {
 std::size_t initializeDodecaplexStates(GLuint* index_buffer){
     int dest = 0,
         read = 0,
-        n,m,o;
-    bool load_cell[120];
-    
-    for (int ci = 1; ci < 120; ci++){
-        load_cell[ci] = false;//!(rand()%10);
-    }
+        n,m,o,p;
+    bool load_cell[120] = {false};
     
     for (int i =0; i < 12; i++) {
         n = neighbor_side_orders[i];
-        load_cell[n] = true;
+        load_cell[n] = !(rand()%2);
         for (int j=0; j < 12; j++) {
             m = neighbor_side_orders[n*12 + j];
             if (!load_cell[m]){
-                load_cell[m] = true;//rand()%2;
-            }
-            for (int k=0; k < 12; k++) {
+                load_cell[m] = !(rand()%5);
+            } //Only 2 levels of recursion until fixing 'wrapping'
+            /* for (int k=0; k < 12; k++) {
                 o = neighbor_side_orders[m*12 + k];
                 if (!load_cell[o]){
-                    load_cell[o] = !(rand()%100);//true;
-                }
-            }
+                    load_cell[o] = !(rand()%20);
+                }                
+            } */
         }
-        load_cell[n]= rand()%2;
     }
     load_cell[0] = true;
-    load_cell[73] = true;
+
+    // Using load_cell array, we condtionally draw each pentagon in the dodecaplex
     for (int ci = 0; ci < 120; ci++) {
         if (load_cell[ci]) {
             for (int ord_idx = ci*12; ord_idx < ci*12 + 12; ord_idx++){
@@ -112,14 +108,9 @@ std::size_t initializeDodecaplexStates(GLuint* index_buffer){
                         // 3 triangles / face * 3 points / triangle
                         index_buffer[dest++] = dodecaplex_cell_indxs[read++];
                     }
-
-                } else {
-                    read += 9;
-                }
+                } else read += 9;
             }
-        } else {
-            read += 108;
-        }
+        } else read += 108;
     }
 
     return (std::size_t) sizeof(GLuint)*dest;
@@ -132,27 +123,12 @@ void PlayerContext::linkDodecaplexVAOs() {
     
     std::size_t index_real_size = initializeDodecaplexStates(index_buffer);
 
-    vec3 ax = normalize(vec3(neighbor_offsets[3]));
-
-    /* mat4 rotation = mat4({
-        (2.0f*ax[0]*ax[0])-1.0f,  2.0f*ax[1]*ax[0],      2.0f*ax[2]*ax[0],        0.0f,
-        2.0f*ax[0]*ax[1],       (2.0f*ax[1]*ax[1])-1.0f, 2.0f*ax[2]*ax[1],        0.0f,
-        2.0f*ax[0]*ax[2],       2.0f*ax[1]*ax[2],      (2.0f*ax[2]*ax[2])-1.0f,   0.0f,
-        0.0f,                   0.0f,                  0.0f,                    1.0f
-    }); */
-
-    mat4 rotation = rotate(mat4(1.0f), radians(180.0f), ax);
-
-    mat4 transform = neighbor_transforms[3]*rotation;
-
     VAO dodecaplex_vao(
         (GLfloat*) &dodecaplex_cell_verts, sizeof(GLfloat)*600*4,
-        (GLfloat*) &transform, sizeof(mat4),
         (GLuint*) index_buffer, index_real_size
     );
 
     dodecaplex_vao.LinkAttrib(dodecaplex_vao.vbo, 0, 4, GL_FLOAT, 4*sizeof(float), (void*)0);
-    dodecaplex_vao.LinkMat4(dodecaplex_vao.cbo, 1);
 
     all_vaos.push_back(dodecaplex_vao);
 
@@ -160,7 +136,7 @@ void PlayerContext::linkDodecaplexVAOs() {
 
 };
 
-void PlayerContext::drawDodecaplexVAOs() {
+void PlayerContext::drawAllVAOs() {
     for (int i = 0; i < all_vaos.size(); i++){
         all_vaos[i].DrawElements(GL_TRIANGLES);
     }    
@@ -182,11 +158,6 @@ void PlayerContext::linkPlayerCellVAOs() {
     free(v_buff);
     free(i_buff);
 };    
-void PlayerContext::drawPlayerCellVAOs() {
-    for (int i = 0; i < all_vaos.size(); i++){
-        all_vaos[i].DrawElements(GL_TRIANGLES);
-    }
-};
 
 PlayerLocation::PlayerLocation() {
     if (reference_cell == NULL) reference_cell = new WorldCell();
@@ -195,13 +166,8 @@ PlayerLocation::PlayerLocation() {
     #ifdef LEGACY
     player_up   = reference_cell->floor_norms[floor_indx];
     vec3 floor  = reference_cell->sides[floor_indx].findIntercept(vec3(0.),-player_up);
-    #endif
-    #ifndef LEGACY
-    player_up   = vec3(0,0,1);
-    vec3 floor  = vec3(0,0,-1);
-    #endif
-
     head = floor + player_up*height;
+    #endif    
 };
 mat4 PlayerLocation::getView(float x, float y, float dt) {
     updateFocus(x, y, dt); // Account for mouse movement...
@@ -307,9 +273,17 @@ bool PlayerLocation::accountBoundary(vec3& direction) {
     }
     return true;
 };
-mat4 PlayerLocation::getModel(std::array<bool, 4> WASD, float dt) {
+#define NOCLIP
+void PlayerLocation::moveHead(std::array<bool, 4> WASD, float dt) {
     vec3 left_right = normalize(cross(focus, -player_up));
+    
+    #ifndef NOCLIP
     vec3 front_back = normalize(cross(left_right, -player_up));
+    #endif    
+    #ifdef NOCLIP
+    vec3 front_back = normalize(-focus);    
+    #endif
+
     vec3 direction = vec3(0., 0., 0.);
     if (WASD[0]) direction += front_back; //already normalized
     if (WASD[1]) direction -= left_right; normalize(direction);
@@ -317,15 +291,17 @@ mat4 PlayerLocation::getModel(std::array<bool, 4> WASD, float dt) {
     if (WASD[3]) direction += left_right; normalize(direction);
     direction *= movement_scale*dt;
 
-    #ifdef LEGACY
-    if ( accountBoundary(direction) ) {
+    #ifndef NOCLIP
+    if ( !accountBoundary(direction) ) {
         head -= direction;
     }
     #endif
-    #ifndef LEGACY
+    #ifdef NOCLIP
     head -= direction;
     #endif
-
+};
+mat4 PlayerLocation::getModel(std::array<bool, 4> WASD, float dt) {
+    moveHead(WASD, dt);
     return mat4(
         vec4(1.0f, 0.0f, 0.0f, 0.0f),
         vec4(0.0f, 1.0f, 0.0f, 0.0f),

@@ -31,12 +31,12 @@ struct PlayerLocation {
 private:
     float mx = 0.0f;
     float my = 0.0f;
-    const float height = 0.666f;//... seems good to me
-    const float movement_scale = 2.0f;
+    const float height = 1.0f;
+    const float movement_scale = 0.75f;
     const float mouse_scale = 500.0f;
     uint floor_indx;
 
-    glm::vec3 head = glm::vec3(0,0,0);
+    glm::vec3 head = glm::vec3(0,0.1,0);
     glm::vec3 player_up = glm::vec3(0,0,-1);
     glm::vec3 focus = glm::vec3(1,0,0);
         //NOTE: feet/focus are relative to the head!
@@ -45,13 +45,14 @@ private:
     uint getFloorIndex();
     bool accountBoundary(glm::vec3& direction);
     void updateFocus(float x, float y, float dt);
+    void moveHead(std::array<bool, 4> WASD, float dt);
 };
 
 struct PlayerContext {
     void linkPlayerCellVAOs();
     void drawPlayerCellVAOs();
     void linkDodecaplexVAOs();
-    void drawDodecaplexVAOs();
+    void drawAllVAOs();
     PlayerLocation* player_location = NULL;
     PlayerContext();
 private:

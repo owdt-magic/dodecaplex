@@ -2,6 +2,7 @@
 #define WINDOW_H
 
 #include "spells.h"
+#include "dodecaplex.h"
 #include <array>
 #include <iostream>
 #include <glad/glad.h>
@@ -24,13 +25,17 @@ struct Uniforms
 };
 Uniforms* getUniforms(GLFWwindow* window);
 
-struct CameraMats
+struct CameraInfo
 {
     glm::mat4 Projection;
     glm::mat4 View;
     glm::mat4 Model;
+    glm::vec3 Location;
+    glm::mat4 M0, M1, M2;
+    glm::vec4 A0, A1, A2;
+    void identifyBasis();
 };
-void accountCameraControls(Uniforms* uniforms, CameraMats& camera_mats);
+void accountCameraControls(Uniforms* uniforms, CameraInfo& camera_mats);
 GLuint getSpellSubroutine(Uniforms* uniforms, Grimoire& grimoire, GLuint shader_id);
 
 GLFWwindow* initializeWindow(unsigned int start_width, unsigned int start_height, const char* title);

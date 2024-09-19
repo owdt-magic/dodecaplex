@@ -26,11 +26,12 @@ int main() {
     Uniforms* uniforms = getUniforms(window);
     
     float time;
-    GLuint  U_RESOLUTION, U_MOUSE, U_SCROLL, U_TIME, U_CAMERA, U_WORLD, \
+    GLuint  U_RESOLUTION, U_MOUSE, U_SCROLL, U_TIME, U_HEAD, U_CAMERA, U_WORLD,
+            U_MATRIX_0, U_MATRIX_1, U_MATRIX_2, U_AXIS_0, U_AXIS_1, U_AXIS_2,
             U_SPELL_LIFE, U_CAST_LIFE, U_SPELL_FOCUS, U_SPELL_HEAD,
-            U_FLIP_PROGRESS, U_CAMERA_BOOK;
+            U_FLIP_PROGRESS, U_CAMERA_BOOK;            
     GLuint subroutine_index;
-    CameraMats mats;
+    CameraInfo cam;
 
     TextureLibrary texture_library;
 
@@ -45,12 +46,20 @@ int main() {
             U_MOUSE       = glGetUniformLocation(world_shader.ID, "u_mouse");
             U_SCROLL      = glGetUniformLocation(world_shader.ID, "u_scroll");
             U_TIME        = glGetUniformLocation(world_shader.ID, "u_time");
+            U_HEAD        = glGetUniformLocation(world_shader.ID, "HEAD");
             U_CAMERA      = glGetUniformLocation(world_shader.ID, "CAMERA");
             U_WORLD       = glGetUniformLocation(world_shader.ID, "WORLD");
             U_CAST_LIFE   = glGetUniformLocation(world_shader.ID, "CAST_LIFE");
             U_SPELL_LIFE  = glGetUniformLocation(world_shader.ID, "SPELL_LIFE");            
             U_SPELL_FOCUS = glGetUniformLocation(world_shader.ID, "SPELL_FOCUS");
             U_SPELL_HEAD  = glGetUniformLocation(world_shader.ID, "SPELL_HEAD");
+
+            U_MATRIX_0    = glGetUniformLocation(world_shader.ID, "MATRIX_0");
+            U_MATRIX_1    = glGetUniformLocation(world_shader.ID, "MATRIX_1");
+            U_MATRIX_2    = glGetUniformLocation(world_shader.ID, "MATRIX_2");
+            U_AXIS_0      = glGetUniformLocation(world_shader.ID, "AXIS_0");
+            U_AXIS_1      = glGetUniformLocation(world_shader.ID, "AXIS_1");
+            U_AXIS_2      = glGetUniformLocation(world_shader.ID, "AXIS_2");
             
             book_shader.Load();
             book_shader.Activate();
@@ -95,17 +104,24 @@ int main() {
                                     grimoire.spell_head[grimoire.active_spell].y,
                                     grimoire.spell_head[grimoire.active_spell].z);
 
-        accountCameraControls(uniforms, mats);
+        accountCameraControls(uniforms, cam);
 
-        glUniformMatrix4fv(U_CAMERA, 1, GL_FALSE, &(mats.Projection*mats.View)[0][0]);
-        glUniformMatrix4fv(U_WORLD,  1, GL_FALSE, &(mats.Model)[0][0]);
+        glUniformMatrix4fv(U_CAMERA, 1, GL_FALSE, &(cam.Projection*cam.View)[0][0]);
+        glUniformMatrix4fv(U_WORLD,  1, GL_FALSE, &(cam.Model)[0][0]);
+        glUniform3f(U_HEAD, cam.Location.x, cam.Location.y, cam.Location.z);
+
+        glUniformMatrix4fv(U_MATRIX_0, 1, GL_FALSE, &(cam.M0)[0][0]);
+        glUniformMatrix4fv(U_MATRIX_1, 1, GL_FALSE, &(cam.M1)[0][0]);
+        glUniformMatrix4fv(U_MATRIX_2, 1, GL_FALSE, &(cam.M2)[0][0]);
+        glUniform4f(U_AXIS_0, cam.A0.x, cam.A0.y, cam.A0.z, cam.A0.w);
+        glUniform4f(U_AXIS_1, cam.A1.x, cam.A1.y, cam.A1.z, cam.A1.w);
+        glUniform4f(U_AXIS_2, cam.A2.x, cam.A2.y, cam.A2.z, cam.A2.w);
         
-        //player_context.drawPlayerCellVAOs();
-        player_context.drawDodecaplexVAOs();
+        player_context.drawAllVAOs();
 
         book_shader.Activate();
         
-        glUniformMatrix4fv(U_CAMERA_BOOK, 1, GL_FALSE, &(mats.Projection)[0][0]);
+        glUniformMatrix4fv(U_CAMERA_BOOK, 1, GL_FALSE, &(cam.Projection)[0][0]);
 
         grimoire.drawGrimoireVAOs(U_FLIP_PROGRESS);
 

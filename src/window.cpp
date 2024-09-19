@@ -119,16 +119,50 @@ std::array<bool, 4> Uniforms::getWASD() {
             key_states[GLFW_KEY_S], key_states[GLFW_KEY_D]};
 }
 
-void accountCameraControls(Uniforms* uniforms, CameraMats &camera_mats) {
+void CameraInfo::identifyBasis() {
+    // Identify the 3 closest neighbor centroids,
+    static float weights[12];
+    for (int i = 0; i < 12; i++) {
+        weights[i] = glm::dot(glm::normalize(Location), glm::normalize( 
+            glm::vec3(neighbor_offsets[i])
+        ));
+    }
+
+    int f = 12, s = 11, t = 10; // first second third
+    for (int i = 0; i < 12; i++) {
+        if (weights[i] > weights[f]) {            
+            t = s;
+            s = f;
+            f = i;
+        } else if (weights[i] > weights[s] && i != f) {
+            t = s;
+            s = i;
+        } else if (weights[i] > weights[t] && i != f && i != s) {
+            t = i;
+        }
+    }
+
+    M0 = neighbor_transforms[f];
+    M1 = neighbor_transforms[s];
+    M2 = neighbor_transforms[t];
+    A0 = neighbor_offsets[f];
+    A1 = neighbor_offsets[s];
+    A2 = neighbor_offsets[t];
+}
+
+void accountCameraControls(Uniforms* uniforms, CameraInfo &camera_info) {
     PlayerLocation* player_location = uniforms->player_context->player_location;
     float ratio = float(uniforms->windWidth)/float(uniforms->windHeight);
     float dt = std::min( float(uniforms->this_time-uniforms->last_time), 0.01f);
     
     // Projection matrix: 90° Field of View, display range: 0.1 unit <-> 100 units
-    camera_mats.Projection  = glm::perspective(glm::radians(89.0f), ratio, 0.1f, 100.0f);
-    camera_mats.View        = player_location->getView( uniforms->mouseX,
+    camera_info.Projection  = glm::perspective(glm::radians(89.0f), ratio, 0.1f, 100.0f);
+    camera_info.View        = player_location->getView( uniforms->mouseX,
                                                         uniforms->mouseY, dt);
-    camera_mats.Model       = player_location->getModel( uniforms->getWASD(), dt);
+    camera_info.Model       = player_location->getModel( uniforms->getWASD(), dt);
+    camera_info.Location    = player_location->getHead();
+    
+    camera_info.identifyBasis();
 }
 
 GLuint getSpellSubroutine(Uniforms* uniforms, Grimoire& grimoire, GLuint shader_id) {
