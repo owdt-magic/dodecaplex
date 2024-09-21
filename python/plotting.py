@@ -10,6 +10,7 @@ import matplotlib
 from fourdsolids import *
 from scipy.spatial import ConvexHull
 from scipy.spatial.qhull import QhullError
+from itertools import combinations
 
 def plot_2d_projection(vertices):
     vertices = np.array(vertices)
@@ -203,6 +204,14 @@ def solve_primary_neighbor_transforms(d4vs, t4vs):
     
     #core_transforms = {}
     all_transforms = {}
+    all_vectors = []
+    all_mats = []
+
+    all_origins = []
+    all_corners = []
+
+    np.set_printoptions(suppress=True)
+    entry = random.randrange(0,20)
     for adj_idx in get_neighbors(t4vs[0], t4vs):
         adj_20_set  = set20s[adj_idx]
         adj_cent    = t4vs[adj_idx]
@@ -222,26 +231,45 @@ def solve_primary_neighbor_transforms(d4vs, t4vs):
         adj_20_arr_old = np.copy(adj_20_arr)
         for t,f in enumerate(idx_map):
             adj_20_arr[f, :] = adj_20_arr_old[t, :]
-
         fourdee = np.linalg.lstsq(adj_20_arr, org_20_arr)
         translated = adj_20_arr@fourdee[0]
         all_transforms[adj_cent] = fourdee[0]
-        translated[:,:3] =translated[:,:3]@np.linalg.inv(rot_mat)
-        #plot_3d_hulls([adj_20_arr, translated])
-        t4vs = d4vs
-        sis = [0]*len(t4vs)
-        for i, t4v in enumerate(t4vs):
-            for t4vo in t4vs:
-                if t4v[0]==t4vo[0]:
-                    if t4v[1]==t4vo[1]:
-                        if t4v[2]==t4vo[2]:
-                            sis[i] += 1
-        t4vs = np.array([x for x, s in zip(t4vs, sis) if s == 1])
-        t4vs_disp = t4vs@fourdee[0]
-        t4vs_disp[:,:3] = t4vs_disp[:,:3]@np.linalg.inv(rot_mat)
-        plot_center_movements(t4vs, t4vs_disp, scale=2)
+        #translated[:,:3] =translated[:,:3]@np.linalg.inv(rot_mat)
+        inv_rot = np.identity(4)
+        inv_rot[:3,:3] = np.linalg.inv(rot_mat)
+        full_transform = fourdee[0]@inv_rot
+        adj_cent= np.array(adj_cent)
+        polys = []
+        for i, (a,b) in enumerate(combinations(range(4), 2)):
+
+            if i in [0, 8,9]: 
+                continue
+            polys.append(adj_cent[a]*adj_cent[b])
+        print(len(polys))
+        all_vectors.append(
+            np.concatenate((np.array(adj_20_arr[entry]), np.array(polys)))
+        )
+        all_mats.append(full_transform.flatten())
+
+        all_origins.append(polys)
+        all_corners.append(adj_20_arr[entry])
 
         #core_transforms[rot_axis] = tuple(rot_mat, fourdee)
+    all_vectors = np.array(all_vectors)
+    print(all_vectors.shape)
+    all_mats = np.array(all_mats)
+    solution = np.linalg.lstsq(all_vectors, all_mats)
+
+    transform = np.linalg.lstsq(np.array(all_origins), np.array(all_corners))
+
+    print(solution)
+    for x,y in zip(all_vectors, all_mats):
+        input()
+        product = x@solution[0]
+        
+        print(product-y)
+
+    
     return all_transforms
 
 def write_declarations(d4vs, t4vs):
@@ -295,6 +323,7 @@ def write_declarations(d4vs, t4vs):
     neighbor_data = {}
     
     for key_a, value_a in raw_indeces.items():
+        assert len(value_a) == 36
         neighbor_data[key_a] = [None]*36
         for key_b, value_b in raw_indeces.items():
             if key_a == key_b: continue
@@ -303,7 +332,9 @@ def write_declarations(d4vs, t4vs):
                 all_trips.extend(trip_b)
             for a, trip_a in enumerate(value_a):
                 if len(set(trip_a).intersection(set(all_trips))) == 3:
+                    assert neighbor_data[key_a][a] == None
                     neighbor_data[key_a][a] = key_b
+                    
     points = []
 
     def characterize_deltas(points, key):
@@ -314,7 +345,7 @@ def write_declarations(d4vs, t4vs):
         futhurs = [i for i,x in enumerate(lens) if isclose(x, 1.236067, rel_tol=0.001)]
         return (closers, futhurs)
 
-    texture_corners = []
+    neighbor_indeces = []
 
     for cell_id in range(120):
         for i, x in enumerate(raw_indeces[cell_id]):
@@ -324,34 +355,50 @@ def write_declarations(d4vs, t4vs):
                 csb, fsb = characterize_deltas(points, fsa[0])
 
                 order = [0, list(set(csa).intersection(set(csb))).pop(), fsa[0], fsa[1], list(set(csa).intersection(set(fsb))).pop()]
-                texture_corners.append(order)
+                neighbor_indeces.append(order)
                 points=[]
 
 
     with open('dodecaplex.h', 'w') as dph:
-        #dph.write(',\n'.join([str(nd[::3]).strip('[]') for k, nd  in neighbor_data.items()]))
-        #dph.write(vertices)
-        #dph.write('\n'+'\n'.join([f'//------Cell {i}------{x}'for i, x in enumerate(indeces)]))
-        dph.write(',\n'.join([str(x).strip('[]') for x in texture_corners]))
+        dph.write(',\n'.join([str(nd[::3]).strip('[]') for k, nd  in neighbor_data.items()]))
+        dph.write(vertices)
+        dph.write('\n'+'\n'.join([f'//------Cell {i}------{x}'for i, x in enumerate(indeces)]))
+        dph.write(',\n'.join([str(x).strip('[]') for x in neighbor_indeces]))
+
         """ dph.write('\n'+'\n'.join(axiis))
         dph.write('\n'+'\n'.join(mats)) """
     
 if __name__ == "__main__":   
+    normed = lambda x: x/np.linalg.norm(x)
     d4vs, t4vs = gen_dodecaplex_vertices(), gen_tetraplex_vertices()
-    solve_primary_neighbor_transforms(d4vs, t4vs)
-    #t4vs=d4vs
-    sis = [0]*len(t4vs)
-    for i, t4v in enumerate(t4vs):
-        for t4vo in t4vs:
-            if t4v[0]==t4vo[0]:
-                if t4v[1]==t4vo[1]:
-                    if t4v[2]==t4vo[2]:
-                        sis[i] += 1
-    print('1s', sis.count(1))
-    print('2s', sis.count(2))
+    transform_dict = solve_primary_neighbor_transforms(d4vs, t4vs)
+    """set20s = list(yield_dodecahedrons_from_dodecaplex(d4vs, t4vs))
 
+    d = 0.8091699
+    asq = 0.2#random.uniform(0, 1-d**2)
+    bsq = random.uniform(0, 1-d**2-asq)
+    csq = 1 - d**2 - asq - bsq
+    item = np.array((asq**.5, bsq**.5, csq**.5, d))
+
+    products = []
+    all_bases = list(transform_dict.keys())
+    for off in all_bases:
+        product = np.inner(off, item)
+        products.append(product)
+
+    x = 5
+    inputs_bases = np.array([normed(all_bases[i]) for i in np.argsort(products)[::-1][:x]])
+    change_bases = np.linalg.lstsq(inputs_bases, np.identity(x))
+    
+    print([products[i] for i in np.argsort(products)[::-1][:x]])
+    print(inputs_bases)
 
     
-    """ core_transforms = solve_primary_neighbor_transforms(d4vs, t4vs)
-    nmap = get_neighbor_map(t4vs)
-    for key, value in nmap.items(): """
+    
+    print(item@change_bases[0])
+    print(np.sum(item@change_bases[0]))
+
+    print('-------')
+    print(change_bases)
+
+ """
