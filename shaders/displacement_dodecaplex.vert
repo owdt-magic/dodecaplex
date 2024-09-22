@@ -43,21 +43,10 @@ mat4 rotationMatrix(in vec3 axis){
     );
 }
 
-vec4 modelToWorld(in vec4 model) {
-    vec3 head = atan(HEAD);
-    vec4 transform_0 = (rotationMatrix(AXIS_0.xyz)*MATRIX_0)*model;
-    vec4 transform_1 = (rotationMatrix(AXIS_1.xyz)*MATRIX_1)*model;
-    vec4 transform_2 = (rotationMatrix(AXIS_2.xyz)*MATRIX_2)*model;
-    vec3 weights = head*rebaseMatrix(AXIS_0, AXIS_1, AXIS_2);
-    weights /= (weights.x + weights.y + weights.z);
-    
-    ratio = length( head ) / (0.25 + 0.25*PHI*PHI);
+vec4 modelToWorld() {
+    float ratio = length( atan(HEAD) ) / (0.25 + 0.25*PHI*PHI);
     ratio = clamp(ratio, 0.0, 1.0);
-    return mix(model,
-        (transform_0*weights.x) + (transform_1*weights.y) + (transform_2*weights.z),
-        ratio
-    );
-
+    return mix(model_verts, WORLD*model_verts, ratio);
 }
 
 void project(inout vec4 vert){
@@ -66,7 +55,7 @@ void project(inout vec4 vert){
 }
 
 void main(){
-    vec4 world_Pos = modelToWorld(model_verts);
+    vec4 world_Pos = modelToWorld();
     project(world_Pos);
     world_Coords = model_verts*3; // Temporary for color...
     gl_Position = CAMERA * world_Pos;

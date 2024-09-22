@@ -4,9 +4,11 @@
 #include "cell.h"
 #include "bufferObjects.h"
 #include "dodecaplex.h"
+#include "transform.h"
 #include <time.h>
 #include <vector>
-
+#include <cmath>
+#include <glm/gtc/type_ptr.hpp>
 
 struct InterceptResult {
     WorldCell* cell;

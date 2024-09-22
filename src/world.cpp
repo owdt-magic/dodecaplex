@@ -81,7 +81,7 @@ std::size_t initializeDodecaplexStates(GLuint* index_buffer){
     
     for (int i =0; i < 12; i++) {
         n = neighbor_side_orders[i];
-        load_cell[n] = !(rand()%2);
+        load_cell[n] = true;//!(rand()%2);
         for (int j=0; j < 12; j++) {
             m = neighbor_side_orders[n*12 + j];
             if (!load_cell[m]){
@@ -300,14 +300,39 @@ void PlayerLocation::moveHead(std::array<bool, 4> WASD, float dt) {
     head -= direction;
     #endif
 };
+
+glm::mat4 rotationMatrix(glm::vec3 axis){    
+    return glm::mat4(
+        2.0f*axis.x*axis.x-1.0f, 2.0f*axis.y*axis.x,      2.0f*axis.z*axis.x,      0.0f,
+        2.0f*axis.x*axis.y,      2.0f*axis.y*axis.y-1.0f, 2.0f*axis.z*axis.y,      0.0f,
+        2.0f*axis.x*axis.z,      2.0f*axis.y*axis.z,      2.0f*axis.z*axis.z-1.0f, 0.0f,
+        0.0f,                    0.0f,                    0.0f,                    1.0f
+    );
+}
+
+glm::mat4 getIntermediateTransformation(glm::vec3 axis){
+    const float fourth_dim = PHI/2.0f;
+    glm::vec4 compass = glm::vec4(1.0f);
+    
+    axis = normalize(axis);
+    compass = compass*rotationMatrix(axis);
+    axis = axis*sqrt(1.0f-(fourth_dim*fourth_dim)); 
+        // Scale the normalized axis to be normalized with a hypothetical w of fourth_dim
+    float charcterization[9] = {compass.x, compass.y, compass.z, compass.w, 
+        axis.x*axis.z, axis.x*fourth_dim, axis.y*axis.z, axis.y*fourth_dim, axis.z*fourth_dim};
+        // The parameters needed to interpolate the right transformation matrix.
+    float weights[4*4] = {0.0f};
+    for (int i = 0; i < 9; i++) {
+        for (int j = 0; j < 16; j++) {
+            weights[j] += conversion_matrix[i*16+j]*charcterization[i];
+        }
+    }
+    return glm::transpose(glm::make_mat4(weights));
+};
+
 mat4 PlayerLocation::getModel(std::array<bool, 4> WASD, float dt) {
     moveHead(WASD, dt);
-    return mat4(
-        vec4(1.0f, 0.0f, 0.0f, 0.0f),
-        vec4(0.0f, 1.0f, 0.0f, 0.0f),
-        vec4(0.0f, 0.0f, 1.0f, 0.0f),
-        vec4(-head.x, -head.y, -head.z, 1.0f)
-    );
+    return getIntermediateTransformation(-head);
 };
 uint PlayerLocation::getFloorIndex() {
     //Using the players feet this gives the closest aligned

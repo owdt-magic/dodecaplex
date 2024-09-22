@@ -27,7 +27,6 @@ int main() {
     
     float time;
     GLuint  U_RESOLUTION, U_MOUSE, U_SCROLL, U_TIME, U_HEAD, U_CAMERA, U_WORLD,
-            U_MATRIX_0, U_MATRIX_1, U_MATRIX_2, U_AXIS_0, U_AXIS_1, U_AXIS_2,
             U_SPELL_LIFE, U_CAST_LIFE, U_SPELL_FOCUS, U_SPELL_HEAD,
             U_FLIP_PROGRESS, U_CAMERA_BOOK;            
     GLuint subroutine_index;
@@ -54,13 +53,6 @@ int main() {
             U_SPELL_FOCUS = glGetUniformLocation(world_shader.ID, "SPELL_FOCUS");
             U_SPELL_HEAD  = glGetUniformLocation(world_shader.ID, "SPELL_HEAD");
 
-            U_MATRIX_0    = glGetUniformLocation(world_shader.ID, "MATRIX_0");
-            U_MATRIX_1    = glGetUniformLocation(world_shader.ID, "MATRIX_1");
-            U_MATRIX_2    = glGetUniformLocation(world_shader.ID, "MATRIX_2");
-            U_AXIS_0      = glGetUniformLocation(world_shader.ID, "AXIS_0");
-            U_AXIS_1      = glGetUniformLocation(world_shader.ID, "AXIS_1");
-            U_AXIS_2      = glGetUniformLocation(world_shader.ID, "AXIS_2");
-            
             book_shader.Load();
             book_shader.Activate();
             texture_library.linkGrimoireLibrary(book_shader.ID);
@@ -109,13 +101,6 @@ int main() {
         glUniformMatrix4fv(U_CAMERA, 1, GL_FALSE, &(cam.Projection*cam.View)[0][0]);
         glUniformMatrix4fv(U_WORLD,  1, GL_FALSE, &(cam.Model)[0][0]);
         glUniform3f(U_HEAD, cam.Location.x, cam.Location.y, cam.Location.z);
-
-        glUniformMatrix4fv(U_MATRIX_0, 1, GL_FALSE, &(cam.M0)[0][0]);
-        glUniformMatrix4fv(U_MATRIX_1, 1, GL_FALSE, &(cam.M1)[0][0]);
-        glUniformMatrix4fv(U_MATRIX_2, 1, GL_FALSE, &(cam.M2)[0][0]);
-        glUniform4f(U_AXIS_0, cam.A0.x, cam.A0.y, cam.A0.z, cam.A0.w);
-        glUniform4f(U_AXIS_1, cam.A1.x, cam.A1.y, cam.A1.z, cam.A1.w);
-        glUniform4f(U_AXIS_2, cam.A2.x, cam.A2.y, cam.A2.z, cam.A2.w);
         
         player_context.drawAllVAOs();
 
