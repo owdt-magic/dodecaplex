@@ -10,7 +10,8 @@
 int main() {
     GLFWwindow* window = initializeWindow(768, 768, "DODECAPLEX");
 
-    ShaderProgram world_shader( SHADER_DIR "/displacement_dodecaplex.vert", \
+    ShaderProgram world_shader( SHADER_DIR "/projection.vert", \
+                                SHADER_DIR "/prune.geom", \
                                 SHADER_DIR "/spell_dodecaplex.frag", false);
     ShaderProgram book_shader(  SHADER_DIR "/book.vert",\
                                 SHADER_DIR "/book.frag", false);
@@ -113,7 +114,7 @@ int main() {
         glfwSwapBuffers(window);
         glfwPollEvents();
         uniforms->last_time = time;
-        checkGLError("At end of loop...");
+        //checkGLError("At end of loop...");
     }
     return 0;
 }

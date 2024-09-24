@@ -311,9 +311,13 @@ glm::mat4 rotationMatrix(glm::vec3 axis){
 }
 
 glm::mat4 getIntermediateTransformation(glm::vec3 axis){
+    // Uses a pre-computed least squares matrix "conversion_matrix"
+    // and the direction of "axis" to determine a 4D transformaiton
+    // matrix to apply to the verticies of the dodecaplex.
     const float fourth_dim = PHI/2.0f;
     glm::vec4 compass = glm::vec4(1.0f);
-    
+    float ratio = glm::length(axis)/(0.25 + 0.25*PHI*PHI);
+
     axis = normalize(axis);
     compass = compass*rotationMatrix(axis);
     axis = axis*sqrt(1.0f-(fourth_dim*fourth_dim)); 
@@ -327,12 +331,12 @@ glm::mat4 getIntermediateTransformation(glm::vec3 axis){
             weights[j] += conversion_matrix[i*16+j]*charcterization[i];
         }
     }
-    return glm::transpose(glm::make_mat4(weights));
+    return glm::make_mat4(weights)*ratio + glm::mat4(1.0f)*(1.0f-ratio);
 };
 
 mat4 PlayerLocation::getModel(std::array<bool, 4> WASD, float dt) {
     moveHead(WASD, dt);
-    return getIntermediateTransformation(-head);
+    return getIntermediateTransformation(head);
 };
 uint PlayerLocation::getFloorIndex() {
     //Using the players feet this gives the closest aligned

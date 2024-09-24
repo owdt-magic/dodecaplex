@@ -1,7 +1,7 @@
 #version 410 core
 
 in float zDepth;
-in vec4 world_Coords;
+in vec4 model_Coords;
 
 uniform sampler2DArray pentagonTextures;
 uniform sampler2DArray specularTextures;
@@ -23,7 +23,7 @@ subroutine (spell) vec4 emptySpell(vec4 color) {
 }
 subroutine (spell) vec4 castTeleportA(vec4 color) {
     vec4 spec_data   = vec4(0.5);//texture(specularTextures, textureCoord);
-    float spell_dist = length(cross(SPELL_FOCUS, SPELL_HEAD-world_Coords.xyz));
+    float spell_dist = length(cross(SPELL_FOCUS, SPELL_HEAD-model_Coords.xyz));
     float spell_flux = spell_dist+ sin(u_time/10.0)*0.001;
     vec2 window      = (gl_FragCoord.xy-(u_resolution/2.0))/((max(u_resolution.x, u_resolution.y) * pow(.1, SPELL_LIFE))*.5);
     float angle      = atan(window.x, window.y)+sin(u_time)*10.0f;
@@ -37,7 +37,7 @@ subroutine (spell) vec4 castTeleportA(vec4 color) {
 }
 subroutine (spell) vec4 releaseTeleportA(vec4 color) {
     
-    float spell_dist = length(cross(SPELL_FOCUS, SPELL_HEAD-world_Coords.xyz));
+    float spell_dist = length(cross(SPELL_FOCUS, SPELL_HEAD-model_Coords.xyz));
     vec2 window      = (gl_FragCoord.xy-u_resolution)/u_resolution;
     float angle      = atan(window.x, window.y)+(u_time+SPELL_LIFE)*15.0f;
 
@@ -50,9 +50,9 @@ vec4 hueShifter(vec4 color, float u_theta){
     return  vec4(mat3( 1.0, 1.0, 1.0, 0.5696804, -0.1620848, -0.6590654, 0.3235513, -0.3381869, 0.8901581 ) * yiqColor, 1.0);
 }
 void main(){
-    color = (sin(world_Coords)+1)/2;
-    color = color/max(1.0, zDepth/1.0);
-    //color = hueShifter(color, world_Coords.x/5.);
+    color = (sin(model_Coords)+1)/2;
+    color = color/max(1.0, zDepth/4.0);
+    //color = hueShifter(color, model_Coords.x/5.);
     //color = color*2.0;
     color = currentSpell(color);
 }
