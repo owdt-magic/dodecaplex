@@ -13,22 +13,23 @@ out vec4 model_Coords;
 
 void main() {
     float leg;
-    float point1, point2;
     float longest = -1.0;
+    float max_offset =  max(length(wCoords[0].xyz), 
+                        max(length(wCoords[1].xyz), 
+                            length(wCoords[2].xyz)));
+
     for (int i = 0; i < 3; i++) {
-        point1 = length(wCoords[i].xyz);
-        point2 = length(wCoords[(i+1)%3].xyz);
         leg = length(wCoords[i].xyz-wCoords[(i+1)%3].xyz);
-        if (max(point1, point2) < leg){
+        if (max_offset < leg) {
             // aka - does this triangle 'wrap' the origin?
             longest = max(longest, leg);
         }
     }
     if (longest < THRESH) {
         for(int i = 0; i < 3; i++) {
-            gl_Position = gl_in[i].gl_Position;
-            zDepth = vDepth[i];
-            model_Coords = mCoords[i];
+            gl_Position     = gl_in[i].gl_Position;
+            zDepth          = vDepth[i];
+            model_Coords    = mCoords[i];
             EmitVertex();
         }
         EndPrimitive();
