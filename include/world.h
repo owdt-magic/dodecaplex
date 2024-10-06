@@ -38,12 +38,13 @@ private:
     const float mouse_scale = 500.0f;
     uint floor_indx;
 
-    glm::vec3 head = glm::vec3(0,0.1,0);
+    glm::vec3 head = glm::vec3(0,0.000001,0);
     glm::vec3 player_up = glm::vec3(0,0,-1);
     glm::vec3 focus = glm::vec3(1,0,0);
         //NOTE: feet/focus are relative to the head!
         //i.e. the actuall coordinates of feet/focus:
         //head + feet / head + focus
+    glm::mat4 accumulated_transformations = glm::mat4(1.0f);
     uint getFloorIndex();
     bool accountBoundary(glm::vec3& direction);
     void updateFocus(float x, float y, float dt);

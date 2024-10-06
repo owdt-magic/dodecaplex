@@ -1,5 +1,9 @@
 #include "world.h"
 
+#include <iostream>
+#include <iomanip>
+#include "debug.h"
+
 #define MAX_CELL_VERTS 60 
     // 20 corners x3 redundancy for unique sides. 
     // (3 meet per corner with 3 unique textures)
@@ -81,7 +85,7 @@ std::size_t initializeDodecaplexStates(GLuint* index_buffer){
     
     for (int i =0; i < 12; i++) {
         n = neighbor_side_orders[i];
-        load_cell[n] = true;//!(rand()%2);
+        load_cell[n] = !(rand()%2);
         for (int j=0; j < 12; j++) {
             m = neighbor_side_orders[n*12 + j];
             if (!load_cell[m]){
@@ -233,12 +237,42 @@ InterceptResult PlayerLocation::getIntercept() {
     result.index = exit_index;
     return result;
 }
+
+
+glm::mat4 rotationMatrix4D(glm::vec3 axis){    
+    return glm::mat4(
+        2.0f*axis.x*axis.x-1.0f, 2.0f*axis.y*axis.x,      2.0f*axis.z*axis.x,      0.0f,
+        2.0f*axis.x*axis.y,      2.0f*axis.y*axis.y-1.0f, 2.0f*axis.z*axis.y,      0.0f,
+        2.0f*axis.x*axis.z,      2.0f*axis.y*axis.z,      2.0f*axis.z*axis.z-1.0f, 0.0f,
+        0.0f,                    0.0f,                    0.0f,                    1.0f
+    );
+}
+
+
+
+glm::mat3 rotationMatrix3D(glm::vec3 axis){    
+    return glm::mat3(
+        2.0f*axis.x*axis.x-1.0f, 2.0f*axis.y*axis.x,      2.0f*axis.z*axis.x,
+        2.0f*axis.x*axis.y,      2.0f*axis.y*axis.y-1.0f, 2.0f*axis.z*axis.y,
+        2.0f*axis.x*axis.z,      2.0f*axis.y*axis.z,      2.0f*axis.z*axis.z-1.0f
+    );
+}
+
+
+
+#define NOCLIP
 bool PlayerLocation::accountBoundary(vec3& direction) {
     // This method does two things:
     // makes sure that `player_up` is right based on location
     // returns false if the player is about to hit a wall.
+#ifdef LEGACY
     const float SCALE_MULT = 1/7.0f;
     const float min_dist = length(head - direction - reference_cell->origin);
+    bool boundary = false;
+    
+    #ifdef NOCLIP
+    boundary = true;
+    #endif
     
     int adjacent_indx;
     float cur_dist, ref_weight;
@@ -255,7 +289,7 @@ bool PlayerLocation::accountBoundary(vec3& direction) {
                     // This is where we cross the cell boundary..
                     if (reference_cell->doors[adjacent_indx]->hasDoor(floor_indx)) {
                         // If there is a door in the floor, don't walk on it!
-                        return false;
+                        return boundary;
                     }
                     reference_cell = reference_cell->doors[adjacent_indx];
                     // Otherwise, swap the reference cell once you cross the boundary.
@@ -268,12 +302,56 @@ bool PlayerLocation::accountBoundary(vec3& direction) {
                 return true; 
                     // There is a door here, the player can pass.
             }
-            return false;
+            return boundary;
         }
     }
     return true;
+#endif
+#ifndef LEGACY
+    static float last_thresh = 0.50f;
+    static int ignore_idx = -1;
+    static bool relevant = true;
+
+    float dot_product;
+    mat3 local_rotation;
+    vec3 offset_3D;
+    std::cout << "\r";
+    // Determine if this new_head is in a new cell
+    for (int i=0; i < 12; i++) {
+        offset_3D = vec3(neighbor_offsets[i]);
+        dot_product = dot((head-direction)/vec3(0.25+0.25*PHI*PHI), normalize(offset_3D));
+        // If the dot product is > 0.5, it is half way between the two dodecahedrons.
+        std::cout << std::fixed << std::setprecision(2) << std::setw(6) << dot_product << " ";
+
+        if (dot_product > last_thresh) {
+            if ( (i == ignore_idx) || (i == ignore_idx+1) ) {
+                return true;
+            } else {
+                relevant = false;
+            }
+            accumulated_transformations = neighbor_transforms[i]*accumulated_transformations;
+
+            local_rotation = rotationMatrix3D(normalize(offset_3D));
+            
+            head        = local_rotation*(head-direction) - normalize(offset_3D)*vec3(0.25+0.25*PHI*PHI);
+            player_up   = local_rotation*player_up;
+            focus       = local_rotation*focus;
+
+            std::cout << glm::to_string(head)<< std::endl;
+
+            ignore_idx = (i/2)*2;
+            relevant = true;
+            std::cout << i << std::endl;
+            std::cout << ignore_idx << std::endl;
+            std::cout << std::flush;
+            return false;
+        }
+    }
+    std::cout << std::flush;
+    return true;
+#endif
 };
-#define NOCLIP
+
 void PlayerLocation::moveHead(std::array<bool, 4> WASD, float dt) {
     vec3 left_right = normalize(cross(focus, -player_up));
     
@@ -291,24 +369,10 @@ void PlayerLocation::moveHead(std::array<bool, 4> WASD, float dt) {
     if (WASD[3]) direction += left_right; normalize(direction);
     direction *= movement_scale*dt;
 
-    #ifndef NOCLIP
-    if ( !accountBoundary(direction) ) {
+    if ( accountBoundary(direction) ) {
         head -= direction;
     }
-    #endif
-    #ifdef NOCLIP
-    head -= direction;
-    #endif
 };
-
-glm::mat4 rotationMatrix(glm::vec3 axis){    
-    return glm::mat4(
-        2.0f*axis.x*axis.x-1.0f, 2.0f*axis.y*axis.x,      2.0f*axis.z*axis.x,      0.0f,
-        2.0f*axis.x*axis.y,      2.0f*axis.y*axis.y-1.0f, 2.0f*axis.z*axis.y,      0.0f,
-        2.0f*axis.x*axis.z,      2.0f*axis.y*axis.z,      2.0f*axis.z*axis.z-1.0f, 0.0f,
-        0.0f,                    0.0f,                    0.0f,                    1.0f
-    );
-}
 
 glm::mat4 getIntermediateTransformation(glm::vec3 axis){
     // Uses a pre-computed least squares matrix "conversion_matrix"
@@ -316,10 +380,17 @@ glm::mat4 getIntermediateTransformation(glm::vec3 axis){
     // matrix to apply to the verticies of the dodecaplex.
     const float fourth_dim = PHI/2.0f;
     glm::vec4 compass = glm::vec4(1.0f);
-    float ratio = glm::length(axis)/(0.25 + 0.25*PHI*PHI);
+    float max_dot = 0.0f;
+    for (int i=0; i < 12; i++) {
+        max_dot= max(max_dot, dot(axis, vec3(neighbor_offsets[i])));
+    }
+
+    float ratio = max_dot*2.0f;//glm::length(axis)/(0.25 + 0.25*PHI*PHI);
+    //std::cout << ratio << "  " << max_dot << std::endl;
+        // This is divided by the magnitude of the first 3 elements of each offset neighbor
 
     axis = normalize(axis);
-    compass = compass*rotationMatrix(axis);
+    compass = compass*rotationMatrix4D(axis);
     axis = axis*sqrt(1.0f-(fourth_dim*fourth_dim)); 
         // Scale the normalized axis to be normalized with a hypothetical w of fourth_dim
     float charcterization[9] = {compass.x, compass.y, compass.z, compass.w, 
@@ -336,7 +407,7 @@ glm::mat4 getIntermediateTransformation(glm::vec3 axis){
 
 mat4 PlayerLocation::getModel(std::array<bool, 4> WASD, float dt) {
     moveHead(WASD, dt);
-    return getIntermediateTransformation(head);
+    return getIntermediateTransformation(head)*accumulated_transformations;
 };
 uint PlayerLocation::getFloorIndex() {
     //Using the players feet this gives the closest aligned
