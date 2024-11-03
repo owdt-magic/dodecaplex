@@ -1,14 +1,5 @@
 #include "world.h"
-
-#include <iostream>
-#include <iomanip>
 #include "debug.h"
-
-#define MAX_CELL_VERTS 60 
-    // 20 corners x3 redundancy for unique sides. 
-    // (3 meet per corner with 3 unique textures)
-#define MAX_CELL_FACES 12*3
-    // need 3 triangles for a single pentagon.
 
 using namespace glm;
 
@@ -18,66 +9,7 @@ PlayerContext::PlayerContext() {
     }
     srand(time(NULL)); // Randomize the map...
 };
-VAO cellToVAO(WorldCell& cell, GLfloat* cell_vert_buff, GLuint* cell_indx_buff,\
-                             std::size_t v_buff_size, std::size_t i_buff_size) {
-    
-    std::size_t verts_size = cell.generateVerts(cell_vert_buff, v_buff_size);
-    std::size_t indxs_size = cell.generateIndxs(cell_indx_buff, i_buff_size);
-    
-    VAO cell_vao(
-        (GLfloat*) cell_vert_buff, verts_size,
-        (GLfloat*) &cell.cell_matrix, sizeof(mat4),
-        (GLuint*) cell_indx_buff, indxs_size
-    );
-
-    cell_vao.LinkAttrib(cell_vao.vbo, 0, 3, GL_FLOAT, VERTEX_ELEMENT_COUNT * sizeof(float), (void*)0); // xyz
-    cell_vao.LinkAttrib(cell_vao.vbo, 1, 3, GL_FLOAT, VERTEX_ELEMENT_COUNT * sizeof(float), (void*)(3*sizeof(float))); // uv i
-    cell_vao.LinkMat4(cell_vao.cbo, 2);
-    return cell_vao;
-};
-
-std::vector<WorldCell*> PlayerContext::establishNeighborhood() {    
-    std::vector<WorldCell*> neighbors = {player_location->reference_cell};
-    static int n, generation_size, last_generation = 0;
-    static const int 
-        max_adjacent = 5,
-        max_attempts = 100,
-        max_generations = 3;
-
-    WorldCell* new_cell;
-
-    auto notTooClose = [&](WorldCell* cell) {
-        for (WorldCell* other_cell : neighbors)
-            if (!cell->notTooClose(other_cell)) return false;
-        return true;
-    };
-    auto assignNeighbors = [&](WorldCell* cell) {
-        for (int i = 0; i < max_adjacent; i++) {
-            for (int j = 0; j < max_attempts; j++) {
-                n = rand()%12;
-                if (!cell->canAddDoor(n)) continue;
-                    //^ Avoids unnecessary cell initialization...
-                new_cell = new WorldCell(cell, n);
-                if (notTooClose(new_cell)) {
-                    cell->addDoor(n, *new_cell);
-                    neighbors.push_back(new_cell);
-                    break;
-                } else {free(new_cell);}
-            }
-        }
-    };
-
-    for (int i = 0; i < max_generations; i++) {
-        generation_size = neighbors.size();
-        for (int j = last_generation; j < generation_size; j++) {
-            assignNeighbors(neighbors[j]);
-        }
-        last_generation = generation_size;
-    }
-    return neighbors;
-};
-
-std::size_t initializeDodecaplexStates(GLuint* index_buffer){
+std::size_t PlayerContext::initializeDodecaplexStates(GLuint* index_buffer){
     int dest = 0,
         read = 0,
         n,m,o,p;
@@ -119,7 +51,6 @@ std::size_t initializeDodecaplexStates(GLuint* index_buffer){
 
     return (std::size_t) sizeof(GLuint)*dest;
 };
-
 void PlayerContext::linkDodecaplexVAOs() {
     std::size_t index_max_size = 120*36*3*sizeof(GLuint);
     
@@ -139,46 +70,14 @@ void PlayerContext::linkDodecaplexVAOs() {
     free(index_buffer);
 
 };
-
 void PlayerContext::drawAllVAOs() {
     for (int i = 0; i < all_vaos.size(); i++){
         all_vaos[i].DrawElements(GL_TRIANGLES);
-    }    
-};
-
-void PlayerContext::linkPlayerCellVAOs() {
-    std::vector<WorldCell*> neighborhood = establishNeighborhood();
-
-    std::size_t v_size = MAX_CELL_VERTS*6*sizeof(GLfloat);
-    std::size_t i_size = MAX_CELL_FACES*3*sizeof(GLuint);
-
-    GLfloat* v_buff = (GLfloat*) malloc(v_size);
-    GLuint* i_buff  = (GLuint*) malloc(i_size);
-
-    for (int i = 0; i < neighborhood.size(); i++) {
-        all_vaos.push_back(cellToVAO(*neighborhood[i], v_buff, i_buff, v_size, i_size));
     }
-
-    free(v_buff);
-    free(i_buff);
-};    
+};
 
 PlayerLocation::PlayerLocation() {
     if (reference_cell == NULL) reference_cell = new WorldCell();
-    floor_indx  = getFloorIndex();
-    
-    #ifdef LEGACY
-    player_up   = reference_cell->floor_norms[floor_indx];
-    vec3 floor  = reference_cell->sides[floor_indx].findIntercept(vec3(0.),-player_up);
-    head = floor + player_up*height;
-    #endif    
-};
-mat4 PlayerLocation::getView(float x, float y, float dt) {
-    updateFocus(x, y, dt); // Account for mouse movement...
-    mat4 View = lookAt(
-        vec3(0), focus, player_up
-    );// since this is view, keep the origin at 0, and not head...
-    return View;
 };
 vec3 PlayerLocation::getFocus() {
     return focus;
@@ -192,13 +91,6 @@ vec3 PlayerLocation::getPUp() {
 float PlayerLocation::getHeight() {
     return height;
 };
-void PlayerLocation::teleportHead(vec3 target) {
-    head = target;
-};
-void PlayerLocation::teleportPUp(vec3 target) {
-    player_up = target;
-};
-
 InterceptResult PlayerLocation::getIntercept() {
     vec3 intercept, detransformed_head, detransformed_focus;
     int exit_index = -1;
@@ -237,213 +129,55 @@ InterceptResult PlayerLocation::getIntercept() {
     result.index = exit_index;
     return result;
 }
-
-
-glm::mat4 rotationMatrix4D(glm::vec3 axis){    
-    return glm::mat4(
-        2.0f*axis.x*axis.x-1.0f, 2.0f*axis.y*axis.x,      2.0f*axis.z*axis.x,      0.0f,
-        2.0f*axis.x*axis.y,      2.0f*axis.y*axis.y-1.0f, 2.0f*axis.z*axis.y,      0.0f,
-        2.0f*axis.x*axis.z,      2.0f*axis.y*axis.z,      2.0f*axis.z*axis.z-1.0f, 0.0f,
-        0.0f,                    0.0f,                    0.0f,                    1.0f
-    );
-}
-
-
-
-glm::mat3 rotationMatrix3D(glm::vec3 axis){    
-    return glm::mat3(
-        2.0f*axis.x*axis.x-1.0f, 2.0f*axis.y*axis.x,      2.0f*axis.z*axis.x,
-        2.0f*axis.x*axis.y,      2.0f*axis.y*axis.y-1.0f, 2.0f*axis.z*axis.y,
-        2.0f*axis.x*axis.z,      2.0f*axis.y*axis.z,      2.0f*axis.z*axis.z-1.0f
-    );
-}
-
-
-
-#define NOCLIP
-bool PlayerLocation::accountBoundary(vec3& direction) {
-    // This method does two things:
-    // makes sure that `player_up` is right based on location
-    // returns false if the player is about to hit a wall.
-#ifdef LEGACY
-    const float SCALE_MULT = 1/7.0f;
-    const float min_dist = length(head - direction - reference_cell->origin);
-    bool boundary = false;
-    
-    #ifdef NOCLIP
-    boundary = true;
-    #endif
-    
-    int adjacent_indx;
-    float cur_dist, ref_weight;
-    vec3 hypothetical_origin, ref_up, door_up;
-    for (int i = 0; i < 5; i++) { // There are 5 adjacent sides...
-        adjacent_indx       = Dodecahedron::adjacency_matrix[floor_indx*5 + i]; 
-            // Map from 1-5 to cell normal indeces
-        hypothetical_origin = reference_cell->origin-reference_cell->floor_norms[adjacent_indx]*NORMAL_SCALE;
-        cur_dist            = length(head - direction - hypothetical_origin);
-        if ((cur_dist - min_dist) <= NORMAL_SCALE*SCALE_MULT) {
-            // Within `SCALE_MULT`% of the edge, you begin to blend the normals together.
-            if (reference_cell->doors[adjacent_indx] != NULL) { // Checking : is there a cell through this wall?
-                if (cur_dist < min_dist) { 
-                    // This is where we cross the cell boundary..
-                    if (reference_cell->doors[adjacent_indx]->hasDoor(floor_indx)) {
-                        // If there is a door in the floor, don't walk on it!
-                        return boundary;
-                    }
-                    reference_cell = reference_cell->doors[adjacent_indx];
-                    // Otherwise, swap the reference cell once you cross the boundary.
-                } 
-                ref_up      = reference_cell->floor_norms[floor_indx];
-                door_up     = reference_cell->doors[adjacent_indx]->floor_norms[floor_indx];
-                ref_weight  = ((cur_dist-min_dist)/(NORMAL_SCALE*SCALE_MULT*2.0f)+0.5f);
-                player_up   = normalize(ref_up*ref_weight + door_up* (1.0f-ref_weight));
-                    // This above blends the two normals together based on proximity.
-                return true; 
-                    // There is a door here, the player can pass.
-            }
-            return boundary;
-        }
-    }
-    return true;
-#endif
-#ifndef LEGACY
-    static float last_thresh = 0.50f;
-    static int ignore_idx = -1;
-    static bool relevant = true;
-
-    float dot_product;
-    mat3 local_rotation;
-    vec3 offset_3D;
-    std::cout << "\r";
-    // Determine if this new_head is in a new cell
-    for (int i=0; i < 12; i++) {
-        offset_3D = vec3(neighbor_offsets[i]);
-        dot_product = dot((head-direction)/vec3(0.25+0.25*PHI*PHI), normalize(offset_3D));
-        // If the dot product is > 0.5, it is half way between the two dodecahedrons.
-        std::cout << std::fixed << std::setprecision(2) << std::setw(6) << dot_product << " ";
-
-        if (dot_product > last_thresh) {
-            if ( (i == ignore_idx) || (i == ignore_idx+1) ) {
-                return true;
-            } else {
-                relevant = false;
-            }
-            accumulated_transformations = neighbor_transforms[i]*accumulated_transformations;
-
-            local_rotation = rotationMatrix3D(normalize(offset_3D));
-            
-            head        = local_rotation*(head-direction) - normalize(offset_3D)*vec3(0.25+0.25*PHI*PHI);
-            player_up   = local_rotation*player_up;
-            focus       = local_rotation*focus;
-
-            std::cout << glm::to_string(head)<< std::endl;
-
-            ignore_idx = (i/2)*2;
-            relevant = true;
-            std::cout << i << std::endl;
-            std::cout << ignore_idx << std::endl;
-            std::cout << std::flush;
-            return false;
-        }
-    }
-    std::cout << std::flush;
-    return true;
-#endif
+void PlayerLocation::teleportHead(vec3 target) {
+    head = target;
 };
-
-void PlayerLocation::moveHead(std::array<bool, 4> WASD, float dt) {
-    vec3 left_right = normalize(cross(focus, -player_up));
-    
-    #ifndef NOCLIP
-    vec3 front_back = normalize(cross(left_right, -player_up));
-    #endif    
-    #ifdef NOCLIP
-    vec3 front_back = normalize(-focus);    
-    #endif
-
-    vec3 direction = vec3(0., 0., 0.);
-    if (WASD[0]) direction += front_back; //already normalized
-    if (WASD[1]) direction -= left_right; normalize(direction);
-    if (WASD[2]) direction -= front_back; normalize(direction);
-    if (WASD[3]) direction += left_right; normalize(direction);
-    direction *= movement_scale*dt;
-
-    if ( accountBoundary(direction) ) {
-        head -= direction;
-    }
+void PlayerLocation::teleportPUp(vec3 target) {
+    player_up = target;
 };
-
-glm::mat4 getIntermediateTransformation(glm::vec3 axis){
-    // Uses a pre-computed least squares matrix "conversion_matrix"
-    // and the direction of "axis" to determine a 4D transformaiton
-    // matrix to apply to the verticies of the dodecaplex.
-    const float fourth_dim = PHI/2.0f;
-    glm::vec4 compass = glm::vec4(1.0f);
-    float max_dot = 0.0f;
-    for (int i=0; i < 12; i++) {
-        max_dot= max(max_dot, dot(axis, vec3(neighbor_offsets[i])));
-    }
-
-    float ratio = max_dot*2.0f;//glm::length(axis)/(0.25 + 0.25*PHI*PHI);
-    //std::cout << ratio << "  " << max_dot << std::endl;
-        // This is divided by the magnitude of the first 3 elements of each offset neighbor
-
-    axis = normalize(axis);
-    compass = compass*rotationMatrix4D(axis);
-    axis = axis*sqrt(1.0f-(fourth_dim*fourth_dim)); 
-        // Scale the normalized axis to be normalized with a hypothetical w of fourth_dim
-    float charcterization[9] = {compass.x, compass.y, compass.z, compass.w, 
-        axis.x*axis.z, axis.x*fourth_dim, axis.y*axis.z, axis.y*fourth_dim, axis.z*fourth_dim};
-        // The parameters needed to interpolate the right transformation matrix.
-    float weights[4*4] = {0.0f};
-    for (int i = 0; i < 9; i++) {
-        for (int j = 0; j < 16; j++) {
-            weights[j] += conversion_matrix[i*16+j]*charcterization[i];
-        }
-    }
-    return glm::make_mat4(weights)*ratio + glm::mat4(1.0f)*(1.0f-ratio);
+glm::mat4 PlayerLocation::getModel(){
+    accumulated_transforms = displacement_transform*orientation_transform*accumulated_transforms;
+    return accumulated_transforms;
 };
-
-mat4 PlayerLocation::getModel(std::array<bool, 4> WASD, float dt) {
-    moveHead(WASD, dt);
-    return getIntermediateTransformation(head)*accumulated_transformations;
+void PlayerLocation::updatePosition(std::array<bool, 4> WASD, float dt) {
+    static vec2 disp = vec2(0.0f);
+    if (WASD[0]) disp.y -= dt;
+    if (WASD[1]) disp.x -= dt;
+    if (WASD[2]) disp.y += dt;
+    if (WASD[3]) disp.x += dt;
+    normalize(disp);
+    disp *= movement_scale;
+    displacement_transform = mat4({
+        cos(disp.x), 0.0f, 0.0f, sin(disp.x), 
+        0.0f,     1.0f, 0.0f, 0.0f, 
+        0.0f,     0.0f, 1.0f, 0.0f,     
+       -sin(disp.x), 0.0f, 0.0f, cos(disp.x)
+    });
+    displacement_transform *= mat4({
+        1.0f, 0.0f,  0.0f,     0.0f, 
+        0.0f, 1.0f,  0.0f,     0.0f, 
+        0.0f, 0.0f,  cos(disp.y), sin(disp.y), 
+        0.0f, 0.0f, -sin(disp.y), cos(disp.y)
+    });
 };
-uint PlayerLocation::getFloorIndex() {
-    //Using the players feet this gives the closest aligned
-    //surface normal in the dodecahedron defining the cell
-    //feet is the displacement from the head
-    float min = 0.0;
-    int min_idx = 0;
-    for (unsigned i; i < 12; i++) {
-        float product = dot(reference_cell->floor_norms[i], -player_up);
-        if (product < min) {
-            min = product;
-            min_idx = i;
-        }
-    }
-    reference_cell->doors[min_idx] = reference_cell; 
-        // Prevent the floor from becoming a door.
-        // NOTE: this does NOT create an infinte looping paradox <3
-    return min_idx;
-};
-void PlayerLocation::setFloorIndex(int index) {
-    floor_indx = index;
-}
 void PlayerLocation::updateFocus(float x, float y, float dt) {
-    //For now this is 'normalized', but hypothetically,
-    //focus could permit DOF changes...
-    vec3 vertical   = normalize(-player_up);
-    vec3 horizontal = normalize(cross(vertical, focus));
-    
     float dx = (x-mx < 0.1) ? x-mx : 0.1;
     float dy = (y-my < 0.1) ? y-my : 0.1;
+    dy*=mouse_scale*dt;
+    dx*=mouse_scale*dt;
+    orientation_transform = mat4({
+        1.0f, 0.0f, 0.0f, 0.0f,
+        0.0f, cos(dy), sin(dy), 0.0f,
+        0.0f, -sin(dy), cos(dy), 0.0f,
+        0.0f, 0.0f, 0.0f, 1.0f
+    });
+    orientation_transform *= mat4({
+        cos(dx), 0.0f, -sin(dx), 0.0f,
+        0.0f, 1.0f, 0.0f, 0.0f,
+        sin(dx), 0.0f, cos(dx), 0.0f,
+        0.0f, 0.0f, 0.0f, 1.0f
 
-    focus = normalize(normalize(focus) + (dx*horizontal*mouse_scale*dt) + (dy*vertical*mouse_scale*dt));
-
+    });
     mx = x;
     my = y;
 };
-//TODO: Use more modern "track ball" approach? 
-//(Current implementation behaves weird lookging up or down too far)
-//https://github.com/RockefellerA/Trackball/blob/master/Trackball.cpp

@@ -10,7 +10,8 @@ void teleportA(SpellContext sc){
     sc.context->player_location->teleportPUp(mix(sc.cell->floor_norms[sc.target_index], sc.start_up, sc.progress));
 };
 void teleportAStart(SpellContext sc){
-    sc.context->player_location->setFloorIndex(sc.target_index);
+    //sc.context->player_location->setFloorIndex(sc.target_index);
+    //TODO: Temporary omission. Spells don't work in new 4D version...
     sc.context->player_location->reference_cell = sc.cell;
 };
 

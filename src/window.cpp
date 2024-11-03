@@ -1,8 +1,5 @@
 #include "window.h"
 #include "debug.h"
-#include <deque>
-#include <iostream>
-#include <typeinfo>
 
 bool window_is_focused = false;
 
@@ -124,12 +121,12 @@ void accountCameraControls(Uniforms* uniforms, CameraInfo &camera_info) {
     float ratio = float(uniforms->windWidth)/float(uniforms->windHeight);
     float dt = std::min( float(uniforms->this_time-uniforms->last_time), 0.01f);
     
-    // Projection matrix: 90° Field of View, display range: 0.1 unit <-> 100 units
+    player_location->updateFocus(uniforms->mouseX, uniforms->mouseY, dt);    
+    player_location->updatePosition(uniforms->getWASD(), dt);
+            
+    camera_info.Model       = player_location->getModel();
     camera_info.Projection  = glm::perspective(glm::radians(89.0f), ratio, 0.1f, 100.0f);
-    camera_info.View        = player_location->getView( uniforms->mouseX,
-                                                        uniforms->mouseY, dt);
-    camera_info.Model       = player_location->getModel( uniforms->getWASD(), dt);
-    camera_info.Location    = player_location->getHead();
+    // Projection matrix: 90° Field of View, display range: 0.1 unit <-> 100 units
 }
 
 GLuint getSpellSubroutine(Uniforms* uniforms, Grimoire& grimoire, GLuint shader_id) {

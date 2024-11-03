@@ -18,7 +18,6 @@ int main() {
     
     
     PlayerContext player_context;
-    //player_context.linkPlayerCellVAOs();
     player_context.linkDodecaplexVAOs();
     
     Grimoire grimoire;    
@@ -27,7 +26,7 @@ int main() {
     Uniforms* uniforms = getUniforms(window);
     
     float time;
-    GLuint  U_RESOLUTION, U_MOUSE, U_SCROLL, U_TIME, U_HEAD, U_CAMERA, U_WORLD,
+    GLuint  U_RESOLUTION, U_MOUSE, U_SCROLL, U_TIME, U_CAMERA, U_WORLD,
             U_SPELL_LIFE, U_CAST_LIFE, U_SPELL_FOCUS, U_SPELL_HEAD,
             U_FLIP_PROGRESS, U_CAMERA_BOOK;            
     GLuint subroutine_index;
@@ -36,7 +35,7 @@ int main() {
     TextureLibrary texture_library;
 
     while (!glfwWindowShouldClose(window)) {
-        std::this_thread::sleep_for(std::chrono::milliseconds(1));
+        //std::this_thread::sleep_for(std::chrono::milliseconds(1));
         if (uniforms->loading) {
             world_shader.Load();
             world_shader.Activate();
@@ -46,7 +45,6 @@ int main() {
             U_MOUSE       = glGetUniformLocation(world_shader.ID, "u_mouse");
             U_SCROLL      = glGetUniformLocation(world_shader.ID, "u_scroll");
             U_TIME        = glGetUniformLocation(world_shader.ID, "u_time");
-            U_HEAD        = glGetUniformLocation(world_shader.ID, "HEAD");
             U_CAMERA      = glGetUniformLocation(world_shader.ID, "CAMERA");
             U_WORLD       = glGetUniformLocation(world_shader.ID, "WORLD");
             U_CAST_LIFE   = glGetUniformLocation(world_shader.ID, "CAST_LIFE");
@@ -99,9 +97,8 @@ int main() {
 
         accountCameraControls(uniforms, cam);
 
-        glUniformMatrix4fv(U_CAMERA, 1, GL_FALSE, &(cam.Projection*cam.View)[0][0]);
+        glUniformMatrix4fv(U_CAMERA, 1, GL_FALSE, &(cam.Projection)[0][0]);
         glUniformMatrix4fv(U_WORLD,  1, GL_FALSE, &(cam.Model)[0][0]);
-        glUniform3f(U_HEAD, cam.Location.x, cam.Location.y, cam.Location.z);
         
         player_context.drawAllVAOs();
 
