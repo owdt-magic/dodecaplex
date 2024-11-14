@@ -117,15 +117,14 @@ std::array<bool, 4> Uniforms::getWASD() {
 }
 
 void accountCameraControls(Uniforms* uniforms, CameraInfo &camera_info) {
-    PlayerLocation* player_location = uniforms->player_context->player_location;
+    PlayerContext* player_context = uniforms->player_context;
     float ratio = float(uniforms->windWidth)/float(uniforms->windHeight);
     float dt = std::min( float(uniforms->this_time-uniforms->last_time), 0.01f);
     
-    player_location->updateFocus(uniforms->mouseX, uniforms->mouseY, dt);    
-    player_location->updatePosition(uniforms->getWASD(), dt);
-            
-    camera_info.Model       = player_location->getModel();
-    camera_info.Projection  = glm::perspective(glm::radians(89.0f), ratio, 0.1f, 100.0f);
+    player_context->player_location->noclip = uniforms->key_states[340];
+        // Debugging: hold shift for free fly
+    camera_info.Model       = player_context->getModelMatrix(uniforms->getWASD(), uniforms->mouseX, uniforms->mouseY, dt);
+    camera_info.Projection  = glm::perspective(glm::radians(110.0f), ratio, 0.01f, 100.0f);
     // Projection matrix: 90° Field of View, display range: 0.1 unit <-> 100 units
 }
 

@@ -6,7 +6,7 @@ uniform mat4 WORLD;
 
 uniform float u_time;
 
-out vec3 surfaceNorm;
+out vec3 surfaceNorm;   
 out vec4 mCoords;
 out vec4 wCoords;
 out float vDepth;
@@ -23,8 +23,9 @@ void project(inout vec4 vert){
 
 void main(){
     vec4 world_Pos = WORLD*model_verts;
+    mCoords = world_Pos;
     project(world_Pos);
-    mCoords = model_verts*3; // Temporary for color...
+    //mCoords = model_verts*3; // Temporary for color...
     gl_Position = CAMERA * world_Pos;
     vDepth = gl_Position.z;
     wCoords = world_Pos;

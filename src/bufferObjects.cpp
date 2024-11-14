@@ -63,10 +63,15 @@ VAO::VAO(GLfloat* vertices, GLsizeiptr verticesSize, \
 	vbo = VBO(vertices, verticesSize);
 	cbo = VBO(colors, colorsSize);
 }
-VAO::VAO(GLfloat* vertices, GLsizeiptr verticesSize) { 
+VAO::VAO(GLfloat* vertices, GLsizeiptr verticesSize) : vbo(), ebo() { 
 	glGenVertexArrays(1, &ID);
 	glBindVertexArray(ID);
 	vbo = VBO(vertices, verticesSize);
+}
+void VAO::NewIndeces(GLuint* indeces, GLsizeiptr indecesSize) {
+	glGenVertexArrays(1, &ID);
+	glBindVertexArray(ID);
+	ebo = EBO(indeces, indecesSize);
 }
 void VAO::LinkAttrib(VBO& VBO, GLuint attrIdx, GLuint numComponents, \
  						GLenum type, GLsizeiptr stride, void* offset) {

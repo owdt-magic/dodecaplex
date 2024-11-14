@@ -18,8 +18,8 @@ int main() {
     
     
     PlayerContext player_context;
-    player_context.linkDodecaplexVAOs();
-    
+    player_context.initializeWorldData();
+
     Grimoire grimoire;    
     grimoire.linkGrimoireVAOs();
 
@@ -39,6 +39,7 @@ int main() {
         if (uniforms->loading) {
             world_shader.Load();
             world_shader.Activate();
+            player_context.indexDodecaplexVAOs();
             texture_library.linkPentagonLibrary(world_shader.ID);
 
             U_RESOLUTION  = glGetUniformLocation(world_shader.ID, "u_resolution");
@@ -65,8 +66,7 @@ int main() {
             
             glEnable(GL_DEPTH_TEST);
             glDepthFunc(GL_LESS);
-        }
-
+        }        
         time = glfwGetTime();
         uniforms->this_time = time;
 

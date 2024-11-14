@@ -61,6 +61,7 @@ public:
 		GLuint* indices, GLsizeiptr indicesSize);
 	VAO(GLfloat* vertices, GLsizeiptr verticesSize, GLfloat* colors, GLsizeiptr colorsSize);
 	VAO(GLfloat* vertices, GLsizeiptr verticesSize);
+	void NewIndeces(GLuint* indeces, GLsizeiptr indecesSize);
 	void LinkAttrib(VBO& VBO, GLuint attrIdx, GLuint numComponents, \
 		GLenum type, GLsizeiptr stride, void* offset);
 	void LinkMat4(VBO& VBO, GLuint attridx);

@@ -2,6 +2,7 @@
 
 in float zDepth;
 in vec4 model_Coords;
+in vec3 texture_Coords;
 
 uniform sampler2DArray pentagonTextures;
 uniform sampler2DArray specularTextures;
@@ -50,9 +51,11 @@ vec4 hueShifter(vec4 color, float u_theta){
     return  vec4(mat3( 1.0, 1.0, 1.0, 0.5696804, -0.1620848, -0.6590654, 0.3235513, -0.3381869, 0.8901581 ) * yiqColor, 1.0);
 }
 void main(){
-    color = (sin(model_Coords)+1)/2;
-    color = color/max(1.0, zDepth/4.0);
-    //color = hueShifter(color, model_Coords.x/5.);
+    /* color = (sin(model_Coords)+1)/2;
+    color = color/max(1.0, zDepth/4.0);  */
+    color = texture(pentagonTextures, texture_Coords);
+    //color = hueShifter(color, model_Coords.x/5.);    
     //color = color*2.0;
     color = currentSpell(color);
+    color /= max(zDepth*1.5, 1.0);
 }
