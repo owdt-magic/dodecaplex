@@ -6,6 +6,7 @@
 #include "dodecaplex.h"
 #include <time.h>
 #include <vector>
+#include <tuple>
 #include <cmath>
 #include <set>
 #include <glm/gtc/type_ptr.hpp>
@@ -87,7 +88,7 @@ private:
 struct PlayerContext {
     PlayerContext();
     void initializeWorldData();
-    void indexDodecaplexVAOs();
+    void establishVAOContext();
     void drawAllVAOs();
     
     glm::mat4 getModelMatrix(std::array<bool, 4> WASD, float mouseX, float mouseY, float dt);
@@ -95,7 +96,7 @@ struct PlayerContext {
     MapData map_data;
 private:
     VAO dodecaplex_vao;
-    std::size_t populateDodecaplexIndexBuffer(GLuint* index_buffer);
+    std::tuple<int, int, int> loadPentagon(GLuint* pentagon_indeces, GLfloat* v_buff, GLuint* i_buff, int v_head, int i_head, int offset);
     std::vector<VAO> additional_vaos;
 };
 

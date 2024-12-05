@@ -2,11 +2,12 @@
 #include "debug.h"
 
 using namespace glm;
+using namespace std;
 
 void MapData::establishMap(){
     for (int i = 0; i < 120; i++) {
         load_cell[i] = rand()%2;
-    } 
+    }     
     load_cell[0] = true;
     load_cell[neighbor_side_orders[0]] = false;
 };
@@ -19,35 +20,77 @@ PlayerContext::PlayerContext() {
 };
 void PlayerContext::initializeWorldData(){
     map_data.establishMap();
-    dodecaplex_vao = VAO((GLfloat*) &dodecaplex_cell_verts, sizeof(GLfloat)*600*4);
 };
-std::size_t PlayerContext::populateDodecaplexIndexBuffer(GLuint* index_buffer){
-    int dest = 0,
-        read = 0;
 
+#define VERT_ELEM_COUNT 7
+
+tuple<int, int, int> PlayerContext::loadPentagon(GLuint* pentagon_indeces, GLfloat* v_buff, GLuint* i_buff, int v_head, int i_head, int offset) {
+    /* pentagon_indeces : address of first of the 4 pentagon indeces defined in dodecaplex.h
+        offset : number of vertex elements written to be drawn so far. */
+    const GLfloat CORNERS[] = {
+        0.48f,0.0f,
+        0.0f,0.38f,
+        0.2f,0.95f,
+        0.8f,0.95f,
+        1.0f,0.38f
+    };
+    int c = 0;
+    for (int i = 0; i < 5; i++){
+        for (int j = 0; j < 4; j++){
+            v_buff[v_head++] = dodecaplex_cell_verts[pentagon_indeces[i]*4+j];
+        }
+        v_buff[v_head++] = CORNERS[c++];
+        v_buff[v_head++] = CORNERS[c++];
+        v_buff[v_head++] = 2.0f;
+    }
+    
+    i_buff[i_head++] = offset;
+    i_buff[i_head++] = offset+1;
+    i_buff[i_head++] = offset+2;
+    
+    i_buff[i_head++] = offset;
+    i_buff[i_head++] = offset+2;
+    i_buff[i_head++] = offset+3;
+    
+    i_buff[i_head++] = offset;
+    i_buff[i_head++] = offset+3;
+    i_buff[i_head++] = offset+4;
+
+    offset += 5;
+    return {v_head, i_head, offset};
+};
+
+void PlayerContext::establishVAOContext() {
+    /*
+    New VBO & IBO
+    VBO -> itterate through the sets of five defining the sides...
+     - break it down into each side, for each side, create the new center point.
+     - add in all of the texture information here as well.
+    */
+    int offset = 0, v_head = 0, i_head = 0;
+
+    const size_t vertex_max_size = 120*12*5*VERT_ELEM_COUNT*sizeof(GLfloat);
+    const size_t index_max_size  = 120*12*5*3*sizeof(GLuint);
+    
+    GLfloat* vertex_buffer = (GLfloat*) malloc(vertex_max_size);
+    GLuint* index_buffer   = (GLuint*) malloc(index_max_size);
+
+    int read = 0;
     for (int ci = 0; ci < 120; ci++) {
         if (map_data.load_cell[ci]) {
             for (int ord_idx = ci*12; ord_idx < ci*12 + 12; ord_idx++){
                 if (!map_data.load_cell[neighbor_side_orders[ord_idx]]) {
-                    // Current cell is being drawn, neighbor is not...
-                    // the requires we draw the wall / face...
-                    for (int nine = 0; nine < 9; nine++) {
-                        // 3 triangles / face * 3 points / triangle
-                        index_buffer[dest++] = dodecaplex_cell_indxs[read++];
-                    }
-                } else read += 9;
+                    tie(v_head, i_head, offset) = loadPentagon(&dodecaplex_penta_indxs[read], vertex_buffer, index_buffer, v_head, i_head, offset);
+                }
+                read += 5;
             }
-        } else read += 108;
+        } else read += 12*5;
     }
-    return (std::size_t) sizeof(GLuint)*dest;
-};
-void PlayerContext::indexDodecaplexVAOs() {
-    std::size_t index_max_size   = 120*36*3*sizeof(GLuint);
-    GLuint* index_buffer         = (GLuint*) malloc(index_max_size);
-    std::size_t index_real_size  = populateDodecaplexIndexBuffer(index_buffer);
     
-    dodecaplex_vao.NewIndeces((GLuint*) index_buffer, index_real_size);
-    dodecaplex_vao.LinkAttrib(dodecaplex_vao.vbo, 0, 4, GL_FLOAT, 4*sizeof(float), (void*)0);
+    dodecaplex_vao = VAO((GLfloat*) vertex_buffer, v_head*sizeof(float), (GLuint*) index_buffer, i_head*sizeof(float));
+
+    dodecaplex_vao.LinkAttrib(dodecaplex_vao.vbo, 0, 4, GL_FLOAT, VERT_ELEM_COUNT*sizeof(float), (void*)0);
+    dodecaplex_vao.LinkAttrib(dodecaplex_vao.vbo, 1, 3, GL_FLOAT, VERT_ELEM_COUNT*sizeof(float), (void*)(4*sizeof(float)));
 
     free(index_buffer);
 
@@ -58,7 +101,7 @@ void PlayerContext::drawAllVAOs() {
         additional_vaos[i].DrawElements(GL_TRIANGLES);
     }
 };
-mat4 PlayerContext::getModelMatrix(std::array<bool, 4> WASD, float mouseX, float mouseY, float dt) {
+mat4 PlayerContext::getModelMatrix(array<bool, 4> WASD, float mouseX, float mouseY, float dt) {
     if (!player_location->overridden) {
         player_location->focusFromMouse(mouseX, mouseY, dt);
         player_location->positionFromKeys(WASD, dt);
@@ -123,7 +166,7 @@ InterceptResult PlayerLocation::getIntercept() {
         next_cell = next_cell->doors[exit_index];
         findExitSide(next_cell);
         depth++;
-        if (depth > 100) throw std::runtime_error("Max door intercept check passed");
+        if (depth > 100) throw runtime_error("Max door intercept check passed");
     }
     InterceptResult result;
     result.cell = next_cell;
@@ -174,7 +217,7 @@ mat4 PlayerLocation::getGravity(mat4 current_transform){
     vec4 floor_normal = current_transform*(cell_centroid-floor_centroid);
     mat4 gravity_transform;
     
-    pit = -std::atan2(floor_normal.z, floor_normal.y);
+    pit = -atan2(floor_normal.z, floor_normal.y);
     gravity_transform=mat4({
         1.0f, 0.0f, 0.0f, 0.0f,
         0.0f, cos(pit), sin(pit), 0.0f,
@@ -182,7 +225,7 @@ mat4 PlayerLocation::getGravity(mat4 current_transform){
         0.0f, 0.0f, 0.0f, 1.0f
     });
     floor_normal = gravity_transform*floor_normal;
-    rol = std::atan2(floor_normal.x, floor_normal.y);
+    rol = atan2(floor_normal.x, floor_normal.y);
     return mat4({
         cos(rol), sin(rol), 0.0f, 0.0f,
         -sin(rol), cos(rol), 0.0f, 0.0f,
@@ -190,7 +233,7 @@ mat4 PlayerLocation::getGravity(mat4 current_transform){
         0.0f, 0.0f, 0.0f, 1.0f
     })*gravity_transform;
 }
-void PlayerLocation::positionFromKeys(std::array<bool, 4> WASD, float dt) {
+void PlayerLocation::positionFromKeys(array<bool, 4> WASD, float dt) {
     float dx = 0.0f, dy = 0.0f;
     if (WASD[0]) dy -= dt;
     if (WASD[1]) dx -= dt;

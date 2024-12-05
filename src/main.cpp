@@ -8,7 +8,7 @@
 #include "debug.h"
 
 int main() {
-    GLFWwindow* window = initializeWindow(768, 768, "DODECAPLEX");
+    GLFWwindow* window = initializeWindow(1920, 1080, "DODECAPLEX");
 
     ShaderProgram world_shader( SHADER_DIR "/projection.vert", \
                                 SHADER_DIR "/prune.geom", \
@@ -39,7 +39,7 @@ int main() {
         if (uniforms->loading) {
             world_shader.Load();
             world_shader.Activate();
-            player_context.indexDodecaplexVAOs();
+            player_context.establishVAOContext();
             texture_library.linkPentagonLibrary(world_shader.ID);
 
             U_RESOLUTION  = glGetUniformLocation(world_shader.ID, "u_resolution");

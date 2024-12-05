@@ -11,6 +11,7 @@ from fourdsolids import *
 from scipy.spatial import ConvexHull
 from scipy.spatial.qhull import QhullError
 from itertools import combinations
+from scipy.spatial.transform import Rotation as R
 
 def plot_2d_projection(vertices):
     vertices = np.array(vertices)
@@ -197,18 +198,28 @@ def plot_translated_neighbor_maps(t4vs):
             print(f"origin: {o_idx}, neighbor: {n_idx}")
             plot_3d_projection(fPoints, scale = 0.66)
 
+def rodrigues(axis, theta):
+    axis = axis/np.linalg.norm(axis)
+    a = np.cos(theta/2.0)
+    b, c, d = -axis * np.sin(theta/2.0)
+    
+    aa, bb, cc, dd = a*a, b*b, c*c, d*d
+    bc, ad, ac, ab, bd, cd = b*c, a*d, a*c, a*b, b*d, c*d
+    
+    return np.array([
+        [aa+bb-cc-dd, 2*(bc+ad), 2*(bd-ac)],
+        [2*(bc-ad), aa+cc-bb-dd, 2*(cd+ab)],
+        [2*(bd+ac), 2*(cd-ab), aa+dd-bb-cc]
+    ])
+
 def solve_primary_neighbor_transforms(d4vs, t4vs):
     set20s = list(yield_dodecahedrons_from_dodecaplex(d4vs, t4vs))
 
     org_20_set = set20s[0]
-    
-    #core_transforms = {}
     all_transforms = {}
-    all_vectors = []
-    all_mats = []
 
-    all_origins = []
-    all_corners = []
+    final_inputs = []
+    final_outputs = []
 
     np.set_printoptions(suppress=True)
     entry = random.randrange(0,20)
@@ -234,42 +245,20 @@ def solve_primary_neighbor_transforms(d4vs, t4vs):
         fourdee = np.linalg.lstsq(adj_20_arr, org_20_arr)
         translated = adj_20_arr@fourdee[0]
         all_transforms[adj_cent] = fourdee[0]
-        #translated[:,:3] =translated[:,:3]@np.linalg.inv(rot_mat)
         inv_rot = np.identity(4)
         inv_rot[:3,:3] = np.linalg.inv(rot_mat)
         full_transform = fourdee[0]@inv_rot
-        adj_cent= np.array(adj_cent)
-        polys = []
-        for i, (a,b) in enumerate(combinations(range(4), 2)):
+        fourdee_friend = fourdee[0].copy()
+        for degree in np.arange(0, 2*np.pi-0.1, (2*np.pi)/5):
+            rotation_mat = R.from_rotvec((adj_cent[:3]/np.linalg.norm(adj_cent[:3]))*degree)
+            final_inputs.append(np.array((*adj_cent, *rotation_mat.as_matrix().flatten())))
+            final_outputs.append(fourdee_friend.flatten())
+            fourdee_friend=np.dot(fourdee[0], fourdee_friend)
+            fourdee_friend=np.dot(fourdee[0], fourdee_friend)
 
-            if i in [0, 8,9]: 
-                continue
-            polys.append(adj_cent[a]*adj_cent[b])
-        print(len(polys))
-        all_vectors.append(
-            np.concatenate((np.array(adj_20_arr[entry]), np.array(polys)))
-        )
-        all_mats.append(full_transform.flatten())
-
-        all_origins.append(polys)
-        all_corners.append(adj_20_arr[entry])
-
-        #core_transforms[rot_axis] = tuple(rot_mat, fourdee)
-    all_vectors = np.array(all_vectors)
-    print(all_vectors.shape)
-    all_mats = np.array(all_mats)
-    solution = np.linalg.lstsq(all_vectors, all_mats)
-
-    transform = np.linalg.lstsq(np.array(all_origins), np.array(all_corners))
-
+    solution = np.linalg.lstsq(final_inputs, final_outputs)
     print(solution)
-    for x,y in zip(all_vectors, all_mats):
-        input()
-        product = x@solution[0]
-        
-        print(product-y)
-
-    
+    print(np.array(final_inputs).shape)
     return all_transforms
 
 def write_declarations(d4vs, t4vs):
@@ -284,16 +273,41 @@ def write_declarations(d4vs, t4vs):
 
     raw_indeces = {}
 
-    def format_indeces(x, super_index, cell_idx):
+    def format_indeces(x, super_index, cell_idx, point_array_4d):
         out_str = ''
         raw_indeces[cell_idx] = []
+        sets_of_five = []        
+        sub_set = set()
+        def orderForTextures(set_of_five):
+            order = [set_of_five[0]]
+            def getOffsets(i):
+                origin = point_array_4d[i]
+                return [np.linalg.norm( point_array_4d[x]-origin) for x in set_of_five]
+            while len(order) < 5:
+                offset = getOffsets(order[-1])
+                nexts =[set_of_five[a] for a,b in enumerate(offset) if np.isclose(b, 0.7639320225)]
+                assert len(nexts) == 2
+                for n in nexts:
+                    if n not in order:
+                        order.append(n)
+                        break                
+            return order
         for i, (a,b,c) in enumerate(x):
-            if i%6 == 0:
+            raw_indeces[cell_idx].append((super_index[a], super_index[b], super_index[c]))
+            sub_set.add(a)
+            sub_set.add(b)
+            sub_set.add(c)
+            if (i+1)%3 == 0:
+                assert len(sub_set) == 5
+                sets_of_five.append(list(sub_set))
+                sub_set.clear()
+        for i, set_of_five in enumerate(sets_of_five):
+            if i%4 == 0:
                 out_str+= '\n'
-            tri_str = f"{super_index[a]}, {super_index[b]}, {super_index[c]},"
+            a,b,c,d,e = orderForTextures(set_of_five)
+            tri_str = f"{super_index[a]}, {super_index[b]}, {super_index[c]}, {super_index[d]}, {super_index[e]},\t\t"
             gap = " "*(15 - len(tri_str))
             out_str += gap+tri_str
-            raw_indeces[cell_idx].append((super_index[a], super_index[b], super_index[c]))
         return out_str
 
     for cell_idx, d in enumerate(yield_indexed_dodecahedrons_from_dodecaplex(d4vs, t4vs)):
@@ -310,7 +324,7 @@ def write_declarations(d4vs, t4vs):
                 point_array = point_array@fourdee_mats[random.choice(list(fourdee_mats.keys()))]
                 # The current dodecahedron is currently flat in 3D, so we apply a transform to make it 
                 # solvable to the hull alg.
-        indeces.append(format_indeces(hull.simplices, [p[0] for p in d], cell_idx))
+        indeces.append(format_indeces(hull.simplices, [p[0] for p in d], cell_idx, point_array))
 
     np.set_printoptions(suppress=True)
 
@@ -361,9 +375,10 @@ def write_declarations(d4vs, t4vs):
 
     with open('dodecaplex.h', 'w') as dph:
         dph.write(',\n'.join([str(nd[::3]).strip('[]') for k, nd  in neighbor_data.items()]))
-        dph.write(vertices)
+        #dph.write(vertices)
         dph.write('\n'+'\n'.join([f'//------Cell {i}------{x}'for i, x in enumerate(indeces)]))
-        dph.write(',\n'.join([str(x).strip('[]') for x in neighbor_indeces]))
+        #dph.write(',\n'.join([str(x).strip('[]') for x in neighbor_indeces]))
+        """dph.write(',\n'.join([f'{a}, {b}, {c}, {d}' for a,b,c,d in t4vs])) """
 
         """ dph.write('\n'+'\n'.join(axiis))
         dph.write('\n'+'\n'.join(mats)) """
@@ -371,34 +386,5 @@ def write_declarations(d4vs, t4vs):
 if __name__ == "__main__":   
     normed = lambda x: x/np.linalg.norm(x)
     d4vs, t4vs = gen_dodecaplex_vertices(), gen_tetraplex_vertices()
-    transform_dict = solve_primary_neighbor_transforms(d4vs, t4vs)
-    """set20s = list(yield_dodecahedrons_from_dodecaplex(d4vs, t4vs))
-
-    d = 0.8091699
-    asq = 0.2#random.uniform(0, 1-d**2)
-    bsq = random.uniform(0, 1-d**2-asq)
-    csq = 1 - d**2 - asq - bsq
-    item = np.array((asq**.5, bsq**.5, csq**.5, d))
-
-    products = []
-    all_bases = list(transform_dict.keys())
-    for off in all_bases:
-        product = np.inner(off, item)
-        products.append(product)
-
-    x = 5
-    inputs_bases = np.array([normed(all_bases[i]) for i in np.argsort(products)[::-1][:x]])
-    change_bases = np.linalg.lstsq(inputs_bases, np.identity(x))
-    
-    print([products[i] for i in np.argsort(products)[::-1][:x]])
-    print(inputs_bases)
-
-    
-    
-    print(item@change_bases[0])
-    print(np.sum(item@change_bases[0]))
-
-    print('-------')
-    print(change_bases)
-
- """
+    #transform_dict = solve_primary_neighbor_transforms(d4vs, t4vs)
+    write_declarations(d4vs, t4vs)
