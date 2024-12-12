@@ -270,7 +270,7 @@ def write_declarations(d4vs, t4vs):
     indeces = []
     fourdee_mats = solve_primary_neighbor_transforms(d4vs, t4vs)
     #fourdee = fourdee_mats[list(fourdee_mats.keys())[0]] # Arbitrary transform
-
+    penta_indexs = []
     raw_indeces = {}
 
     def format_indeces(x, super_index, cell_idx, point_array_4d):
@@ -305,6 +305,7 @@ def write_declarations(d4vs, t4vs):
             if i%4 == 0:
                 out_str+= '\n'
             a,b,c,d,e = orderForTextures(set_of_five)
+            penta_indexs.append(set((super_index[x] for x in (a,b,c,d,e))))
             tri_str = f"{super_index[a]}, {super_index[b]}, {super_index[c]}, {super_index[d]}, {super_index[e]},\t\t"
             gap = " "*(15 - len(tri_str))
             out_str += gap+tri_str
@@ -371,17 +372,34 @@ def write_declarations(d4vs, t4vs):
                 order = [0, list(set(csa).intersection(set(csb))).pop(), fsa[0], fsa[1], list(set(csa).intersection(set(fsb))).pop()]
                 neighbor_indeces.append(order)
                 points=[]
+    INTERIOR, EXTERIOR, ADJACENT = [],[],[]
+    for x, set_a in enumerate(penta_indexs):
+        cell = x//12
+        neighbors = [(i,o) for i,o in enumerate(penta_indexs) if len(o&set_a) == 2]
+        INTERIOR.append([i for i,o in neighbors if i//12 == cell])
+        for adj_cells in neighbor_data[cell][::3]:
+            adj_pents = penta_indexs[adj_cells*12:adj_cells*12+12]
+            shared = [(i,p) for i,p in enumerate(adj_pents) if len(p&set_a)==2]
+            if len(shared) == 5:
+                ext_cell = adj_cells
+                EXTERIOR.append([i+adj_cells*12 for i,_ in shared])
+        #print("Int cell: ", len([i for i,o in enumerate(penta_indexs) if len(o & set_a)==2 and i//12 == cell]))
+        #print("Ext cell: ", len([i for i,o in enumerate(penta_indexs) if len(o & set_a)==2 and i//12 in neighbor_data[cell]
+                                 #and len()]))
+        ADJACENT.append([i for i,_ in neighbors if i//12 in neighbor_data[cell] and i//12!=ext_cell])
 
 
     with open('dodecaplex.h', 'w') as dph:
-        dph.write(',\n'.join([str(nd[::3]).strip('[]') for k, nd  in neighbor_data.items()]))
-        #dph.write(vertices)
+        pass        
         dph.write('\n'+'\n'.join([f'//------Cell {i}------{x}'for i, x in enumerate(indeces)]))
-        #dph.write(',\n'.join([str(x).strip('[]') for x in neighbor_indeces]))
-        """dph.write(',\n'.join([f'{a}, {b}, {c}, {d}' for a,b,c,d in t4vs])) """
+        dph.write(',\n'.join([str(nd[::3]).strip('[]') for k, nd  in neighbor_data.items()]))
+        dph.write('interior\n'+',\n'.join([str(I).strip('[]') for I in INTERIOR]))
+        dph.write('exterior\n'+',\n'.join([str(I).strip('[]') for I in EXTERIOR]))
+        dph.write('adjacent\n'+',\n'.join([str(I).strip('[]') for I in ADJACENT]))
 
-        """ dph.write('\n'+'\n'.join(axiis))
-        dph.write('\n'+'\n'.join(mats)) """
+        #dph.write(',\n'.join([str(x).strip('[]') for x in neighbor_indeces]))
+        #dph.write('\n'+'\n'.join(axiis))
+        #dph.write('\n'+'\n'.join(mats))
     
 if __name__ == "__main__":   
     normed = lambda x: x/np.linalg.norm(x)

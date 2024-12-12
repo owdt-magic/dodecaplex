@@ -17,9 +17,20 @@ struct InterceptResult {
     int index;
 };
 
+struct SubSurface {
+    int faces;
+    int* indeces;
+    SubSurface(int f, int* i) : faces(f), indeces(i) {};
+};
+
 struct MapData {
-    bool load_cell[120] = {false};
     void establishMap();
+    std::vector<SubSurface> interior_surfaces;
+    std::vector<SubSurface> adjacent_surfaces;
+    bool load_cell[120] = {false};
+private:    
+    std::vector<int> side_indeces;
+    bool load_side[120*12] = {false};
 };
 
 struct AnimationInfo {
