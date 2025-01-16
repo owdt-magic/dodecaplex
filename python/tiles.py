@@ -28,6 +28,7 @@ T3 = (1 + LW) / (1 + 2*LW + ST)
 T4 = SW / (2*SW + LT)
 T5 = (2*LW + 1) / (2*LW + 2)
 T6 = (2*LW + 1) / (2*LW + 1 + ST)
+T7 = LT / (LT + 2*SW)
 
 ang = 2*pi/5
 rot = np.array([[cos(ang), -sin(ang)], [sin(ang), cos(ang)]])
@@ -50,17 +51,23 @@ starting_coords = {
         (W*T4, H*T3), (-W*T4, H*T3), 
         (W*T5, H*T5), (-W*T5, H*T5),
         (0,H*T6),
-        np.matmul(np.array((0, H*T2)), rot)
+        np.matmul(np.array((0, H*T2)), rot),
+        (W*T7, H), (-W*T7, H),
+        (W, H), (-W, H)
     ], [(0,3,9),(3,9,1),         
         (4,5,3),
         (5,3,2), (4,3,1),
-        (5,2,7), (4,1,6), (5,8,4)
-] ),
+        (5,2,7), (4,1,6), (5,8,4),
+        (8,4,10), (4,10,6),
+        (11,5,8), (11,5,7), (11,8,10),
+        (10,12,6), (11,13,7)
+        ]),
     'pattern_5.svg' : ([
         (0,0), (W, H), (-W, H), 
-        (0, (2*H)/(PHI+1))
-    ], [(0,1,3), (0,2,3), (1,3,2)])
-}#(0,1,3),(0,2,3),
+        (0, (2*H)/(PHI+1)),
+        np.matmul(np.array((0, (2*H)/(PHI+1))), rot)
+    ], [(1,3,2), (0,3,4), (3,4,1)])
+}
 
 coordinates, triangles = starting_coords['pattern_2.svg']
 
