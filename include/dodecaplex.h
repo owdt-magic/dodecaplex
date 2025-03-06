@@ -1,13 +1,7 @@
 #ifndef DODECAPLEX_H
 #define DODECAPLEX_H
 
-#define ROOT_FIVE 2.2360679775f
-
-#ifndef PHI
-#define PHI ( 1.0f + ROOT_FIVE ) / 2.0f
-#endif
-
-#include <glad/glad.h>
+#include "dmath.h"
 
 static GLfloat dodecaplex_cell_verts[600*4] = { // points*dimensions
             0.0f,             2.0f,             2.0f,             0.0f,
@@ -2660,7 +2654,7 @@ static GLuint dodecaplex_tri_indxs[120*12*3*3] = { //cells * sides * triangles *
    521, 1, 222,   521, 1, 220, 521, 448, 220, 521, 457, 132,  521, 56, 457, 521, 448, 132
 }; 
 
-static uint neighbor_side_orders[120*12] = { //cells*neighbors
+static int neighbor_side_orders[120*12] = { //cells*neighbors
   73, 59, 72, 85, 112, 42, 87, 115, 26, 66, 98, 38,
   99, 43, 52, 44, 97, 90, 41, 33, 46, 40, 69, 116,
   63, 101, 109, 57, 86, 65, 114, 54, 74, 102, 92, 93,
@@ -2876,7 +2870,7 @@ static glm::mat4 neighbor_transforms[12] = {
      })
 };
 
-static uint interior_side_indeces[120*12*5] ={ //cells * sides * interior neighbors
+static int interior_side_indeces[120*12*5] ={ //cells * sides * interior neighbors
     1, 2, 6, 9, 10,
     0, 2, 3, 4, 10,
     0, 1, 4, 6, 7,
@@ -4318,7 +4312,7 @@ static uint interior_side_indeces[120*12*5] ={ //cells * sides * interior neighb
     1428, 1431, 1432, 1437, 1439,
     1429, 1430, 1432, 1437, 1438
 };
-static uint exterior_side_indeces[120*12*5] { // cells * sides * exterior neighbors
+static int exterior_side_indeces[120*12*5] { // cells * sides * exterior neighbors
     876, 877, 879, 880, 882,
     709, 710, 711, 712, 714,
     866, 869, 871, 873, 874,
@@ -5760,7 +5754,7 @@ static uint exterior_side_indeces[120*12*5] { // cells * sides * exterior neighb
     158, 160, 161, 164, 167,
     855, 856, 857, 859, 860
 };
-static uint adjacent_side_indeces[120*12*10] = { // cells * sides * adjacent cell sides
+static int adjacent_side_indeces[120*12*10] = { // cells * sides * adjacent cell sides
     711, 713, 797, 800, 870, 871, 1045, 1049, 1185, 1186,
     869, 870, 878, 880, 1024, 1025, 1186, 1187, 1352, 1355,
     713, 714, 877, 878, 1045, 1054, 1351, 1352, 1381, 1382,

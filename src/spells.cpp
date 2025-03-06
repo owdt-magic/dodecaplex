@@ -1,4 +1,5 @@
 #include "spells.h"
+
 using namespace glm;
 
 void teleportA(SpellContext sc){

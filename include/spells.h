@@ -39,7 +39,6 @@ struct Grimoire
     glm::vec3 cast_intercepts       [MAX_SPELLS] = {};
     glm::vec3 cast_player_up        [MAX_SPELLS] = {};
     int intercept_indeces           [MAX_SPELLS] = {};
-    WorldCell* world_cells          [MAX_SPELLS] = {};
     
     void (*updateSpellFunction[MAX_SPELLS])(SpellContext) = {NULL, teleportA};
     void (*startSpellFunction[MAX_SPELLS])(SpellContext) = {NULL, teleportAStart};
