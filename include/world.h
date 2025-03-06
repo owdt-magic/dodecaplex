@@ -51,7 +51,6 @@ struct PlayerLocation {
     glm::vec3 getPUp();
     int getCellIndex();
     float getHeight();
-    InterceptResult getIntercept();
     void teleportHead(glm::vec3 target);
     void teleportPUp(glm::vec3 target);
     WorldCell* reference_cell = NULL;

@@ -179,44 +179,6 @@ int PlayerLocation::getCellIndex() {
 float PlayerLocation::getHeight() {
     return height;
 };
-InterceptResult PlayerLocation::getIntercept() {
-    vec3 intercept, detransformed_head, detransformed_focus;
-    int exit_index = -1;
-    CellSide side;
-    WorldCell* next_cell = reference_cell;
-    
-    auto findExitSide = [&](WorldCell* cell) {
-        detransformed_head = vec3(inverse(cell->cell_matrix)*vec4(head, 1));
-        detransformed_focus = vec3(inverse(cell->reflection_mat)*vec4(focus, 1));
-            // detransform is needed as CellSide world co-ordinates are relative
-        for ( int i = 0; i < 12; i++) {
-            if ( exit_index != i ) { // Since all cells are mirrored, skip the last exit index
-                side = cell->sides[i];
-                intercept = side.findIntercept(detransformed_head, detransformed_focus);
-                if ( intercept != detransformed_head ) {
-                    exit_index = i;
-                    intercept = cell->origin+vec3(cell->reflection_mat*vec4(intercept,1));
-                        // This makes the intercept useful in the actual game.
-                    break;
-                }
-            }
-        }
-    };
-    
-    int depth = 0;
-    findExitSide(reference_cell);
-    while (next_cell->hasDoor(exit_index)) {
-        next_cell = next_cell->doors[exit_index];
-        findExitSide(next_cell);
-        depth++;
-        if (depth > 100) throw runtime_error("Max door intercept check passed");
-    }
-    InterceptResult result;
-    result.cell = next_cell;
-    result.point = intercept;
-    result.index = exit_index;
-    return result;
-}
 void PlayerLocation::teleportHead(vec3 target) {
     head = target;
 };

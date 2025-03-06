@@ -4,15 +4,13 @@ using namespace glm;
 void teleportA(SpellContext sc){
     static vec3 target_head;
     static vec3 direction;
-    target_head = sc.target+sc.cell->floor_norms[sc.target_index]*sc.context->player_location->getHeight();
+    target_head = glm::cross(sc.start, sc.start_up);
     direction = normalize(target_head-sc.start)*0.01f;
     sc.context->player_location->teleportHead(mix(target_head, sc.start, sc.progress));
-    sc.context->player_location->teleportPUp(mix(sc.cell->floor_norms[sc.target_index], sc.start_up, sc.progress));
 };
 void teleportAStart(SpellContext sc){
     //sc.context->player_location->setFloorIndex(sc.target_index);
-    //TODO: Temporary omission. Spells don't work in new 4D version...
-    sc.context->player_location->reference_cell = sc.cell;
+    //TODO: Temporary omission. Spells don't work in new 4D version...    
 };
 
 void Grimoire::updateSpellLife(float time, PlayerContext* player_context) {
@@ -20,31 +18,23 @@ void Grimoire::updateSpellLife(float time, PlayerContext* player_context) {
     updateSpellFunction[active_spell](
         SpellContext(            
             spell_head          [active_spell], 
-            cast_player_up      [active_spell],
-            cast_intercepts     [active_spell], 
-            intercept_indeces   [active_spell], 
-            world_cells         [active_spell], player_context,
+            cast_player_up      [active_spell], player_context,
             spell_life          [active_spell]
         )
     );
 };
-void Grimoire::startSpell(float time, vec3 focus, vec3 head, vec3 player_up, InterceptResult intercept_result, PlayerContext* player_context) {
+void Grimoire::startSpell(float time, vec3 focus, vec3 head, vec3 player_up, PlayerContext* player_context) {
     spell_life          [active_spell] = 1.0f;
     release_times       [active_spell] = time;
     spell_focus         [active_spell] = focus;
     spell_head          [active_spell] = head;
     cast_player_up      [active_spell] = player_up;
-    world_cells         [active_spell] = intercept_result.cell;
-    cast_intercepts     [active_spell] = intercept_result.point;
-    intercept_indeces   [active_spell] = intercept_result.index;
     click_times         [active_spell] = 0.0f;
     startSpellFunction[active_spell](
         SpellContext(
             spell_head          [active_spell], 
             cast_player_up      [active_spell],
-            cast_intercepts     [active_spell], 
-            intercept_indeces   [active_spell], 
-            world_cells         [active_spell], player_context, 0.0f
+            player_context, 0.0f
         )
     );
 

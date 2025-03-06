@@ -120,23 +120,3 @@ bool checkTriangle(vec3 o, vec3 v, vec3 p1, vec3 p2, vec3 p3,
     return true;
     
 };
-vec3 CellSide::findIntercept(vec3 o, vec3 v) {
-    float a,b,c;
-    uint inda,indb,indc;
-    vec3 p1, p2, p3;
-    for (uint i=0; i < num_faces; i++) {
-        inda = indices[i*3];
-        indb = indices[i*3+1];
-        indc = indices[i*3+2];
-        p1 = vec3(vertices[inda*VERTEX_ELEMENT_COUNT], vertices[inda*VERTEX_ELEMENT_COUNT+1], vertices[inda*VERTEX_ELEMENT_COUNT+2]);
-        p2 = vec3(vertices[indb*VERTEX_ELEMENT_COUNT], vertices[indb*VERTEX_ELEMENT_COUNT+1], vertices[indb*VERTEX_ELEMENT_COUNT+2]);
-        p3 = vec3(vertices[indc*VERTEX_ELEMENT_COUNT], vertices[indc*VERTEX_ELEMENT_COUNT+1], vertices[indc*VERTEX_ELEMENT_COUNT+2]);
-        if ( checkTriangle(o, v, p1, p2, p3, a,b,c) ) {
-            if (a > 0) {
-                //forces directional dependency
-                return o+v*a;
-            }
-        }
-    }
-    return o;
-};
