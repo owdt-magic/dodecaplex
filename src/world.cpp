@@ -234,12 +234,9 @@ mat4 PlayerLocation::getModel(MapData map_data){
     
     float old_distance = length(accumulated_transforms*cell_centroid - origin);
     for (int i = 0; i < 12; i++){
-        new_cell_index = neighbor_side_orders[cell_index*12+i];
-        new_cell_centroid = vec4(   dodecaplex_centroids[new_cell_index*4],
-                                    dodecaplex_centroids[new_cell_index*4+1],
-                                    dodecaplex_centroids[new_cell_index*4+2],
-                                    dodecaplex_centroids[new_cell_index*4+3]);
-        new_distance = length(potential_transform*new_cell_centroid - origin);
+        new_cell_index      = neighbor_side_orders[cell_index*12+i];
+        new_cell_centroid   = make_vec4(&dodecaplex_centroids[new_cell_index*4]);
+        new_distance        = length(potential_transform*new_cell_centroid - origin);
         if (new_distance < old_distance) {                
             if (!map_data.load_cell[new_cell_index] && !noclip) {
                 accumulated_transforms = yaw_transform*accumulated_transforms;
