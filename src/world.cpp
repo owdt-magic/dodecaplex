@@ -4,37 +4,45 @@
 using namespace glm;
 using namespace std;
 
+#define SIDES 12
+#define CELLS 120
+#define VERT_ELEM_COUNT 7
+#define DEBUG
+
 void MapData::establishMap(){
-    int side_count = 0;
-    int num_faces, sub_idx;
+    int side_count = 0,
+        num_faces, sub_idx;
     int* face_ptr;    
-    bool side_checklist[120*12];
+    bool side_checklist[CELLS*SIDES];
 
     // First, for all 120 cells we set whether they are loaded, 
     //  aka can the player enter them?
-    for (int i = 0; i < 120; i++) {
+    for (int i = 0; i < CELLS; i++) {
         load_cell[i] = rand()%2;
     }
-    load_cell[0] = true;
-    load_cell[neighbor_side_orders[0]] = false;
+    load_cell[0] = true; //Origin should load around player
+    load_cell[neighbor_side_orders[0]] = false; //Floor should load below player
 
     // Second, for every side, we determine whether it should be rendered.
-    for (int ci = 0; ci < 120; ci++) {
-        if (load_cell[ci]) {
-            for (int ord_idx = ci*12; ord_idx < ci*12 + 12; ord_idx++){
-                if (!load_cell[neighbor_side_orders[ord_idx]]) {
-                    load_side[ord_idx] = true;
-                    side_count++;
-                }
-            }
+    for (int ci = 0; ci < CELLS; ci++) {
+        if (!load_cell[ci]) continue;
+        for (int oi = ci*SIDES; oi < ci*SIDES + SIDES; oi++){
+            if(load_cell[neighbor_side_orders[oi]]) continue;
+            load_side[oi] = true;
+            side_count++;
         }
     }
     
-    function<void(int,int,int,uint*)> emplaceNeighbors = [&] (int side_idx, int depth, int freq, uint* array) {
+    // Third, we will conjoin all adjacent faces in 2 ways....
+    side_indeces.reserve(side_count*2);
+
+    function<void(int,int,int,uint*)> emplaceNeighbors = [&] 
+            (int side_idx, int depth, int freq, uint* array) {
+        // Recursively visits neighbors to concatenate surface indeces
         side_indeces.push_back(side_idx);
         num_faces++;
         side_checklist[side_idx] = false;
-        if (depth < 3) {
+        if (depth < 6) {
             for (int f = 0; f < freq; f++){
                 sub_idx = array[side_idx*freq+f];
                 if (side_checklist[sub_idx]) {
@@ -43,31 +51,40 @@ void MapData::establishMap(){
             }
         }
     };
-            
-    side_indeces.reserve(side_count*2);
-
-    copy(begin(load_side), end(load_side), begin(side_checklist));    
-    for (int si = 0; si < 120*12; si++){
-        num_faces = 0;
-        if (side_checklist[si]) {
-            face_ptr = &*side_indeces.end();
-            emplaceNeighbors(si, 0, 5, &interior_side_indeces[0]);
-            interior_surfaces.push_back(SubSurface(num_faces, face_ptr));
+    auto populateSurfaces = [&] 
+            (int freq, uint* array, vector<SubSurface>& surfaces) {
+        // Loads SubSurface structures
+        copy(begin(load_side), end(load_side), begin(side_checklist));    
+        for (int si = 0; si < CELLS*SIDES; si++){
+            num_faces = 0;
+            if (side_checklist[si]) {
+                face_ptr = &*side_indeces.end();
+                emplaceNeighbors(si, 0, freq, array);
+                surfaces.push_back(SubSurface(num_faces, face_ptr));
+            }
         }
-    }
+    };
 
-    copy(begin(load_side), end(load_side), begin(side_checklist));    
-    for (int si = 0; si < 120*12; si++){
-        num_faces = 0;
-        if (side_checklist[si]) {
-            face_ptr = &*side_indeces.end();
-            emplaceNeighbors(si, 0, 10, &adjacent_side_indeces[0]);
-            adjacent_surfaces.push_back(SubSurface(num_faces, face_ptr));
-        }
-    }
+    // 1 : Interior (shared cell / concave)
+    populateSurfaces(5, &interior_side_indeces[0], interior_surfaces);
+    // 2 : Adjacent (nearby cells / convex)
+    populateSurfaces(10, &adjacent_side_indeces[0], adjacent_surfaces);
 
-    std::cout << side_indeces.size() << ", " << side_count << ", " <<  
-        interior_surfaces.size() << ", " << adjacent_surfaces.size() << std::endl;
+    #ifdef DEBUG
+    
+    auto coutSizeHist = [] (vector<SubSurface>& surfaces) {
+        int counts[SIDES] = {0};
+        cout << "\t";
+        for (SubSurface s : surfaces) counts[s.faces-1]++;        
+        for (int c : counts) cout << c << ", ";
+        cout << " (size hist)" << endl;
+    };
+    cout << "(#subsurfaces) " << endl;
+    cout << "  Interior : " << interior_surfaces.size() << " (total)" << endl;
+    coutSizeHist(interior_surfaces);
+    cout << "  Adjacent : " << adjacent_surfaces.size() << " (total)" << endl;
+    coutSizeHist(adjacent_surfaces);
+    #endif
 };
 
 PlayerContext::PlayerContext() {
@@ -80,11 +97,9 @@ void PlayerContext::initializeWorldData(){
     map_data.establishMap();
 };
 
-#define VERT_ELEM_COUNT 7
-
-tuple<int, int, int> PlayerContext::loadPentagon(GLuint* pentagon_indeces, GLfloat* v_buff, GLuint* i_buff, int v_head, int i_head, int offset) {
-    /* pentagon_indeces : address of first of the 4 pentagon indeces defined in dodecaplex.h
-        offset : number of vertex elements written to be drawn so far. */
+void PlayerContext::loadPentagon(GLuint* pentagon_indeces, GLfloat* v_buff, GLuint* i_buff, int& v_head, int& i_head, int& offset) {
+    // pentagon_indeces : address of first of the 5 4D pentagon indeces defined in dodecaplex.h
+    //    offset : number of vertex elements written to be drawn so far in the buffers
     const GLfloat texture_pattern[] = {0.48f,0.0f,  0.0f,0.38f,  0.2f,0.95f,  0.8f,0.95f,  1.0f,0.38f};
     const GLuint index_pattern[] = {0,1,2,  0,2,3,  0,3,4};
     const int num_verts = 5, num_dims = 4;
@@ -111,7 +126,6 @@ tuple<int, int, int> PlayerContext::loadPentagon(GLuint* pentagon_indeces, GLflo
     }
 
     offset += num_verts;
-    return {v_head, i_head, offset};
 };
 
 void PlayerContext::establishVAOContext() {
@@ -123,10 +137,14 @@ void PlayerContext::establishVAOContext() {
     GLfloat* vertex_buffer = (GLfloat*) malloc(vertex_max_size);
     GLuint* index_buffer   = (GLuint*) malloc(index_max_size);
 
+    if ((vertex_buffer == NULL) || (index_buffer == NULL)) {
+        
+    }
+
     for (SubSurface surface : map_data.interior_surfaces) {
         for (int f = 0; f < surface.faces; f++) {
-            tie(v_head, i_head, offset) = loadPentagon( &dodecaplex_penta_indxs[*(surface.indeces++)*5], 
-                                                        vertex_buffer, index_buffer, v_head, i_head, offset);
+            loadPentagon( &dodecaplex_penta_indxs[*(surface.indeces++)*5], 
+                          vertex_buffer, index_buffer, v_head, i_head, offset);
         }
     }
      
@@ -136,6 +154,7 @@ void PlayerContext::establishVAOContext() {
     dodecaplex_vao.LinkAttrib(dodecaplex_vao.vbo, 1, 3, GL_FLOAT, VERT_ELEM_COUNT*sizeof(float), (void*)(4*sizeof(float)));
 
     free(index_buffer);
+    free(vertex_buffer);
 
 };
 void PlayerContext::drawAllVAOs() {
@@ -307,10 +326,10 @@ void PlayerLocation::updatePosition(vec3 d) {
     });
 };
 void PlayerLocation::focusFromMouse(float x, float y, float dt){
-    float dx = abs(x-mx) < 0.1 ? (x-mx)*mouse_scale*dt : 0.1;
+    float dx = abs(x-mx) < 0.1 ? (x-mx)*MOUSE_SCALE*dt : 0.1;
     float ty;
     if (noclip) {
-        ty = abs(y-my) < 0.1 ? (y-my)*mouse_scale*dt : 0.1;
+        ty = abs(y-my) < 0.1 ? (y-my)*MOUSE_SCALE*dt : 0.1;
     } else {
         ty = tanh(y*2.0f)*3.1415f/2.0f;    
     }

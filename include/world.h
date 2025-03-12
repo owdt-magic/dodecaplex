@@ -6,9 +6,9 @@
 #include "dodecaplex.h"
 #include <time.h>
 #include <vector>
-#include <tuple>
 #include <cmath>
 #include <set>
+#include <functional>
 #include <glm/gtc/type_ptr.hpp>
 
 struct InterceptResult {
@@ -69,7 +69,7 @@ private:
     float my = 0.0f;
     const float height = -3.1415f/20.0f;
     const float movement_scale = 0.5f;
-    const float mouse_scale = 500.0f;
+    const float MOUSE_SCALE = 2500.0f;
 
     int cell_index = 0;
     int floor_index = 0;
@@ -107,7 +107,7 @@ struct PlayerContext {
     MapData map_data;
 private:
     VAO dodecaplex_vao;
-    std::tuple<int, int, int> loadPentagon(GLuint* pentagon_indeces, GLfloat* v_buff, GLuint* i_buff, int v_head, int i_head, int offset);
+    void loadPentagon(GLuint* pentagon_indeces, GLfloat* v_buff, GLuint* i_buff, int& v_head, int& i_head, int& offset);
     std::vector<VAO> additional_vaos;
 };
 
