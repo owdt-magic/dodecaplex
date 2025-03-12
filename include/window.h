@@ -2,7 +2,7 @@
 #define WINDOW_H
 
 #include "spells.h"
-#include "dodecaplex.h"
+#include <functional>
 #include <array>
 #include <deque>
 #include <iostream>

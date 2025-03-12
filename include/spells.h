@@ -7,20 +7,14 @@ struct SpellContext
 {
     glm::vec3 start; 
     glm::vec3 start_up; 
-    glm::vec3 target; 
-    int target_index; 
-    WorldCell* cell; 
     PlayerContext* context;
     float progress;
     SpellContext(
         glm::vec3 v_1,
         glm::vec3 v_2,
-        glm::vec3 v_3,
-        int i, 
-        WorldCell* wc,
         PlayerContext* pc,
         float p
-    ) : start(v_1), start_up(v_2), target(v_3), target_index(i), cell(wc), context(pc), progress(p) {}
+    ) : start(v_1), start_up(v_2), context(pc), progress(p) {}
 };
 
 void teleportA(SpellContext spell_context);
@@ -45,13 +39,12 @@ struct Grimoire
     glm::vec3 cast_intercepts       [MAX_SPELLS] = {};
     glm::vec3 cast_player_up        [MAX_SPELLS] = {};
     int intercept_indeces           [MAX_SPELLS] = {};
-    WorldCell* world_cells          [MAX_SPELLS] = {};
     
     void (*updateSpellFunction[MAX_SPELLS])(SpellContext) = {NULL, teleportA};
     void (*startSpellFunction[MAX_SPELLS])(SpellContext) = {NULL, teleportAStart};
 
     void updateSpellLife(float time, PlayerContext* context);
-    void startSpell(float time, glm::vec3 focus, glm::vec3 head, glm::vec3 player_up, InterceptResult intercept_result, PlayerContext* context);
+    void startSpell(float time, glm::vec3 focus, glm::vec3 head, glm::vec3 player_up, PlayerContext* context);
     void chargeSpell(float time, glm::vec3 focus, glm::vec3 head);    
     
     // Variables/Methods for drawing the Grimoire

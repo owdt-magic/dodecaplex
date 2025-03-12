@@ -3,9 +3,6 @@
 
 bool window_is_focused = false;
 
-std::deque<std::pair<double, double>> mouse_positions;
-const size_t max_positions = 10; // Adjust this value for more/less smoothing
-
 void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mods) {
     Uniforms* uniforms = getUniforms(window);
 
@@ -121,7 +118,7 @@ void accountCameraControls(Uniforms* uniforms, CameraInfo &camera_info) {
     float ratio = float(uniforms->windWidth)/float(uniforms->windHeight);
     float dt = std::min( float(uniforms->this_time-uniforms->last_time), 0.01f);
     
-    player_context->player_location->noclip = uniforms->key_states[340];
+    player_context->player_location->noclip = !uniforms->key_states[340];
         // Debugging: hold shift for free fly
     camera_info.Model       = player_context->getModelMatrix(uniforms->getWASD(), uniforms->mouseX, uniforms->mouseY, dt);
     camera_info.Projection  = glm::perspective(glm::radians(110.0f), ratio, 0.01f, 100.0f);
@@ -148,7 +145,6 @@ GLuint getSpellSubroutine(Uniforms* uniforms, Grimoire& grimoire, GLuint shader_
                 uniforms->player_context->player_location->getFocus(),
                 uniforms->player_context->player_location->getHead(),
                 uniforms->player_context->player_location->getPUp(),
-                uniforms->player_context->player_location->getIntercept(),
                 uniforms->player_context);
     } else if (grimoire.spell_life[grimoire.active_spell]) {
         // The spell has been cast, and will decay from 1.0f to 0.0f
