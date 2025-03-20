@@ -7,10 +7,8 @@ uniform mat4 WORLD;
 
 uniform float u_time;
 
-out vec3 surfaceNorm;   
 out vec4 mCoords;
 out vec4 wCoords;
-out float vDepth;
 out vec3 tCoords;
 
 #define FOCUS sqrt(5)
@@ -24,11 +22,10 @@ void project(inout vec4 vert){
 }
 
 void main(){
-    vec4 world_Pos = WORLD*model_verts;
-    mCoords = world_Pos;
-    project(world_Pos);
-    gl_Position = CAMERA * world_Pos;
-    vDepth = gl_Position.z;
-    wCoords = world_Pos;
+    vec4 temp = WORLD * model_verts;
+    mCoords = temp;
+    project(temp);
+    wCoords = temp;
     tCoords = model_textures;
+    gl_Position = CAMERA * temp;
 }
