@@ -9,6 +9,8 @@ using namespace std;
 #define SIDES 12
 #define CELLS 120
 #define VERT_ELEM_COUNT 7
+#define VERT_PER_PENT 11
+#define TRI_PER_PENT 15
 #define DEBUG
 
 void MapData::establishMap(){
@@ -121,8 +123,8 @@ void loadPentagon(int* index_ptr, GLfloat* v_buff, GLuint* i_buff, int& v_head, 
     
     array<vec4, 5> dest_corners = readDestinationCoords(pentagon_ptr);
     array<vec4, 2> dest_centroids = {
-        vec4(*inner_cent_ptr++, *inner_cent_ptr++, *inner_cent_ptr++, *inner_cent_ptr++),
-        vec4(*outer_cent_ptr++, *outer_cent_ptr++, *outer_cent_ptr++, *outer_cent_ptr++)
+        vec4(inner_cent_ptr[0], inner_cent_ptr[1], inner_cent_ptr[2], inner_cent_ptr[3]),
+        vec4(outer_cent_ptr[0], outer_cent_ptr[1], outer_cent_ptr[2], outer_cent_ptr[3])
     };
     
     simple_web.buildArrays(v_buff, i_buff, v_head, i_head, offset, dest_corners, dest_centroids);
@@ -135,8 +137,8 @@ void PlayerContext::establishVAOContext() {
     uint offset = 0;
     int* surface_ptr;
 
-    const size_t vertex_max_size = 120*12*11*VERT_ELEM_COUNT*sizeof(GLfloat);
-    const size_t index_max_size  = 120*12*11*3*sizeof(GLuint);
+    const size_t vertex_max_size = 120*12*VERT_PER_PENT*VERT_ELEM_COUNT*sizeof(GLfloat);
+    const size_t index_max_size  = 120*12*TRI_PER_PENT*3*sizeof(GLuint);
     
     GLfloat* vertex_buffer = (GLfloat*) malloc(vertex_max_size);
     GLuint* index_buffer   = (GLuint*) malloc(index_max_size);
@@ -144,14 +146,11 @@ void PlayerContext::establishVAOContext() {
     if ((vertex_buffer == NULL) || (index_buffer == NULL)) {
         
     }
-    int count = 0;
     for (SubSurface surface : map_data.interior_surfaces) {
         surface_ptr = surface.indeces_ptr;
         for (int f = 0; f < surface.num_faces; f++) {
             loadPentagon( surface_ptr++, vertex_buffer, index_buffer, v_head, i_head, offset);
         }
-        count++;
-        if (count > 15) break;
     }
      
     dodecaplex_vao = VAO((GLfloat*) vertex_buffer, v_head*sizeof(GLfloat), (GLuint*) index_buffer, i_head*sizeof(GLfloat));

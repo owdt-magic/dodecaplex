@@ -47,28 +47,29 @@ struct GoldenRhombus {
         // NOTE: Always use this initialization when possible!
         // NOTE: There is no 4 corner version - build the RhombusWeb in an order that accounts!
     void writeUints(GLuint* start, int& head, uint i_offset);
-    void writeFloats(GLfloat* start, int& head, float in_scale, float out_scale,
+    void writeFloats(GLfloat* start, int& head,
                         glm::mat4& rotation_mat, glm::vec4& in_offset, glm::vec4& out_offset);
-    glm::vec3 readCorner(Corner corner);
+    glm::vec3 corners[4]; // always clockwise!!
+    enum SplitType split = SplitType::SHORT;
+    enum SkipType skip = SkipType::NONE;
 private:
     RhombusIndeces getIndeces();
     void shareCorner(GoldenRhombus& source, std::pair<Corner, Corner> corner);
-    glm::vec3 corners[4]; // always clockwise!!
     bool uniques[4] = {true, true, true, true}; // Avoid redundant counting
-    enum SplitType split = SplitType::SHORT;
-    enum SkipType skip = SkipType::NONE;
     uint indeces[4];
     GoldenRhombus* branches[4];
 };
 
 struct RhombusWeb {
-    std::vector<GoldenRhombus> collection;
-    float scale;
-    float centroid_offset;
+    std::vector<GoldenRhombus> all_rhombuses;
+    float pentagon_scale;
+    float vertical_offset;
     uint offset;
     RhombusWeb();
-    void fillCorners(std::array<glm::vec4, 5> &dest);
     void buildArrays(GLfloat* v_buffer, GLuint* i_buffer, int& v_head, int& i_head, uint i_offset,
                         std::array<glm::vec4, 5> dest_pentagon, std::array<glm::vec4, 2> dest_centroids);
-    std::array<glm::vec3,5> bounds;
+    std::array<glm::vec4,5> web_pentagon;
+private:
+    void assignCorners(std::array<GoldenRhombus, 5>& rhombuses, Corner corner);
+    void rescaleValues();
 };

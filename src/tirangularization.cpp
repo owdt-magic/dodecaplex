@@ -22,6 +22,8 @@ using std::array;
 #define SINTPF sin(2.0f*PI/5.0f)
 #define COSPF cos(PI/5.0f)
 #define SINPF sin(PI/5.0f)
+#define DODECAPLEX_SIDE_LEN (3.0f-sqrt(5.0f))
+#define CIRCUMRADIUS_RATIO sqrt((5.0f+sqrt(5.0f))/10.0f)
 
 float Rx_WIDE(vec2 xy) {
     return COSTPF*xy.x - SINTPF*xy.y;
@@ -38,52 +40,53 @@ float Ry_THIN(vec2 xy) {
 
 GoldenRhombus::GoldenRhombus(){};
 
-vec3 GoldenRhombus::readCorner(Corner corner){
-    return corners[corner];
-}
-
 GoldenRhombus::GoldenRhombus(RhombusType type, Corner origin, uint& offset){
     corners[origin] = vec3(0.);
-    switch (type) {
-        case RhombusType::WIDE:
-            switch (origin) {
-                case Corner::BOTTOM:
-                    corners[Corner::LEFT]  = vec3(-1.0f, AY, AZ)*0.5f;
-                    corners[Corner::TOP]   = vec3( 0.0f, AY, AZ);
-                    corners[Corner::RIGHT] = vec3( 1.0f, AY, AZ)*0.5f;
-                    break;
-                case Corner::LEFT:
-                    throw std::invalid_argument("Origin WIDE rhombus must use TOP/BOTTOM");
-                case Corner::TOP:
-                    corners[Corner::BOTTOM] = vec3( 0.0f, AY, -AZ);
-                    corners[Corner::LEFT]   = vec3(-1.0f, AY, -AZ)*0.5f;
-                    corners[Corner::RIGHT]  = vec3( 1.0f, AY, -AZ)*0.5f;
-                    break;
-                case Corner::RIGHT:
-                    throw std::invalid_argument("Origin WIDE rhombus must use TOP/BOTTOM");
-            }
-            indeces[offset++] = Corner::BOTTOM;
-            indeces[offset++] = Corner::LEFT;
-            indeces[offset++] = Corner::TOP; 
-            indeces[offset++] = Corner::RIGHT;
+    switch (type) 
+    {
+    case RhombusType::WIDE:
+        switch (origin) 
+        {
+        case Corner::BOTTOM:
+            corners[Corner::LEFT]  = vec3(-1.0f, AY, AZ)*0.5f;
+            corners[Corner::TOP]   = vec3( 0.0f, AY, AZ);
+            corners[Corner::RIGHT] = vec3( 1.0f, AY, AZ)*0.5f;
             break;
-        case RhombusType::THIN:
-            throw std::invalid_argument("THIN origin Rhombus origins not supported yet");
-            /* switch (origin) {
-                case Corner::BOTTOM:
-                    corners[Corner::LEFT]  = vec3( -PHI, BX, BY)*0.5f;
-                    corners[Corner::RIGHT] = vec3(  PHI, BX, BY)*0.5;
-                    corners[Corner::TOP]   = vec3( 0.0f, BX, BY);
-                    break;
-                case Corner::TOP:
-                    corners[Corner::LEFT]   = vec3( -PHI, BX, -BY)*0.5f;
-                    corners[Corner::RIGHT]  = vec3(  PHI, BX, -BY)*0.5;
-                    corners[Corner::BOTTOM] = vec3( 0.0f, BX, -BY);
-                    break;
-                default:
-                    break;
-            } */
+        case Corner::LEFT:
+            throw std::invalid_argument("Origin WIDE rhombus must use TOP/BOTTOM");
+        case Corner::TOP:
+            corners[Corner::BOTTOM] = vec3( 0.0f, AY, -AZ);
+            corners[Corner::LEFT]   = vec3(-1.0f, AY, -AZ)*0.5f;
+            corners[Corner::RIGHT]  = vec3( 1.0f, AY, -AZ)*0.5f;
+            break;
+        case Corner::RIGHT:
+            throw std::invalid_argument("Origin WIDE rhombus must use TOP/BOTTOM");
+        }
+        break;
+    case RhombusType::THIN:
+        switch (origin) 
+        {
+        case Corner::BOTTOM:
+            throw std::invalid_argument("Origin THIN rhombus must use LEFT/RIGHT");
+        case Corner::LEFT:
+            corners[Corner::BOTTOM] = vec3(   BY, PHI, -BZ)*0.5f;
+            corners[Corner::TOP]    = vec3(  -BY, PHI,  BZ)*0.5f;
+            corners[Corner::RIGHT]  = vec3( 0.0f, PHI, 0.0f);
+            break;
+        case Corner::TOP:
+            throw std::invalid_argument("Origin THIN rhombus must use LEFT/RIGHT");
+        case Corner::RIGHT:
+            corners[Corner::BOTTOM] = vec3(  -BY, PHI,  BZ)*0.5f;
+            corners[Corner::LEFT]   = vec3( 0.0f, PHI, 0.0f);
+            corners[Corner::TOP]    = vec3(   BY, PHI, -BZ)*0.5f;            
+            break;
+        }
+        break;
     }
+    indeces[offset++] = Corner::BOTTOM;
+    indeces[offset++] = Corner::LEFT;
+    indeces[offset++] = Corner::TOP; 
+    indeces[offset++] = Corner::RIGHT;
 }
 
 void GoldenRhombus::shareCorner(GoldenRhombus& source, pair<Corner, Corner> corner) {
@@ -176,10 +179,28 @@ GoldenRhombus::GoldenRhombus(GoldenRhombus& neighbor_a, GoldenRhombus& neighbor_
 
 }
 
+void RhombusWeb::assignCorners(array<GoldenRhombus, 5>& rhombuses, Corner corner) {
+    // If this is used correctly, these two values should be identical for every corner...
+    pentagon_scale  = length(vec2(rhombuses[0].corners[corner]));
+    vertical_offset = rhombuses[0].corners[corner].z;
+    
+    for (int i=0; i < 5; i++) web_pentagon[i] = vec4(vec2(rhombuses[i].corners[corner]), 0.0f, 0.0f);
+    rescaleValues();
+}
+
+void RhombusWeb::rescaleValues(){
+    for (GoldenRhombus& rhombus : all_rhombuses) {
+        for (vec3& corner : rhombus.corners) {
+            corner.z -= vertical_offset;
+            corner *= ( (DODECAPLEX_SIDE_LEN * CIRCUMRADIUS_RATIO) / pentagon_scale );
+        }
+    }
+}
+
 RhombusWeb::RhombusWeb() {
     offset = 0;
-    GoldenRhombus center[5];
-    // GoldenRhombus edges[5];
+    array<GoldenRhombus, 5> center;
+    array<GoldenRhombus, 5> edges;
     center[0] = GoldenRhombus(RhombusType::WIDE, Corner::TOP, offset);
     center[1] = GoldenRhombus(center[0], RhombusType::WIDE,
                     make_pair(Corner::TOP, Corner::TOP), 
@@ -195,37 +216,35 @@ RhombusWeb::RhombusWeb() {
                     make_pair(Corner::LEFT, Corner::RIGHT), 
                     make_pair(Corner::RIGHT, Corner::LEFT), offset);
    
-    /* edges[0] = GoldenRhombus(center[0], center[1], 
+    edges[0] = GoldenRhombus(center[0], center[1], RhombusType::THIN,
                     make_pair(Corner::LEFT, Corner::TOP), 
                     make_pair(Corner::BOTTOM, Corner::RIGHT), 
                     make_pair(Corner::BOTTOM, Corner::LEFT), offset);
-    edges[1] = GoldenRhombus(center[1], center[2], 
+    edges[1] = GoldenRhombus(center[1], center[2], RhombusType::THIN,
                     make_pair(Corner::LEFT, Corner::TOP), 
                     make_pair(Corner::BOTTOM, Corner::RIGHT), 
                     make_pair(Corner::BOTTOM, Corner::LEFT), offset);
-    edges[2] = GoldenRhombus(center[2], center[3], 
+    edges[2] = GoldenRhombus(center[2], center[3], RhombusType::THIN,
                     make_pair(Corner::LEFT, Corner::TOP), 
                     make_pair(Corner::BOTTOM, Corner::RIGHT), 
                     make_pair(Corner::BOTTOM, Corner::LEFT), offset);
-    edges[3] = GoldenRhombus(center[3], center[4], 
+    edges[3] = GoldenRhombus(center[3], center[4], RhombusType::THIN,
                     make_pair(Corner::LEFT, Corner::TOP), 
                     make_pair(Corner::BOTTOM, Corner::RIGHT), 
                     make_pair(Corner::BOTTOM, Corner::LEFT), offset);
-    edges[4] = GoldenRhombus(center[4], center[0], 
+    edges[4] = GoldenRhombus(center[4], center[0], RhombusType::THIN,
                     make_pair(Corner::LEFT, Corner::TOP), 
                     make_pair(Corner::BOTTOM, Corner::RIGHT), 
-                    make_pair(Corner::BOTTOM, Corner::LEFT), offset); */
+                    make_pair(Corner::BOTTOM, Corner::LEFT), offset);
 
-    collection.reserve(5);
-    
+    all_rhombuses.reserve(10);
+
+    for (int i = 0; i < 5; i ++) all_rhombuses.push_back(center[i]);
     for (int i = 0; i < 5; i ++) {
-        bounds[i] = center[i].readCorner(Corner::BOTTOM);
-        /* scale = std::max(scale, std::abs(bounds[i].y)); */
-        collection.push_back(center[i]);
+        edges[i].skip = SkipType::FIRST;
+        all_rhombuses.push_back(edges[i]);
     }
-    scale = AY; //NOTE: not normally true...
-    
-    centroid_offset = length(bounds[0]-bounds[1])*(1-PHI)*sqrt(2.0f);
+    assignCorners(center, Corner::BOTTOM);
 }
 
 RhombusIndeces GoldenRhombus::getIndeces(){
@@ -253,31 +272,25 @@ RhombusIndeces GoldenRhombus::getIndeces(){
     return result;
 }
 
-void GoldenRhombus::writeFloats(GLfloat* start, int& head, float in_scale, float out_scale,
-                        mat4& rotation_mat, vec4& in_offset, vec4& out_offset){
-    vec4 temp;
+void GoldenRhombus::writeFloats(GLfloat* start, int& head, mat4& rotation_mat, vec4& normal, vec4& out_offset){
+    vec4 transformed;
     for (int i = 0; i < 4; i++) {
         if (uniques[i]) {
-            // reduce to xy, add in z by scaling the centroid differences????
+            transformed = vec4(corners[i].x, corners[i].y, 0.0f, 0.0f);
+            transformed = rotation_mat*transformed;
+            transformed += out_offset;
             
-            temp = vec4(corners[i], 0.0f);
-            temp -= in_offset;            
-            temp /= in_scale;
-            temp = rotation_mat*temp;
-            temp *= out_scale;
-
-            temp += out_offset;
+            transformed += (corners[i].z)*normal;
             
-            start[head++] = temp.x;
-            start[head++] = temp.y;
-            start[head++] = temp.z;
-            start[head++] = temp.w;
+            start[head++] = transformed.x;
+            start[head++] = transformed.y;
+            start[head++] = transformed.z;
+            start[head++] = transformed.w;
             
-            start[head++] = (- corners[i].x/in_scale + 1.0f)/2.0f;
-            start[head++] = (- corners[i].y/in_scale + 1.0f)/2.0f;
+            //Texture information
+            start[head++] = (-corners[i].x/(DODECAPLEX_SIDE_LEN*CIRCUMRADIUS_RATIO) + 1.0f)/2.0f;
+            start[head++] = (-corners[i].y/(DODECAPLEX_SIDE_LEN*CIRCUMRADIUS_RATIO) + 1.0f)/2.0f;
             start[head++] = 1.0f;
-
-
         }
     }    
 }
@@ -351,45 +364,19 @@ mat4 solveConversion(array<vec4,N> src, array<vec4,N> dst){
 
 void RhombusWeb::buildArrays(GLfloat* v_buffer, GLuint* i_buffer, int& v_head, int& i_head, uint i_offset,
                                 array<vec4, 5> dest_pentagon, array<vec4, 2> dest_centroids){
-    array<vec4, 5> web_pentagon;
-
-    array<vec4, 5> web_points;
-    array<vec4, 5> dst_points;
-
-    vec4 web_offset = vec4(0.0f, 0.0f, -AZ, 0.0f);
-    vec4 dest_offset = vec4(0.0f);
+    
     mat4 rotation_mat;
-    float dest_scale;
-
-    for (int i = 0; i < 5; i++){
-        web_pentagon[i] = vec4(bounds[i].x, bounds[i].y, 0.0f, 0.0f);
-        dest_offset += dest_pentagon[i];
-    }
-
-    dest_offset/=5.0f;
-
-    for (int i = 0; i < 5; i++){
-        dest_pentagon[i] -= dest_offset;
-        dst_points[i] = dest_pentagon[i];
-        web_points[i] = normalize(web_pentagon[i])*length(dst_points[i]);
-    }
-
-    dest_scale = length(dest_pentagon[0]);
+    vec4 dest_normal = dest_centroids[0]-dest_centroids[1];
+    vec4 dest_offset = vec4(0.0f);
     
-    rotation_mat = solveConversion<5>(web_points, dst_points);
-    
-    std::cout << "Transofrmation error: " << std::endl;
-    for (int i = 0; i < 5; i++) {
-        std::cout << glm::to_string(rotation_mat*web_points[i]-dst_points[i]) << std::endl;
-    }
-    for (GoldenRhombus rhombus : collection) {
-        rhombus.writeFloats(v_buffer, v_head, scale, dest_scale, rotation_mat, web_offset, dest_offset);
+    for (int i = 0; i < 5; i++) dest_offset += dest_pentagon[i];
+        dest_offset /= 5.0f;
+    for (int i = 0; i < 5; i++) dest_pentagon[i] -= dest_offset;
+
+    rotation_mat = solveConversion<5>(web_pentagon, dest_pentagon);
+
+    for (GoldenRhombus rhombus : all_rhombuses) {
+        rhombus.writeFloats(v_buffer, v_head, rotation_mat, dest_normal, dest_offset);
         rhombus.writeUints(i_buffer, i_head, i_offset);
-    }
-}
-
-void RhombusWeb::fillCorners(array<vec4, 5>& dest) {
-    for (int i = 0; i < 5; i++){
-        dest[i] = vec4(bounds[i]/scale, 0.0f);
     }
 }
