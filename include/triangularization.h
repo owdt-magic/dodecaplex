@@ -1,90 +1,74 @@
 #include "dmath.h"
+#include <vector>
+#include <utility>
+#include <array>
 
-#define PI 3.1415f
-
-#define COSPT cos(PI/10.0f)
-#define SINPT sin(PI/10.0f)
-#define COSPF cos(PI/5.0f)
-#define SINPF sin(PI/5.0f)
-#define COSTPF cos(2.0f*PI/5.0f)
-#define SINTPF sin(2.0f*PI/5.0f)
-
-#define VSCALE 1.0f
-#define HSCALE (VSCALE * PHI * COSPT) / (PHI+0.5f)
-
-GLfloat Rx(GLfloat x, GLfloat y) {
-    return COSTPF*x - SINTPF*y;
-};
-GLfloat Ry(GLfloat x, GLfloat y) {
-    return SINTPF*x + COSTPF*y;
+enum RhombusType {
+    WIDE,
+    THIN
 };
 
-struct Triangularizors {
-    struct pattern_2 {
-        GLfloat coordinates[46 * 2] = {0};
-        GLfloat indeces[75 * 3] = {0};
-        pattern_2() { populate(); };
-    private:
-        #define S1 COSPF / (COSPF + 1.0f)
-        #define S2 1.0f / (1.0f + 2.0f*COSPF + SINPT)
-        #define S3 (1.0f + COSPF) / (1.0f + 2.0f*COSPF + SINPT)
-        #define S4 SINPF / (2.0f*SINPF + COSPT)
-        #define S5 (2.0f*COSPF + 1.0f) / (2.0f*COSPF + 2.0f)
-        #define S6 (2.0f*COSPF + 1.0f) / (2.0f*COSPF + 1.0f + SINPT)
-        #define S7 COSPT / (COSPT + 2.0f*SINPF)
-        GLfloat src_pts[9*2] = {
-            0.0f,      VSCALE*S2,
-            0.0f,      VSCALE*S6, 
-            HSCALE*S1, VSCALE*S1,
-            HSCALE*S5, VSCALE*S5,
-            HSCALE,    VSCALE,
-            HSCALE*S4, VSCALE*S3,
-            -HSCALE*S4, VSCALE*S3,
-            HSCALE*S7, VSCALE,
-            -HSCALE*S7, VSCALE
-        };
-        void populate(){
-            int c = 2; //Skip first coords, which remain zero
-            int i = 0;
-            int off;
-            GLfloat* index_ptr = indeces;
-            for (int f = 0; f < 5; f++) {
-                for (int s = 0; s < 9; s++) {
-                    coordinates[c++] = src_pts[s * 2];
-                    coordinates[c++] = src_pts[s * 2 + 1];
-                    src_pts[s * 2] = Rx(src_pts[s * 2], src_pts[s * 2 + 1]);
-                    src_pts[s * 2 + 1] = Ry(src_pts[s * 2], src_pts[s * 2 + 1]);
-                }
+enum Corner {
+    BOTTOM=0,
+    LEFT=1,
+    TOP=2,
+    RIGHT=3
+};
 
-                off = f * 9;
+enum SplitType {
+    LONG,
+    SHORT
+};
 
-                int temp_subindeces[15 * 3] = {
-                    // ORANGE
-                    0, off + 1, (off + 9) % 45 + 1,
-                    off + 1, off + 6, off + 7,
-                    off + 2, off + 6, off + 7,
-                    off + 2, off + 8, off + 9,
-                    // GREEN
-                    off + 1, off + 3, off + 6,
-                    off + 3, off + 4, off + 6,
-                    off + 4, off + 5, off + 8,
-                    // PURPLE
-                    off + 4, off + 8, off + 2,
-                    off + 4, off + 2, off + 6,
-                    (off + 3) % 45 + 1, off + 9, off + 2,
-                    (off + 3) % 45 + 1, off + 2, off + 7,
-                    // PINK
-                    off + 1, (off + 2) % 45 + 1, off + 7,
-                    (off + 2) % 45 + 1, off + 7, (off + 3) % 45 + 1,
-                    (off + 3) % 45 + 1, off + 9, (off + 4) % 45 + 1,
-                    // BLUE
-                    off + 1, (off + 9) % 45 + 1, (off + 2) % 45 + 1
-                };
+enum SkipType {
+    NONE,
+    FIRST,
+    SECOND
+};
 
-                std::memcpy(index_ptr, temp_subindeces, sizeof(temp_subindeces));
+struct RhombusIndeces {
+    GLuint triangle_a[3];
+    GLuint triangle_b[3];
+};
 
-                index_ptr += (15 * 3);
-            }
-        }
-    };
+struct GoldenRhombus {
+    GoldenRhombus();
+    GoldenRhombus(RhombusType type, Corner origin, uint& offset);
+        // Initiallizes origin rhombus, aligned with the x axis
+    GoldenRhombus(GoldenRhombus& neighbor, RhombusType type, 
+                    std::pair<Corner, Corner> corner_1, 
+                    std::pair<Corner, Corner> corner_2, uint& offset);
+        // Uses the corner pair enums to map 2 corners from neighbor to 2 of its own corners.
+    GoldenRhombus(GoldenRhombus& neighbor_a, GoldenRhombus& neighbor_b, RhombusType type, 
+                    std::pair<Corner, Corner> corner_a1, 
+                    std::pair<Corner, Corner> corner_a2, 
+                    std::pair<Corner, Corner> corner_b, uint& offset);
+        // Uses the first enums 2 for neighbor_a, and the third from b,
+        // NOTE: Always use this initialization when possible!
+        // NOTE: There is no 4 corner version - build the RhombusWeb in an order that accounts!
+    void writeUints(GLuint* start, int& head, uint i_offset);
+    void writeFloats(GLfloat* start, int& head, float in_scale, float out_scale,
+                        glm::mat4& rotation_mat, glm::vec4& in_offset, glm::vec4& out_offset);
+    glm::vec3 readCorner(Corner corner);
+private:
+    RhombusIndeces getIndeces();
+    void shareCorner(GoldenRhombus& source, std::pair<Corner, Corner> corner);
+    glm::vec3 corners[4]; // always clockwise!!
+    bool uniques[4] = {true, true, true, true}; // Avoid redundant counting
+    enum SplitType split = SplitType::SHORT;
+    enum SkipType skip = SkipType::NONE;
+    uint indeces[4];
+    GoldenRhombus* branches[4];
+};
+
+struct RhombusWeb {
+    std::vector<GoldenRhombus> collection;
+    float scale;
+    float centroid_offset;
+    uint offset;
+    RhombusWeb();
+    void fillCorners(std::array<glm::vec4, 5> &dest);
+    void buildArrays(GLfloat* v_buffer, GLuint* i_buffer, int& v_head, int& i_head, uint i_offset,
+                        std::array<glm::vec4, 5> dest_pentagon, std::array<glm::vec4, 2> dest_centroids);
+    std::array<glm::vec3,5> bounds;
 };

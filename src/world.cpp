@@ -1,5 +1,7 @@
 #include "world.h"
+#include "triangularization.h"
 #include "debug.h"
+#include "glm/gtx/string_cast.hpp"
 
 using namespace glm;
 using namespace std;
@@ -75,7 +77,7 @@ void MapData::establishMap(){
     auto coutSizeHist = [] (vector<SubSurface>& surfaces) {
         int counts[SIDES] = {0};
         cout << "\t";
-        for (SubSurface s : surfaces) counts[s.faces-1]++;        
+        for (SubSurface s : surfaces) counts[s.num_faces-1]++;        
         for (int c : counts) cout << c << ", ";
         cout << " (size hist)" << endl;
     };
@@ -97,42 +99,44 @@ void PlayerContext::initializeWorldData(){
     map_data.establishMap();
 };
 
-void PlayerContext::loadPentagon(GLuint* pentagon_indeces, GLfloat* v_buff, GLuint* i_buff, int& v_head, int& i_head, int& offset) {
-    // pentagon_indeces : address of first of the 5 4D pentagon indeces defined in dodecaplex.h
-    //    offset : number of vertex elements written to be drawn so far in the buffers
-    const GLfloat texture_pattern[] = {0.48f,0.0f,  0.0f,0.38f,  0.2f,0.95f,  0.8f,0.95f,  1.0f,0.38f};
-    const GLuint index_pattern[] = {0,1,2,  0,2,3,  0,3,4};
-    const int num_verts = 5, num_dims = 4;
-    float texture_img_idx = 2.0f;
-    int t = 0;
-    GLfloat mean_vals[num_dims] = {0.0f};
 
-    for (int v = 0; v < num_verts; v++){
-        for (int d = 0; d < num_dims; d++){
-            mean_vals[d] += dodecaplex_cell_verts[pentagon_indeces[v]*4+d];
-        }
+array<vec4, 5> readDestinationCoords(GLuint* pentagon_ptr){
+    array<vec4, 5> output;
+    for (int i = 0; i < 5; i++) {
+        output[i] = vec4(
+            dodecaplex_cell_verts[pentagon_ptr[i]*4],
+            dodecaplex_cell_verts[pentagon_ptr[i]*4+1],
+            dodecaplex_cell_verts[pentagon_ptr[i]*4+2],
+            dodecaplex_cell_verts[pentagon_ptr[i]*4+3]
+        );
     }
-    for (int v = 0; v < num_verts; v++){
-        for (int d = 0; d < num_dims; d++){
-            v_buff[v_head++] = dodecaplex_cell_verts[pentagon_indeces[v]*4+d]*1.0f + mean_vals[d]*0.00;
-        }
-        v_buff[v_head++] = texture_pattern[t++];
-        v_buff[v_head++] = texture_pattern[t++];
-        v_buff[v_head++] = texture_img_idx;
-    }
+    return output;
+};
+
+void loadPentagon(int* index_ptr, GLfloat* v_buff, GLuint* i_buff, int& v_head, int& i_head, uint& offset) {        
+    GLuint* pentagon_ptr    = &dodecaplex_penta_indxs[*index_ptr*5];
+    GLfloat* inner_cent_ptr = &dodecaplex_centroids[(*index_ptr/12)*4];
+    GLfloat* outer_cent_ptr = &dodecaplex_centroids[neighbor_side_orders[*index_ptr]*4];
+    static RhombusWeb simple_web = RhombusWeb();
     
-    for (GLuint idx : index_pattern) {
-        i_buff[i_head++] = offset+idx;
-    }
-
-    offset += num_verts;
+    array<vec4, 5> dest_corners = readDestinationCoords(pentagon_ptr);
+    array<vec4, 2> dest_centroids = {
+        vec4(*inner_cent_ptr++, *inner_cent_ptr++, *inner_cent_ptr++, *inner_cent_ptr++),
+        vec4(*outer_cent_ptr++, *outer_cent_ptr++, *outer_cent_ptr++, *outer_cent_ptr++)
+    };
+    
+    simple_web.buildArrays(v_buff, i_buff, v_head, i_head, offset, dest_corners, dest_centroids);
+    
+    offset += simple_web.offset;
 };
 
 void PlayerContext::establishVAOContext() {
-    int v_head = 0, i_head = 0, offset = 0;
+    int v_head = 0, i_head = 0;
+    uint offset = 0;
+    int* surface_ptr;
 
-    const size_t vertex_max_size = 120*12*5*VERT_ELEM_COUNT*sizeof(GLfloat);
-    const size_t index_max_size  = 120*12*5*3*sizeof(GLuint);
+    const size_t vertex_max_size = 120*12*11*VERT_ELEM_COUNT*sizeof(GLfloat);
+    const size_t index_max_size  = 120*12*11*3*sizeof(GLuint);
     
     GLfloat* vertex_buffer = (GLfloat*) malloc(vertex_max_size);
     GLuint* index_buffer   = (GLuint*) malloc(index_max_size);
@@ -140,12 +144,14 @@ void PlayerContext::establishVAOContext() {
     if ((vertex_buffer == NULL) || (index_buffer == NULL)) {
         
     }
-
+    int count = 0;
     for (SubSurface surface : map_data.interior_surfaces) {
-        for (int f = 0; f < surface.faces; f++) {
-            loadPentagon( &dodecaplex_penta_indxs[*(surface.indeces++)*5], 
-                          vertex_buffer, index_buffer, v_head, i_head, offset);
+        surface_ptr = surface.indeces_ptr;
+        for (int f = 0; f < surface.num_faces; f++) {
+            loadPentagon( surface_ptr++, vertex_buffer, index_buffer, v_head, i_head, offset);
         }
+        count++;
+        if (count > 15) break;
     }
      
     dodecaplex_vao = VAO((GLfloat*) vertex_buffer, v_head*sizeof(GLfloat), (GLuint*) index_buffer, i_head*sizeof(GLfloat));

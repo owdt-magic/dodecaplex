@@ -12,9 +12,9 @@
 #include <glm/gtc/type_ptr.hpp>
 
 struct SubSurface {
-    int faces;
-    int* indeces;
-    SubSurface(int f, int* i) : faces(f), indeces(i) {};
+    int num_faces;
+    int* indeces_ptr; // This points into the side_indeces in MapData bellow
+    SubSurface(int f, int* i) : num_faces(f), indeces_ptr(i) {};
 };
 
 struct MapData {
@@ -23,7 +23,7 @@ struct MapData {
     std::vector<SubSurface> adjacent_surfaces;
     bool load_cell[120] = {false};
 private:    
-    std::vector<int> side_indeces;
+    std::vector<int> side_indeces; // content range: 0-120*12
     bool load_side[120*12] = {false};
 };
 
@@ -38,7 +38,6 @@ struct PlayerContext {
     MapData map_data;
 private:
     VAO dodecaplex_vao;
-    void loadPentagon(GLuint* pentagon_indeces, GLfloat* v_buff, GLuint* i_buff, int& v_head, int& i_head, int& offset);
     std::vector<VAO> additional_vaos;
 };
 
