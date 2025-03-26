@@ -68,6 +68,7 @@ public:
 	void DrawElements(GLenum mode, GLsizei count, GLenum type, const void *indices);
 	void DrawElements(GLenum mode);
 	void DrawArrays(GLenum mode, GLint first, GLsizei count);
+	void UpdateAttribSubset(VBO& VBO, GLintptr offset, GLsizeiptr size, const void* data);
 
 	void Bind();
 	void Unbind();

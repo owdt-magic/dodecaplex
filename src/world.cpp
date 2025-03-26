@@ -130,32 +130,42 @@ array<vec4, 5> readDestinationCoords(GLuint* pentagon_ptr){
     return output;
 };
 
-void loadPentagon(int* index_ptr, GLfloat* v_buff, GLuint* i_buff, int& v_head, int& i_head, uint& offset) {        
-    GLuint* pentagon_ptr    = &dodecaplex_penta_indxs[*index_ptr*5];
-    GLfloat* inner_cent_ptr = &dodecaplex_centroids[(*index_ptr/12)*4];
-    GLfloat* outer_cent_ptr = &dodecaplex_centroids[neighbor_side_orders[*index_ptr]*4];
-    static RhombusWeb simple_web = RhombusWeb();
+pair< array<vec4, 5>, array<vec4, 2> > unpackPentagon(int side_idx) {
+    GLuint* pentagon_ptr    = &dodecaplex_penta_indxs[side_idx*5];
+    GLfloat* inner_cent_ptr = &dodecaplex_centroids[(side_idx/12)*4];
+    GLfloat* outer_cent_ptr = &dodecaplex_centroids[neighbor_side_orders[side_idx]*4];
     
     array<vec4, 5> dest_corners = readDestinationCoords(pentagon_ptr);
     array<vec4, 2> dest_centroids = {
         vec4(inner_cent_ptr[0], inner_cent_ptr[1], inner_cent_ptr[2], inner_cent_ptr[3]),
         vec4(outer_cent_ptr[0], outer_cent_ptr[1], outer_cent_ptr[2], outer_cent_ptr[3])
     };
+    return std::make_pair(dest_corners, dest_centroids);
+};
+
+PentagonMemory loadNewPentagon(int* index_ptr, GLfloat* v_buff, GLuint* i_buff, int& v_head, int& i_head, uint& offset) {        
+    static RhombusWeb simple_web = RhombusWeb(WebType::SIMPLE_STAR, true);
+
+    pair< array<vec4, 5>, array<vec4, 2> > dest_vecs = unpackPentagon(*index_ptr);
     
-    simple_web.buildArrays(v_buff, i_buff, v_head, i_head, offset, dest_corners, dest_centroids);
+    simple_web.buildArrays(v_buff, i_buff, v_head, i_head, offset, dest_vecs.first, dest_vecs.second);
     
     offset += simple_web.offset;
+    
+    return PentagonMemory(v_head, i_head, simple_web.offset, *index_ptr);
 };
 
 void PlayerContext::populateDodecaplexVAO() {
     int v_head = 0, i_head = 0;
     uint offset = 0;
     int* surface_ptr;
+    PentagonMemory memory;
 
     for (SubSurface surface : map_data.interior_surfaces) {
         surface_ptr = surface.indeces_ptr;
         for (int f = 0; f < surface.num_faces; f++) {
-            loadPentagon( surface_ptr++, vertex_buffer, index_buffer, v_head, i_head, offset);
+            memory = loadNewPentagon( surface_ptr, vertex_buffer, index_buffer, v_head, i_head, offset);
+            map_data.pentagon_summary[*surface_ptr++] = memory;
         }
     }
      
@@ -164,6 +174,14 @@ void PlayerContext::populateDodecaplexVAO() {
     dodecaplex_vao.LinkAttrib(dodecaplex_vao.vbo, 0, 4, GL_FLOAT, VERT_ELEM_COUNT*sizeof(float), (void*)0);
     dodecaplex_vao.LinkAttrib(dodecaplex_vao.vbo, 1, 3, GL_FLOAT, VERT_ELEM_COUNT*sizeof(float), (void*)(4*sizeof(float)));
 };
+
+void updateOldPentagon(PentagonMemory memory) {
+    pair< array<vec4, 5>, array<vec4, 2> > dest_vecs = unpackPentagon(memory.source);
+        
+    //simple_web.buildArrays(v_buff, i_buff, v_head, i_head, offset, dest_vecs.fist, dest_vecs.second);
+    
+};
+
 void PlayerContext::drawAllVAOs() {
     dodecaplex_vao.DrawElements(GL_TRIANGLES);
     for (int i = 0; i < additional_vaos.size(); i++){

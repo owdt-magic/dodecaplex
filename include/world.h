@@ -11,6 +11,12 @@
 #include <functional>
 #include <glm/gtc/type_ptr.hpp>
 
+struct PentagonMemory {
+    int v_index, i_index, size, source;
+    PentagonMemory(int v, int i, int s, int src) : v_index(v), i_index(i), size(s), source(src) {};
+    PentagonMemory() : v_index(0), i_index(0), size(0), source(0) {};
+};
+
 struct SubSurface {
     int num_faces;
     int* indeces_ptr; // This points into the side_indeces in MapData bellow
@@ -22,9 +28,10 @@ struct MapData {
     std::vector<SubSurface> interior_surfaces;
     std::vector<SubSurface> adjacent_surfaces;
     bool load_cell[120] = {false};
+    PentagonMemory pentagon_summary[120*12];
 private:    
     std::vector<int> side_indeces; // content range: 0-120*12
-    bool load_side[120*12] = {false};
+    bool load_side[120*12] = {false};    
 };
 
 struct PlayerContext {

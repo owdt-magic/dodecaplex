@@ -26,6 +26,10 @@ enum SkipType {
     SECOND
 };
 
+enum WebType {
+    SIMPLE_STAR
+};
+
 struct RhombusIndeces {
     GLuint triangle_a[3];
     GLuint triangle_b[3];
@@ -65,7 +69,7 @@ struct RhombusWeb {
     float pentagon_scale;
     float vertical_offset;
     uint offset;
-    RhombusWeb();
+    RhombusWeb(WebType pattern, bool flip);
     void buildArrays(GLfloat* v_buffer, GLuint* i_buffer, int& v_head, int& i_head, uint i_offset,
                         std::array<glm::vec4, 5> dest_pentagon, std::array<glm::vec4, 2> dest_centroids);
     std::array<glm::vec4,5> web_pentagon;

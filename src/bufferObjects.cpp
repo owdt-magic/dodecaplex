@@ -1,5 +1,4 @@
 #include "bufferObjects.h"
-
 // Vertex Buffer Object
 VBO::VBO() {}
 VBO::VBO(GLfloat* vertices, GLsizeiptr size) {
@@ -117,6 +116,11 @@ void VAO::DrawArrays(GLenum mode, GLint first, GLsizei count) {
 	Bind();
     glDrawArrays(mode, first, count);
     Unbind();
+}
+void VAO::UpdateAttribSubset(VBO& VBO, GLintptr offset, GLsizeiptr size, const void* data) {
+	VBO.Bind();
+	glBufferSubData(GL_ARRAY_BUFFER, offset, size, data);
+	VBO.Unbind();
 }
 void VAO::Bind() 	{ glBindVertexArray(ID);}
 void VAO::Unbind() 	{ glBindVertexArray(0); }
