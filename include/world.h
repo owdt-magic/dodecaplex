@@ -29,14 +29,19 @@ private:
 
 struct PlayerContext {
     PlayerContext();
-    void initializeWorldData();
-    void establishVAOContext();
+    ~PlayerContext();
+    void initializeMapData();
+    void populateDodecaplexVAO();
     void drawAllVAOs();
-    
+
     glm::mat4 getModelMatrix(std::array<bool, 4> WASD, float mouseX, float mouseY, float dt);
     PlayerLocation* player_location = NULL;
     MapData map_data;
 private:
+    size_t vertex_max_size;
+    size_t index_max_size;    
+    GLfloat* vertex_buffer;
+    GLuint* index_buffer;
     VAO dodecaplex_vao;
     std::vector<VAO> additional_vaos;
 };

@@ -2,6 +2,7 @@
 #include "triangularization.h"
 #include "debug.h"
 #include "glm/gtx/string_cast.hpp"
+#include <stdexcept>
 
 using namespace glm;
 using namespace std;
@@ -92,15 +93,29 @@ void MapData::establishMap(){
 };
 
 PlayerContext::PlayerContext() {
-    if (player_location == NULL) {
-        player_location = new PlayerLocation();
-    }
+    player_location = new PlayerLocation();
+
     srand(time(NULL)); // Randomize the map...
+    
+    vertex_max_size = 120*12*VERT_PER_PENT*VERT_ELEM_COUNT*sizeof(GLfloat);
+    index_max_size  = 120*12*TRI_PER_PENT*3*sizeof(GLuint);
+    
+    vertex_buffer = (GLfloat*) malloc(vertex_max_size);
+    index_buffer  = (GLuint*)  malloc(index_max_size);
+
+    if ((vertex_buffer == NULL) || (index_buffer == NULL)) {
+        throw std::runtime_error("Failed to initialize buffers for dodecaplex with sizes: "+
+            std::to_string(vertex_max_size)+" and "+ std::to_string(index_max_size));
+    }
 };
-void PlayerContext::initializeWorldData(){
+PlayerContext::~PlayerContext() {
+    free(player_location);
+    free(index_buffer);
+    free(vertex_buffer);
+};
+void PlayerContext::initializeMapData(){
     map_data.establishMap();
 };
-
 
 array<vec4, 5> readDestinationCoords(GLuint* pentagon_ptr){
     array<vec4, 5> output;
@@ -132,20 +147,11 @@ void loadPentagon(int* index_ptr, GLfloat* v_buff, GLuint* i_buff, int& v_head, 
     offset += simple_web.offset;
 };
 
-void PlayerContext::establishVAOContext() {
+void PlayerContext::populateDodecaplexVAO() {
     int v_head = 0, i_head = 0;
     uint offset = 0;
     int* surface_ptr;
 
-    const size_t vertex_max_size = 120*12*VERT_PER_PENT*VERT_ELEM_COUNT*sizeof(GLfloat);
-    const size_t index_max_size  = 120*12*TRI_PER_PENT*3*sizeof(GLuint);
-    
-    GLfloat* vertex_buffer = (GLfloat*) malloc(vertex_max_size);
-    GLuint* index_buffer   = (GLuint*) malloc(index_max_size);
-
-    if ((vertex_buffer == NULL) || (index_buffer == NULL)) {
-        
-    }
     for (SubSurface surface : map_data.interior_surfaces) {
         surface_ptr = surface.indeces_ptr;
         for (int f = 0; f < surface.num_faces; f++) {
@@ -157,10 +163,6 @@ void PlayerContext::establishVAOContext() {
 
     dodecaplex_vao.LinkAttrib(dodecaplex_vao.vbo, 0, 4, GL_FLOAT, VERT_ELEM_COUNT*sizeof(float), (void*)0);
     dodecaplex_vao.LinkAttrib(dodecaplex_vao.vbo, 1, 3, GL_FLOAT, VERT_ELEM_COUNT*sizeof(float), (void*)(4*sizeof(float)));
-
-    free(index_buffer);
-    free(vertex_buffer);
-
 };
 void PlayerContext::drawAllVAOs() {
     dodecaplex_vao.DrawElements(GL_TRIANGLES);
@@ -177,5 +179,4 @@ mat4 PlayerContext::getModelMatrix(array<bool, 4> WASD, float mouseX, float mous
     } else {
         return player_location->elapseAnimation(dt);
     }
-    
 }
