@@ -92,26 +92,32 @@ void MapData::establishMap(){
     #endif
 };
 
+void PentagonMemory::markStart(CPUBufferPair& bw){
+    v_start =  bw.v_head;
+    i_start =  bw.i_head;
+    i_offset = bw.offset;
+};    
+void PentagonMemory::markEnd(CPUBufferPair& bw){
+    v_end = bw.v_head;
+    i_end = bw.i_head;
+    v_len = v_end-v_start;
+    i_len = i_end-i_start;
+};
+
 PlayerContext::PlayerContext() {
     player_location = new PlayerLocation();
 
     srand(time(NULL)); // Randomize the map...
     
-    vertex_max_size = 120*12*VERT_PER_PENT*VERT_ELEM_COUNT*sizeof(GLfloat);
-    index_max_size  = 120*12*TRI_PER_PENT*3*sizeof(GLuint);
+    size_t vertex_max_size = 120*12*VERT_PER_PENT*VERT_ELEM_COUNT*sizeof(GLfloat);
+    size_t index_max_size  = 120*12*TRI_PER_PENT*3*sizeof(GLuint);
     
-    vertex_buffer = (GLfloat*) malloc(vertex_max_size);
-    index_buffer  = (GLuint*)  malloc(index_max_size);
-
-    if ((vertex_buffer == NULL) || (index_buffer == NULL)) {
-        throw std::runtime_error("Failed to initialize buffers for dodecaplex with sizes: "+
-            std::to_string(vertex_max_size)+" and "+ std::to_string(index_max_size));
-    }
+    dodecaplex_buffers = CPUBufferPair(vertex_max_size, index_max_size);
 };
 PlayerContext::~PlayerContext() {
     free(player_location);
-    free(index_buffer);
-    free(vertex_buffer);
+    free(dodecaplex_buffers.v_buff);
+    free(dodecaplex_buffers.i_buff);
 };
 void PlayerContext::initializeMapData(){
     map_data.establishMap();
@@ -143,43 +149,56 @@ pair< array<vec4, 5>, array<vec4, 2> > unpackPentagon(int side_idx) {
     return std::make_pair(dest_corners, dest_centroids);
 };
 
-PentagonMemory loadNewPentagon(int* index_ptr, GLfloat* v_buff, GLuint* i_buff, int& v_head, int& i_head, uint& offset) {        
-    static RhombusWeb simple_web = RhombusWeb(WebType::SIMPLE_STAR, true);
+PentagonMemory loadNewPentagon(int* index_ptr, CPUBufferPair& buffer_writer) {        
+    static RhombusWeb simple_web = RhombusWeb(WebType::SIMPLE_STAR, false);
 
     pair< array<vec4, 5>, array<vec4, 2> > dest_vecs = unpackPentagon(*index_ptr);
+    PentagonMemory output(*index_ptr);
+
+    output.markStart(buffer_writer);
+    simple_web.buildArrays(buffer_writer, dest_vecs.first, dest_vecs.second);
+    output.markEnd(buffer_writer);
     
-    simple_web.buildArrays(v_buff, i_buff, v_head, i_head, offset, dest_vecs.first, dest_vecs.second);
-    
-    offset += simple_web.offset;
-    
-    return PentagonMemory(v_head, i_head, simple_web.offset, *index_ptr);
+    return output;
 };
 
 void PlayerContext::populateDodecaplexVAO() {
-    int v_head = 0, i_head = 0;
-    uint offset = 0;
     int* surface_ptr;
     PentagonMemory memory;
 
     for (SubSurface surface : map_data.interior_surfaces) {
         surface_ptr = surface.indeces_ptr;
         for (int f = 0; f < surface.num_faces; f++) {
-            memory = loadNewPentagon( surface_ptr, vertex_buffer, index_buffer, v_head, i_head, offset);
+            memory = loadNewPentagon(surface_ptr, dodecaplex_buffers);
             map_data.pentagon_summary[*surface_ptr++] = memory;
         }
     }
      
-    dodecaplex_vao = VAO((GLfloat*) vertex_buffer, v_head*sizeof(GLfloat), (GLuint*) index_buffer, i_head*sizeof(GLfloat));
-
+    dodecaplex_vao = VAO(dodecaplex_buffers);
+    
     dodecaplex_vao.LinkAttrib(dodecaplex_vao.vbo, 0, 4, GL_FLOAT, VERT_ELEM_COUNT*sizeof(float), (void*)0);
     dodecaplex_vao.LinkAttrib(dodecaplex_vao.vbo, 1, 3, GL_FLOAT, VERT_ELEM_COUNT*sizeof(float), (void*)(4*sizeof(float)));
+    
+    for (int i = 0; i < 120*12; i++) {
+        if (map_data.load_side[i] && rand()%3){
+            updateOldPentagon(map_data.pentagon_summary[i]);
+        }
+    }
 };
 
-void updateOldPentagon(PentagonMemory memory) {
+void PlayerContext::updateOldPentagon(PentagonMemory memory) {
+    static RhombusWeb inverted_web = RhombusWeb(WebType::SIMPLE_STAR, true);
+    inverted_web.web_texture = 2.0f;
     pair< array<vec4, 5>, array<vec4, 2> > dest_vecs = unpackPentagon(memory.source);
-        
-    //simple_web.buildArrays(v_buff, i_buff, v_head, i_head, offset, dest_vecs.fist, dest_vecs.second);
-    
+
+    dodecaplex_buffers.setHead(memory.v_start, memory.i_start, memory.i_offset);
+
+    inverted_web.buildArrays(dodecaplex_buffers, dest_vecs.first, dest_vecs.second);
+
+    dodecaplex_vao.UpdateAttribSubset(dodecaplex_vao.vbo, memory.v_start*sizeof(GLfloat), 
+            memory.v_len*sizeof(GLfloat), (void*)  &dodecaplex_buffers.v_buff[memory.v_start]);
+    dodecaplex_vao.UpdateAttribSubset(dodecaplex_vao.ebo, memory.i_start*sizeof(GLuint), 
+            memory.i_len*sizeof(GLuint), (void*) &dodecaplex_buffers.i_buff[memory.i_start]);
 };
 
 void PlayerContext::drawAllVAOs() {

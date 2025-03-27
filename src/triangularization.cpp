@@ -325,7 +325,7 @@ RhombusIndeces GoldenRhombus::getIndeces(){
     return result;
 }
 
-void GoldenRhombus::writeFloats(GLfloat* start, int& head, mat4& rotation_mat, vec4& normal, vec4& out_offset){
+void GoldenRhombus::writeFloats(GLfloat* start, int& head, mat4& rotation_mat, vec4& normal, vec4& out_offset, float texture){
     vec4 transformed;
     for (int i = 0; i < 4; i++) {
         if (uniques[i]) {
@@ -343,7 +343,7 @@ void GoldenRhombus::writeFloats(GLfloat* start, int& head, mat4& rotation_mat, v
             //Texture information
             start[head++] = (-corners[i].x/(DODECAPLEX_SIDE_LEN*CIRCUMRADIUS_RATIO) + 1.0f)/2.0f;
             start[head++] = (-corners[i].y/(DODECAPLEX_SIDE_LEN*CIRCUMRADIUS_RATIO) + 1.0f)/2.0f;
-            start[head++] = 1.0f;
+            start[head++] = texture;
         }
     }    
 }
@@ -415,8 +415,7 @@ mat4 solveConversion(array<vec4,N> src, array<vec4,N> dst){
     return A;
 };
 
-void RhombusWeb::buildArrays(GLfloat* v_buffer, GLuint* i_buffer, int& v_head, int& i_head, uint i_offset,
-                                array<vec4, 5> dest_pentagon, array<vec4, 2> dest_centroids){
+void RhombusWeb::buildArrays(CPUBufferPair& buffer_writer, array<vec4, 5> dest_pentagon, array<vec4, 2> dest_centroids){
     
     mat4 rotation_mat;
     vec4 dest_normal = dest_centroids[0]-dest_centroids[1];
@@ -429,7 +428,8 @@ void RhombusWeb::buildArrays(GLfloat* v_buffer, GLuint* i_buffer, int& v_head, i
     rotation_mat = solveConversion<5>(web_pentagon, dest_pentagon);
 
     for (GoldenRhombus rhombus : all_rhombuses) {
-        rhombus.writeFloats(v_buffer, v_head, rotation_mat, dest_normal, dest_offset);
-        rhombus.writeUints(i_buffer, i_head, i_offset);
+        rhombus.writeFloats(buffer_writer.v_buff, buffer_writer.v_head, rotation_mat, dest_normal, dest_offset, web_texture);
+        rhombus.writeUints(buffer_writer.i_buff, buffer_writer.i_head, buffer_writer.offset);
     }
+    buffer_writer.offset += offset;
 }

@@ -1,4 +1,26 @@
 #include "bufferObjects.h"
+
+CPUBufferPair::CPUBufferPair(size_t v_size, size_t i_size) : v_max(v_size), i_max(i_size){
+    v_buff = (GLfloat*) malloc(v_size);
+    i_buff = (GLuint*)  malloc(i_size);
+
+    if ((v_buff == NULL) || (i_buff == NULL)) {
+        throw std::runtime_error("Failed to initialize buffers for dodecaplex with sizes: "+
+            std::to_string(v_size)+" and "+ std::to_string(i_size));
+    }
+    reset();
+}
+void CPUBufferPair::reset(){
+    v_head = 0;
+    i_head = 0;
+    offset=0;
+}
+void CPUBufferPair::setHead(int v, int i, int o){
+	v_head = v;
+	i_head = i; 
+	offset = o;
+}
+
 // Vertex Buffer Object
 VBO::VBO() {}
 VBO::VBO(GLfloat* vertices, GLsizeiptr size) {
@@ -37,6 +59,13 @@ void UBO::Delete() 	{ glDeleteBuffers(1, &ID); }
 
 // Vertext Array Object
 VAO::VAO() {}
+VAO::VAO(CPUBufferPair& buffer_writer) {
+	glGenVertexArrays(1, &ID);
+	glBindVertexArray(ID);
+	// Create VBO and EBO with the provided data
+	vbo = VBO(buffer_writer.v_buff, buffer_writer.v_head*sizeof(GLfloat));
+	ebo = EBO(buffer_writer.i_buff, buffer_writer.i_head*sizeof(GLuint));
+}
 VAO::VAO(GLfloat* vertices, GLsizeiptr verticesSize, \
 			GLuint* indices, GLsizeiptr indicesSize) {
 	glGenVertexArrays(1, &ID);
@@ -121,6 +150,9 @@ void VAO::UpdateAttribSubset(VBO& VBO, GLintptr offset, GLsizeiptr size, const v
 	VBO.Bind();
 	glBufferSubData(GL_ARRAY_BUFFER, offset, size, data);
 	VBO.Unbind();
+}
+void VAO::UpdateAttribSubset(EBO& EBO, GLintptr offset, GLsizeiptr size, const void* data) {
+	glBufferSubData(GL_ELEMENT_ARRAY_BUFFER, offset, size, data);
 }
 void VAO::Bind() 	{ glBindVertexArray(ID);}
 void VAO::Unbind() 	{ glBindVertexArray(0); }

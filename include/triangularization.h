@@ -1,4 +1,5 @@
 #include "dmath.h"
+#include "bufferObjects.h"
 #include <vector>
 #include <utility>
 #include <array>
@@ -52,7 +53,7 @@ struct GoldenRhombus {
         // NOTE: There is no 4 corner version - build the RhombusWeb in an order that accounts!
     void writeUints(GLuint* start, int& head, uint i_offset);
     void writeFloats(GLfloat* start, int& head,
-                        glm::mat4& rotation_mat, glm::vec4& in_offset, glm::vec4& out_offset);
+                        glm::mat4& rotation_mat, glm::vec4& in_offset, glm::vec4& out_offset, float texture);
     glm::vec3 corners[4]; // always clockwise!!
     enum SplitType split = SplitType::SHORT;
     enum SkipType skip = SkipType::NONE;
@@ -69,9 +70,10 @@ struct RhombusWeb {
     float pentagon_scale;
     float vertical_offset;
     uint offset;
+    float web_texture = 1.0f;
     RhombusWeb(WebType pattern, bool flip);
-    void buildArrays(GLfloat* v_buffer, GLuint* i_buffer, int& v_head, int& i_head, uint i_offset,
-                        std::array<glm::vec4, 5> dest_pentagon, std::array<glm::vec4, 2> dest_centroids);
+    void buildArrays(CPUBufferPair& buffer_writer, std::array<glm::vec4, 5> dest_pentagon, 
+                                                 std::array<glm::vec4, 2> dest_centroids);
     std::array<glm::vec4,5> web_pentagon;
 private:
     void assignCorners(std::array<GoldenRhombus, 5>& rhombuses, Corner corner);
