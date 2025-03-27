@@ -1,9 +1,8 @@
 #include "triangularization.h"
-#include "glm/gtx/string_cast.hpp"
 #include <stdexcept>
 #include <algorithm>
 #include <iostream>
-#include <eigen3/Eigen/Dense>
+#include <Eigen/Dense>
 
 using namespace glm;
 
@@ -239,24 +238,20 @@ RhombusWeb::RhombusWeb(WebType pattern, bool flip) {
     Corner LEFT, RIGHT, TOP, BOTTOM;
     SkipType FIRST, SECOND;
 
-    switch (flip)
-    {
-    case true:
+    if (flip){
         BOTTOM  = Corner::TOP;
         LEFT    = Corner::RIGHT;
         TOP     = Corner::BOTTOM;
         RIGHT   = Corner::LEFT;
         FIRST   = SkipType::SECOND;
         SECOND  = SkipType::FIRST;
-        break;
-    case false:
+    } else {
         BOTTOM  = Corner::BOTTOM;
         LEFT    = Corner::LEFT;
         TOP     = Corner::TOP;
         RIGHT   = Corner::RIGHT;
         FIRST   = SkipType::FIRST;
         SECOND  = SkipType::SECOND;
-        break;
     }
 
     center[0] = GoldenRhombus(RhombusType::WIDE, TOP, offset);

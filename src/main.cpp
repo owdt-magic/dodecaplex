@@ -53,12 +53,14 @@ int main() {
             U_SPELL_FOCUS = glGetUniformLocation(world_shader.ID, "SPELL_FOCUS");
             U_SPELL_HEAD  = glGetUniformLocation(world_shader.ID, "SPELL_HEAD");
 
+            #ifdef DRAW_BOOK
             book_shader.Load();
             book_shader.Activate();
             texture_library.linkGrimoireLibrary(book_shader.ID);
 
             U_FLIP_PROGRESS = glGetUniformLocation(book_shader.ID, "u_flip_progress");
             U_CAMERA_BOOK   = glGetUniformLocation(book_shader.ID, "CAMERA");
+            #endif
 
             uniforms->last_time         = glfwGetTime();
             uniforms->loading           = false;
@@ -102,11 +104,13 @@ int main() {
         
         player_context.drawAllVAOs();
 
+        #ifdef DRAW_BOOK
         book_shader.Activate();
         
         glUniformMatrix4fv(U_CAMERA_BOOK, 1, GL_FALSE, &(cam.Projection)[0][0]);
 
         grimoire.drawGrimoireVAOs(U_FLIP_PROGRESS);
+        #endif
 
         glfwSwapBuffers(window);
         glfwPollEvents();
