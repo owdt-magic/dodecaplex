@@ -1,8 +1,9 @@
-#include "dmath.h"
-#include "bufferObjects.h"
+#ifndef TRIANGULARIZATION_H
+#define TRIANGULARIZATION_H
+
+#include "pentagon.h"
 #include <vector>
 #include <utility>
-#include <array>
 
 enum RhombusType {
     WIDE,
@@ -72,10 +73,11 @@ struct RhombusWeb {
     uint offset;
     float web_texture = 1.0f;
     RhombusWeb(WebType pattern, bool flip);
-    void buildArrays(CPUBufferPair& buffer_writer, std::array<glm::vec4, 5> dest_pentagon, 
-                                                 std::array<glm::vec4, 2> dest_centroids);
+    void buildArrays(CPUBufferPair& buffer_writer, PentagonMemory& pentagon);
     std::array<glm::vec4,5> web_pentagon;
 private:
     void assignCorners(std::array<GoldenRhombus, 5>& rhombuses, Corner corner);
     void rescaleValues();
 };
+
+#endif

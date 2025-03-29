@@ -1,5 +1,4 @@
 #include "world.h"
-#include "triangularization.h"
 #include "debug.h"
 #include "glm/gtx/string_cast.hpp"
 #include <stdexcept>
@@ -92,18 +91,6 @@ void MapData::establishMap(){
     #endif
 };
 
-void PentagonMemory::markStart(CPUBufferPair& bw){
-    v_start =  bw.v_head;
-    i_start =  bw.i_head;
-    i_offset = bw.offset;
-};    
-void PentagonMemory::markEnd(CPUBufferPair& bw){
-    v_end = bw.v_head;
-    i_end = bw.i_head;
-    v_len = v_end-v_start;
-    i_len = i_end-i_start;
-};
-
 PlayerContext::PlayerContext() {
     player_location = new PlayerLocation();
 
@@ -123,43 +110,16 @@ void PlayerContext::initializeMapData(){
     map_data.establishMap();
 };
 
-array<vec4, 5> readDestinationCoords(GLuint* pentagon_ptr){
-    array<vec4, 5> output;
-    for (int i = 0; i < 5; i++) {
-        output[i] = vec4(
-            dodecaplex_cell_verts[pentagon_ptr[i]*4],
-            dodecaplex_cell_verts[pentagon_ptr[i]*4+1],
-            dodecaplex_cell_verts[pentagon_ptr[i]*4+2],
-            dodecaplex_cell_verts[pentagon_ptr[i]*4+3]
-        );
-    }
-    return output;
-};
-
-pair< array<vec4, 5>, array<vec4, 2> > unpackPentagon(int side_idx) {
-    GLuint* pentagon_ptr    = &dodecaplex_penta_indxs[side_idx*5];
-    GLfloat* inner_cent_ptr = &dodecaplex_centroids[(side_idx/12)*4];
-    GLfloat* outer_cent_ptr = &dodecaplex_centroids[neighbor_side_orders[side_idx]*4];
-    
-    array<vec4, 5> dest_corners = readDestinationCoords(pentagon_ptr);
-    array<vec4, 2> dest_centroids = {
-        vec4(inner_cent_ptr[0], inner_cent_ptr[1], inner_cent_ptr[2], inner_cent_ptr[3]),
-        vec4(outer_cent_ptr[0], outer_cent_ptr[1], outer_cent_ptr[2], outer_cent_ptr[3])
-    };
-    return std::make_pair(dest_corners, dest_centroids);
-};
-
 PentagonMemory loadNewPentagon(int* index_ptr, CPUBufferPair& buffer_writer) {        
     static RhombusWeb simple_web = RhombusWeb(WebType::SIMPLE_STAR, false);
 
-    pair< array<vec4, 5>, array<vec4, 2> > dest_vecs = unpackPentagon(*index_ptr);
-    PentagonMemory output(*index_ptr);
+    PentagonMemory pentagon(*index_ptr);
 
-    output.markStart(buffer_writer);
-    simple_web.buildArrays(buffer_writer, dest_vecs.first, dest_vecs.second);
-    output.markEnd(buffer_writer);
+    pentagon.markStart(buffer_writer);
+    simple_web.buildArrays(buffer_writer, pentagon);
+    pentagon.markEnd(buffer_writer);
     
-    return output;
+    return pentagon;
 };
 
 void PlayerContext::populateDodecaplexVAO() {
@@ -181,19 +141,20 @@ void PlayerContext::populateDodecaplexVAO() {
     
     for (int i = 0; i < 120*12; i++) {
         if (map_data.load_side[i] && rand()%3){
-            updateOldPentagon(map_data.pentagon_summary[i]);
+            updateOldPentagon(i);
         }
     }
 };
 
-void PlayerContext::updateOldPentagon(PentagonMemory memory) {
+void PlayerContext::updateOldPentagon(int map_index) {
     static RhombusWeb inverted_web = RhombusWeb(WebType::SIMPLE_STAR, true);
     inverted_web.web_texture = 2.0f;
-    pair< array<vec4, 5>, array<vec4, 2> > dest_vecs = unpackPentagon(memory.source);
+
+    PentagonMemory& memory = map_data.pentagon_summary[map_index];
 
     dodecaplex_buffers.setHead(memory.v_start, memory.i_start, memory.i_offset);
 
-    inverted_web.buildArrays(dodecaplex_buffers, dest_vecs.first, dest_vecs.second);
+    inverted_web.buildArrays(dodecaplex_buffers, memory);
 
     dodecaplex_vao.UpdateAttribSubset(dodecaplex_vao.vbo, memory.v_start*sizeof(GLfloat), 
             memory.v_len*sizeof(GLfloat), (void*)  &dodecaplex_buffers.v_buff[memory.v_start]);

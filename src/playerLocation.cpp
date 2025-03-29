@@ -43,7 +43,7 @@ mat4 PlayerLocation::getModel(bool* loaded_cells){
     float old_distance = length(accumulated_transforms*cell_centroid - origin);
     for (int i = 0; i < 12; i++){
         new_cell_index      = neighbor_side_orders[cell_index*12+i];
-        new_cell_centroid   = make_vec4(&dodecaplex_centroids[new_cell_index*4]);
+        new_cell_centroid   = dodecaplex_centroids[new_cell_index];
         new_distance        = length(potential_transform*new_cell_centroid - origin);
         if (new_distance < old_distance) {                
             if (!loaded_cells[new_cell_index] && !noclip) {

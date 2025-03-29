@@ -1,7 +1,7 @@
 #ifndef WORLD_H
 #define WORLD_H
 
-#include "bufferObjects.h"
+#include "triangularization.h"
 #include "playerLocation.h"
 
 #include <time.h>
@@ -10,17 +10,6 @@
 #include <set>
 #include <functional>
 #include <glm/gtc/type_ptr.hpp>
-
-struct PentagonMemory {
-    int v_start, v_end, i_start, i_end, i_offset, source;
-    int v_len, i_len;
-
-    PentagonMemory() {};
-    PentagonMemory(int src) : source(src) {};
-    void markStart(CPUBufferPair& bw);
-    void markEnd(CPUBufferPair& bw);
-    void unpack();
-};
 
 struct SubSurface {
     int num_faces;
@@ -46,7 +35,7 @@ struct PlayerContext {
     void initializeMapData();
     void populateDodecaplexVAO();
     void drawAllVAOs();
-    void updateOldPentagon(PentagonMemory memory);
+    void updateOldPentagon(int map_index);
     glm::mat4 getModelMatrix(std::array<bool, 4> WASD, float mouseX, float mouseY, float dt);
     PlayerLocation* player_location = NULL;
     MapData map_data;

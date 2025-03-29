@@ -2,7 +2,6 @@
 #include <stdexcept>
 #include <algorithm>
 #include <iostream>
-#include <Eigen/Dense>
 
 using namespace glm;
 
@@ -373,62 +372,13 @@ void GoldenRhombus::writeUints(GLuint* start, int& head, uint i_offset) {
     }
 }
 
-template <int N>
-mat4 solveConversion(array<vec4,N> src, array<vec4,N> dst){
-    mat4 A(0.0f);
-    
-    Eigen::Matrix4f eigen_mat;
 
-    for (int i = 0; i < N; ++i) {
-        vec4 s = src[i];
-        vec4 d = dst[i];
-
-        A += mat4(
-            s.x * d, s.y * d, s.z * d, s.w * d
-        );
-    }
-
-    for (int i = 0; i < 4; ++i) {
-        for (int j = 0; j < 4; ++j) {
-            eigen_mat(i, j) = A[i][j];
-        }
-    }
-
-    Eigen::JacobiSVD<Eigen::Matrix4f> svd(eigen_mat, Eigen::ComputeFullU | Eigen::ComputeFullV);
-
-    Eigen::Matrix4f U = svd.matrixU();
-    Eigen::Matrix4f Sigma = svd.singularValues().asDiagonal();
-    Eigen::Matrix4f V = svd.matrixV();
-
-    eigen_mat << 1, 0, 0, 0,
-                 0, 1, 0, 0,
-                 0, 0, 1, 0,
-                 0, 0, 0, U.determinant()*V.determinant();
-    eigen_mat = U*eigen_mat*(V.transpose());
-
-    for (int i = 0; i < 4; ++i) {
-        for (int j = 0; j < 4; ++j) {
-            A[i][j] = eigen_mat(i, j);
-        }
-    }
-
-    return A;
-};
-
-void RhombusWeb::buildArrays(CPUBufferPair& buffer_writer, array<vec4, 5> dest_pentagon, array<vec4, 2> dest_centroids){
-    
+void RhombusWeb::buildArrays(CPUBufferPair& buffer_writer, PentagonMemory& pentagon){
     mat4 rotation_mat;
-    vec4 dest_normal = dest_centroids[0]-dest_centroids[1];
-    vec4 dest_offset = vec4(0.0f);
-    
-    for (int i = 0; i < 5; i++) dest_offset += dest_pentagon[i];
-        dest_offset /= 5.0f;
-    for (int i = 0; i < 5; i++) dest_pentagon[i] -= dest_offset;
-
-    rotation_mat = solveConversion<5>(web_pentagon, dest_pentagon);
+    rotation_mat = pentagon.solveRotation(web_pentagon);
 
     for (GoldenRhombus rhombus : all_rhombuses) {
-        rhombus.writeFloats(buffer_writer.v_buff, buffer_writer.v_head, rotation_mat, dest_normal, dest_offset, web_texture);
+        rhombus.writeFloats(buffer_writer.v_buff, buffer_writer.v_head, rotation_mat, pentagon.normal, pentagon.offset, web_texture);
         rhombus.writeUints(buffer_writer.i_buff, buffer_writer.i_head, buffer_writer.offset);
     }
     buffer_writer.offset += offset;

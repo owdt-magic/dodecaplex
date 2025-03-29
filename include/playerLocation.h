@@ -37,24 +37,18 @@ private:
     float my = 0.0f;
     const float height = -3.1415f/20.0f;
     const float movement_scale = 0.5f;
-    const float mouse_scale = 500.0f;
+    const float mouse_scale = 5000.0f;
 
     int cell_index = 0;
     int floor_index = 0;
     int centroid_index = neighbor_side_orders[cell_index*12+floor_index];
-    glm::vec4 floor_centroid = 
-        glm::vec4(  dodecaplex_centroids[centroid_index*4],
-                    dodecaplex_centroids[centroid_index*4+1],
-                    dodecaplex_centroids[centroid_index*4+2],
-                    dodecaplex_centroids[centroid_index*4+3]);
+    glm::vec4 floor_centroid = dodecaplex_centroids[centroid_index];
     glm::vec4 cell_centroid = glm::vec4(0.0f,0.0f,0.0f,1.0f);
     
     glm::vec3 head = glm::vec3(0,0.000001,0);
     glm::vec3 player_up = glm::vec3(0,0,-1);
     glm::vec3 focus = glm::vec3(1,0,0);
-        //NOTE: feet/focus are relative to the head!
-        //i.e. the actuall coordinates of feet/focus:
-        //head + feet / head + focus
+    
     AnimationInfo* animation_info = NULL;
     glm::mat4 pitch_transform = glm::mat4(1.0f);
     glm::mat4 yaw_transform = glm::mat4(1.0f);
