@@ -324,15 +324,15 @@ RhombusIndeces GoldenRhombus::getIndeces(){
     return result;
 }
 
-void GoldenRhombus::writeFloats(GLfloat* start, int& head, mat4& rotation_mat, vec4& normal, vec4& out_offset, float texture){
+void GoldenRhombus::writeFloats(GLfloat* start, int& head, PentagonMemory& pentagon, float texture){
     vec4 transformed;
     for (int i = 0; i < 4; i++) {
         if (uniques[i]) {
             transformed = vec4(corners[i].x, corners[i].y, 0.0f, 0.0f);
-            transformed = rotation_mat*transformed;
-            transformed += out_offset;
+            transformed = pentagon.rotation*transformed;
+            transformed += pentagon.offset;
             
-            transformed += (corners[i].z)*normal;
+            transformed += (corners[i].z)*pentagon.normal;
             
             start[head++] = transformed.x;
             start[head++] = transformed.y;
@@ -374,12 +374,11 @@ void GoldenRhombus::writeUints(GLuint* start, int& head, uint i_offset) {
 
 
 void RhombusWeb::buildArrays(CPUBufferPair& buffer_writer, PentagonMemory& pentagon){
-    mat4 rotation_mat;
-    rotation_mat = pentagon.solveRotation(web_pentagon);
+    pentagon.solveRotation(web_pentagon, false);
 
     for (GoldenRhombus rhombus : all_rhombuses) {
-        rhombus.writeFloats(buffer_writer.v_buff, buffer_writer.v_head, rotation_mat, pentagon.normal, pentagon.offset, web_texture);
-        rhombus.writeUints(buffer_writer.i_buff, buffer_writer.i_head, buffer_writer.offset);
+        rhombus.writeFloats(buffer_writer.v_buff, buffer_writer.v_head, pentagon, web_texture);
+        rhombus.writeUints( buffer_writer.i_buff, buffer_writer.i_head, buffer_writer.offset);
     }
     buffer_writer.offset += offset;
 }

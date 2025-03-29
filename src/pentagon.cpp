@@ -78,8 +78,12 @@ mat4 solveWithEigen(array<vec4,N> src, array<vec4,N> dst){
     return A;
 };
 
-mat4 PentagonMemory::solveRotation(array<vec4, 5> start) {
-    return solveWithEigen<5>(start, centered);
+mat4 PentagonMemory::solveRotation(array<vec4, 5> start, bool force) {
+    if (!has_rotation || force) {
+        rotation = solveWithEigen<5>(start, centered);
+        has_rotation = true;
+    }
+    return rotation;
 };
 
 void PentagonMemory::markStart(CPUBufferPair& bw){

@@ -53,8 +53,7 @@ struct GoldenRhombus {
         // NOTE: Always use this initialization when possible!
         // NOTE: There is no 4 corner version - build the RhombusWeb in an order that accounts!
     void writeUints(GLuint* start, int& head, uint i_offset);
-    void writeFloats(GLfloat* start, int& head,
-                        glm::mat4& rotation_mat, glm::vec4& in_offset, glm::vec4& out_offset, float texture);
+    void writeFloats(GLfloat* start, int& head, PentagonMemory& pentagon, float texture);
     glm::vec3 corners[4]; // always clockwise!!
     enum SplitType split = SplitType::SHORT;
     enum SkipType skip = SkipType::NONE;

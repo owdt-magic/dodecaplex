@@ -17,10 +17,11 @@ struct PentagonMemory {
     glm::mat4 rotation;
     glm::vec4 offset;
     glm::vec4 normal;
+    bool has_rotation = false;
 
     PentagonMemory() {};
     PentagonMemory(int src);
-    glm::mat4 solveRotation(std::array<glm::vec4, 5> start);
+    glm::mat4 solveRotation(std::array<glm::vec4, 5> start, bool force);
     void markStart(CPUBufferPair& bw);
     void markEnd(CPUBufferPair& bw);
 };
