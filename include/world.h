@@ -36,6 +36,7 @@ struct PlayerContext {
     void populateDodecaplexVAO();
     void drawAllVAOs();
     void updateOldPentagon(int map_index);
+    void determineChanges(glm::mat4 transform);
     glm::mat4 getModelMatrix(std::array<bool, 4> WASD, float mouseX, float mouseY, float dt);
     PlayerLocation* player_location = NULL;
     MapData map_data;

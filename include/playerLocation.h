@@ -16,6 +16,7 @@ struct AnimationInfo {
 struct PlayerLocation {    
     PlayerLocation();
     glm::mat4 getModel(bool* loaded_cells);
+    glm::mat4 currentTransform();
     glm::vec3 getFocus();
     glm::vec3 getHead();
     glm::vec3 getPUp();

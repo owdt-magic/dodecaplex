@@ -6,6 +6,12 @@
 #include "bufferObjects.h"
 #include <array>
 
+enum Surface 
+{
+    ORIGINAL,
+    BROKEN
+};
+
 struct PentagonMemory {
     int v_start, v_end, i_start, i_end, i_offset, source;
     int v_len, i_len;
@@ -18,7 +24,8 @@ struct PentagonMemory {
     glm::vec4 offset;
     glm::vec4 normal;
     bool has_rotation = false;
-
+    Surface surface = Surface::ORIGINAL;
+    
     PentagonMemory() {};
     PentagonMemory(int src);
     glm::mat4 solveRotation(std::array<glm::vec4, 5> start, bool force);

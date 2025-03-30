@@ -152,6 +152,7 @@ void VAO::UpdateAttribSubset(VBO& VBO, GLintptr offset, GLsizeiptr size, const v
 	VBO.Unbind();
 }
 void VAO::UpdateAttribSubset(EBO& EBO, GLintptr offset, GLsizeiptr size, const void* data) {
+	EBO.Bind();
 	glBufferSubData(GL_ELEMENT_ARRAY_BUFFER, offset, size, data);
 }
 void VAO::Bind() 	{ glBindVertexArray(ID);}

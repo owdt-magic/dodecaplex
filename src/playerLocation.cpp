@@ -31,6 +31,9 @@ void PlayerLocation::teleportHead(vec3 target) {
 void PlayerLocation::teleportPUp(vec3 target) {
     player_up = target;
 };
+mat4 PlayerLocation::currentTransform(){
+    return pitch_transform*accumulated_transforms;
+};
 mat4 PlayerLocation::getModel(bool* loaded_cells){
     int new_cell_index;
     vec4 new_cell_centroid;

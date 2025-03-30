@@ -131,7 +131,7 @@ GLuint getSpellSubroutine(Uniforms* uniforms, Grimoire& grimoire, GLuint shader_
     if (uniforms->click_states[0] && !grimoire.spell_life[grimoire.active_spell] && !grimoire.flip_progress) {
         // The mouse is being held down... AND the spell is not currently running.
         if(!grimoire.click_times[grimoire.active_spell]) {
-            subroutine_index = glGetSubroutineIndex(shader_id, GL_FRAGMENT_SHADER, "castTeleportA");
+            subroutine_index = glGetSubroutineIndex(shader_id, GL_FRAGMENT_SHADER, "castMining");
             // And it's the first frame of it being held down...
             grimoire.click_times[grimoire.active_spell] = current_time;
         }
@@ -139,7 +139,7 @@ GLuint getSpellSubroutine(Uniforms* uniforms, Grimoire& grimoire, GLuint shader_
                 uniforms->player_context->player_location->getFocus(),
                 uniforms->player_context->player_location->getHead());
     } else if (grimoire.click_times[grimoire.active_spell]) {
-        subroutine_index = glGetSubroutineIndex(shader_id, GL_FRAGMENT_SHADER, "releaseTeleportA");
+        subroutine_index = glGetSubroutineIndex(shader_id, GL_FRAGMENT_SHADER, "releaseMining");
         // The mouse was JUST released
         grimoire.startSpell(current_time, 
                 uniforms->player_context->player_location->getFocus(),

@@ -17,8 +17,8 @@ struct SpellContext
     ) : start(v_1), start_up(v_2), context(pc), progress(p) {}
 };
 
-void teleportA(SpellContext spell_context);
-void teleportAStart(SpellContext spell_context);
+void miningSpell(SpellContext spell_context);
+void miningSpellCharge(SpellContext spell_context);
 
 const int MAX_SPELLS = 2;
 const uint PAGE_LOD = 10;
@@ -26,11 +26,10 @@ const uint PAGE_LOD = 10;
 struct Grimoire
 {
     Grimoire();
-    // {no-spell, teleport_a}
     int active_spell = 1;
     float click_times               [MAX_SPELLS] = {};
     float release_times             [MAX_SPELLS] = {};
-    const float spell_durrations    [MAX_SPELLS] = {0.0f, 2.5f};
+    const float spell_durrations    [MAX_SPELLS] = {0.0f, 0.25f};
     const float cast_durrations     [MAX_SPELLS] = {0.0f, 1.0f};
     float spell_life                [MAX_SPELLS] = {};
     float cast_life                 [MAX_SPELLS] = {};
@@ -40,8 +39,8 @@ struct Grimoire
     glm::vec3 cast_player_up        [MAX_SPELLS] = {};
     int intercept_indeces           [MAX_SPELLS] = {};
     
-    void (*updateSpellFunction[MAX_SPELLS])(SpellContext) = {NULL, teleportA};
-    void (*startSpellFunction[MAX_SPELLS])(SpellContext) = {NULL, teleportAStart};
+    void (*updateSpellFunction[MAX_SPELLS])(SpellContext) = {NULL, miningSpell};
+    void (*startSpellFunction[MAX_SPELLS])(SpellContext) = {NULL, miningSpellCharge};
 
     void updateSpellLife(float time, PlayerContext* context);
     void startSpell(float time, glm::vec3 focus, glm::vec3 head, glm::vec3 player_up, PlayerContext* context);

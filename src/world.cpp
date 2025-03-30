@@ -112,6 +112,7 @@ void PlayerContext::initializeMapData(){
 
 PentagonMemory loadNewPentagon(int* index_ptr, CPUBufferPair& buffer_writer) {        
     static RhombusWeb simple_web = RhombusWeb(WebType::SIMPLE_STAR, false);
+    simple_web.web_texture = 2.0f;
 
     PentagonMemory pentagon(*index_ptr);
 
@@ -139,29 +140,53 @@ void PlayerContext::populateDodecaplexVAO() {
     dodecaplex_vao.LinkAttrib(dodecaplex_vao.vbo, 0, 4, GL_FLOAT, VERT_ELEM_COUNT*sizeof(float), (void*)0);
     dodecaplex_vao.LinkAttrib(dodecaplex_vao.vbo, 1, 3, GL_FLOAT, VERT_ELEM_COUNT*sizeof(float), (void*)(4*sizeof(float)));
     
-    for (int i = 0; i < 120*12; i++) {
-        if (map_data.load_side[i] && rand()%3){
-            updateOldPentagon(i);
+};
+void PlayerContext::updateOldPentagon(int map_index) {
+    static RhombusWeb inverted_web = RhombusWeb(WebType::SIMPLE_STAR, true);
+    inverted_web.web_texture = 1.0f;
+
+    PentagonMemory pentagon = map_data.pentagon_summary[map_index];
+    pentagon.surface = Surface::BROKEN;
+    
+
+    dodecaplex_buffers.setHead(pentagon.v_start, pentagon.i_start, pentagon.i_offset);
+
+    inverted_web.buildArrays(dodecaplex_buffers, pentagon);
+    if (dodecaplex_buffers.v_head != pentagon.v_end || 
+        dodecaplex_buffers.i_head != pentagon.i_end) {
+            std::cout << dodecaplex_buffers.i_head << ", "<< pentagon.i_end << std::endl;
+        throw std::invalid_argument("Bad buffer writing length.");
+    }
+
+    dodecaplex_vao.UpdateAttribSubset(dodecaplex_vao.vbo, pentagon.v_start*sizeof(GLfloat), 
+            pentagon.v_len*sizeof(GLfloat), (void*) &dodecaplex_buffers.v_buff[pentagon.v_start]);
+    dodecaplex_vao.UpdateAttribSubset(dodecaplex_vao.ebo, pentagon.i_start*sizeof(GLuint), 
+            pentagon.i_len*sizeof(GLuint),  (void*) &dodecaplex_buffers.i_buff[pentagon.i_start]);
+
+    map_data.pentagon_summary[map_index] = pentagon;
+};
+void PlayerContext::determineChanges(mat4 transform) {
+    vec4 center;
+    PentagonMemory memory;
+    for (int i = 0; i < 120; i++) {
+        if (map_data.load_cell[i]) {
+            center = transform*dodecaplex_centroids[i];
+            if (center.z < -0.1f) {
+                for (int j = 0; j < 12; j++){
+                    if (map_data.load_side[i*12+j]) {
+                        memory = map_data.pentagon_summary[i*12+j];                        
+                        if (memory.surface != Surface::BROKEN) {
+                            center = transform*memory.offset;
+                            if ((center.x*center.x+center.y*center.y < 0.1f)){
+                                updateOldPentagon(i*12+j);
+                            }
+                        }
+                    }
+                }
+            }
         }
     }
 };
-
-void PlayerContext::updateOldPentagon(int map_index) {
-    static RhombusWeb inverted_web = RhombusWeb(WebType::SIMPLE_STAR, true);
-    inverted_web.web_texture = 2.0f;
-
-    PentagonMemory& memory = map_data.pentagon_summary[map_index];
-
-    dodecaplex_buffers.setHead(memory.v_start, memory.i_start, memory.i_offset);
-
-    inverted_web.buildArrays(dodecaplex_buffers, memory);
-
-    dodecaplex_vao.UpdateAttribSubset(dodecaplex_vao.vbo, memory.v_start*sizeof(GLfloat), 
-            memory.v_len*sizeof(GLfloat), (void*)  &dodecaplex_buffers.v_buff[memory.v_start]);
-    dodecaplex_vao.UpdateAttribSubset(dodecaplex_vao.ebo, memory.i_start*sizeof(GLuint), 
-            memory.i_len*sizeof(GLuint), (void*) &dodecaplex_buffers.i_buff[memory.i_start]);
-};
-
 void PlayerContext::drawAllVAOs() {
     dodecaplex_vao.DrawElements(GL_TRIANGLES);
     for (int i = 0; i < additional_vaos.size(); i++){
@@ -171,7 +196,7 @@ void PlayerContext::drawAllVAOs() {
 mat4 PlayerContext::getModelMatrix(array<bool, 4> WASD, float mouseX, float mouseY, float dt) {
     if (!player_location->overridden) {
         player_location->focusFromMouse(mouseX, mouseY, dt);
-        player_location->positionFromKeys(WASD, dt);
+        player_location->positionFromKeys(WASD, dt);  
 
         return player_location->getModel(&map_data.load_cell[0]);
     } else {

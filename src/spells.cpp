@@ -2,15 +2,11 @@
 
 using namespace glm;
 
-void teleportA(SpellContext sc){
-    static vec3 target_head;
-    static vec3 direction;
-    target_head = glm::cross(sc.start, sc.start_up);
-    direction = normalize(target_head-sc.start)*0.01f;
-    sc.context->player_location->teleportHead(mix(target_head, sc.start, sc.progress));
+void miningSpell(SpellContext sc){
+    mat4 transform = sc.context->player_location->currentTransform();
+    sc.context->determineChanges(transform);
 };
-void teleportAStart(SpellContext sc){
-    //sc.context->player_location->setFloorIndex(sc.target_index);
+void miningSpellCharge(SpellContext sc){
     //TODO: Temporary omission. Spells don't work in new 4D version...    
 };
 
