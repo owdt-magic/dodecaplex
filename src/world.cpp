@@ -160,9 +160,9 @@ void PlayerContext::updateOldPentagon(int map_index) {
 
     dodecaplex_vao.UpdateAttribSubset(dodecaplex_vao.vbo, pentagon.v_start*sizeof(GLfloat), 
             pentagon.v_len*sizeof(GLfloat), (void*) &dodecaplex_buffers.v_buff[pentagon.v_start]);
-    dodecaplex_vao.UpdateAttribSubset(dodecaplex_vao.ebo, pentagon.i_start*sizeof(GLuint), 
-            pentagon.i_len*sizeof(GLuint),  (void*) &dodecaplex_buffers.i_buff[pentagon.i_start]);
-
+    /* dodecaplex_vao.UpdateAttribSubset(dodecaplex_vao.ebo, pentagon.i_start*sizeof(GLuint), 
+            pentagon.i_len*sizeof(GLuint),  (void*) &dodecaplex_buffers.i_buff[pentagon.i_start]); */
+    // Since this is a flipped array, with 1:1 index patterning, we can skip this step!
     map_data.pentagon_summary[map_index] = pentagon;
 };
 void PlayerContext::spawnShrapnel(int map_index) {

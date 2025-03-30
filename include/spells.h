@@ -29,7 +29,7 @@ struct Grimoire
     int active_spell = 1;
     float click_times               [MAX_SPELLS] = {};
     float release_times             [MAX_SPELLS] = {};
-    const float spell_durrations    [MAX_SPELLS] = {0.0f, 0.25f};
+    const float spell_durrations    [MAX_SPELLS] = {0.0f, 0.333f};
     const float cast_durrations     [MAX_SPELLS] = {0.0f, 1.0f};
     float spell_life                [MAX_SPELLS] = {};
     float cast_life                 [MAX_SPELLS] = {};
