@@ -34,13 +34,15 @@ struct PlayerContext {
     ~PlayerContext();
     void initializeMapData();
     void populateDodecaplexVAO();
-    void drawAllVAOs();
+    void drawAllVAOs(GLuint U_WORLD);
     void updateOldPentagon(int map_index);
-    void determineChanges(glm::mat4 transform);
+    void elapseShrapnel(float progress);
     glm::mat4 getModelMatrix(std::array<bool, 4> WASD, float mouseX, float mouseY, float dt);
+    void spawnShrapnel(int map_index);
     PlayerLocation* player_location = NULL;
     MapData map_data;
 private:
+    glm::mat4 shrapnel_scatter = glm::mat4(1.0f);
     CPUBufferPair dodecaplex_buffers;
     VAO dodecaplex_vao;
     std::vector<VAO> additional_vaos;

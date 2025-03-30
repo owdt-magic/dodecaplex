@@ -165,9 +165,54 @@ void PlayerContext::updateOldPentagon(int map_index) {
 
     map_data.pentagon_summary[map_index] = pentagon;
 };
-void PlayerContext::determineChanges(mat4 transform) {
+void PlayerContext::spawnShrapnel(int map_index) {
+    static size_t float_count;
+    static size_t uint_count;
+    
+    static RhombusWeb inverted_web = RhombusWeb(WebType::SIMPLE_STAR, true);
+    static RhombusWeb normal_web   = RhombusWeb(WebType::SIMPLE_STAR, false);
+    inverted_web.web_texture = 2.0f;
+    normal_web.web_texture = 2.0f;
+    
+    PentagonMemory pentagon = map_data.pentagon_summary[map_index];
+    float_count = 2.0f*pentagon.v_len*sizeof(GLfloat);
+    uint_count  = 2.0f*pentagon.i_len*sizeof(GLuint);
+    CPUBufferPair shrapnel_buffer = CPUBufferPair(float_count, uint_count);
+    
+    normal_web.buildArrays(  shrapnel_buffer, pentagon);
+    inverted_web.buildArrays(shrapnel_buffer, pentagon);
+
+    VAO shrapnel_vao = VAO(shrapnel_buffer);
+
+    shrapnel_vao.LinkAttrib(shrapnel_vao.vbo, 0, 4, GL_FLOAT, VERT_ELEM_COUNT*sizeof(float), (void*)0);
+    shrapnel_vao.LinkAttrib(shrapnel_vao.vbo, 1, 3, GL_FLOAT, VERT_ELEM_COUNT*sizeof(float), (void*)(4*sizeof(float)));
+
+    additional_vaos.push_back(shrapnel_vao);
+};
+void PlayerContext::elapseShrapnel(float progress) {
     vec4 center;
     PentagonMemory memory;
+    mat4 transform = player_location->currentTransform();
+
+    if ( progress < 0.2) { additional_vaos.clear(); return; }
+    float rt = 3.14f*(0.66f + progress/3.0f);
+    shrapnel_scatter = mat4({
+        1.0f,  0.0f,     0.0f,     0.0f,
+        0.0f,  cos(rt), sin(rt), 0.0f,
+        0.0f, -sin(rt), cos(rt), 0.0f,
+        0.0f,  0.0f,     0.0f,     1.0f
+    })*mat4({
+        cos(rt), 0.0f, -sin(rt), 0.0f,
+        0.0f,     1.0f,  0.0f,     0.0f,
+        sin(rt), 0.0f,  cos(rt), 0.0f,
+        0.0f,     0.0f,  0.0f,     1.0f
+    })*mat4({
+        cos(rt), sin(rt), 0.0f, 0.0f,
+       -sin(rt), cos(rt), 0.0f, 0.0f,
+        0.0f,     0.0f,     1.0f, 0.0f,
+        0.0f,     0.0f,     0.0f, 1.0f
+    });
+
     for (int i = 0; i < 120; i++) {
         if (map_data.load_cell[i]) {
             center = transform*dodecaplex_centroids[i];
@@ -178,6 +223,7 @@ void PlayerContext::determineChanges(mat4 transform) {
                         if (memory.surface != Surface::BROKEN) {
                             center = transform*memory.offset;
                             if ((center.x*center.x+center.y*center.y < 0.1f)){
+                                spawnShrapnel(i*12+j);                      
                                 updateOldPentagon(i*12+j);
                             }
                         }
@@ -187,9 +233,11 @@ void PlayerContext::determineChanges(mat4 transform) {
         }
     }
 };
-void PlayerContext::drawAllVAOs() {
+void PlayerContext::drawAllVAOs(GLuint U_WORLD) {
     dodecaplex_vao.DrawElements(GL_TRIANGLES);
+    
     for (int i = 0; i < additional_vaos.size(); i++){
+        glUniformMatrix4fv(U_WORLD,  1, GL_FALSE, &(shrapnel_scatter*player_location->currentTransform())[0][0]);
         additional_vaos[i].DrawElements(GL_TRIANGLES);
     }
 };

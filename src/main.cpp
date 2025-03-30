@@ -102,7 +102,7 @@ int main() {
         glUniformMatrix4fv(U_CAMERA, 1, GL_FALSE, &(cam.Projection)[0][0]);
         glUniformMatrix4fv(U_WORLD,  1, GL_FALSE, &(cam.Model)[0][0]);
         
-        player_context.drawAllVAOs();
+        player_context.drawAllVAOs(U_WORLD);
 
         #ifdef DRAW_BOOK
         book_shader.Activate();

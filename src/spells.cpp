@@ -3,8 +3,7 @@
 using namespace glm;
 
 void miningSpell(SpellContext sc){
-    mat4 transform = sc.context->player_location->currentTransform();
-    sc.context->determineChanges(transform);
+    sc.context->elapseShrapnel(sc.progress);
 };
 void miningSpellCharge(SpellContext sc){
     //TODO: Temporary omission. Spells don't work in new 4D version...    

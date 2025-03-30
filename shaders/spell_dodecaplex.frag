@@ -25,7 +25,7 @@ subroutine (spell) vec4 emptySpell(vec4 color) {
 subroutine (spell) vec4 castMining(vec4 color) {
     vec2 window      = (gl_FragCoord.xy-(u_resolution/2.0))/((max(u_resolution.x, u_resolution.y) * pow(.1, SPELL_LIFE))*.5);
     float wall_dist = length(cross(SPELL_FOCUS, SPELL_HEAD-model_Coords.xyz));
-    vec4 spec_data   = texture(specularTextures, texture_Coords);
+    vec4 spec_data   = max(texture(specularTextures, texture_Coords), 0.5f);
     
     float angle      = atan(window.x, window.y)+sin(u_time)*10.0f;
     float radius     = length(window*4.0)*(1.0+(zDepth))/CAST_LIFE;
@@ -44,8 +44,8 @@ subroutine (spell) vec4 releaseMining(vec4 color) {
     return mix(color, 
                 mix(color, 
                     mix(color, vec4(1.0, 1.1, 1.3, 1.0)*wall_dist,  pow((1.0-SPELL_LIFE), 1.5)), 
-                pow(wall_dist, 3.0)), 
-            clamp(0.01, 1.0, pow(SPELL_LIFE, 3.0)));
+                pow(wall_dist, -1.0)), 
+            clamp(0.01, 1.0, pow(SPELL_LIFE, 2.0)));
 }
 
 void main(){
