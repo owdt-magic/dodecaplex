@@ -414,7 +414,7 @@ RhombusWeb::RhombusWeb(WebType pattern, bool flip) : flipped(flip) {
                         make_pair(Corner::LEFT, Corner::RIGHT),
                         make_pair(Corner::RIGHT, Corner::LEFT), offset);
         
-        thin_edge[0] = GoldenRhombus(wide_loop[0], wide_loop[1], RhombusType::WIDE,
+        /* thin_edge[0] = GoldenRhombus(wide_loop[0], wide_loop[1], RhombusType::WIDE,
                         make_pair(Corner::LEFT, Corner::BOTTOM),
                         make_pair(Corner::TOP, Corner::RIGHT),
                         make_pair(Corner::TOP, Corner::LEFT), offset);
@@ -453,13 +453,13 @@ RhombusWeb::RhombusWeb(WebType pattern, bool flip) : flipped(flip) {
         thin_edge[9] = GoldenRhombus(wide_loop[13], wide_loop[14], RhombusType::WIDE,
                         make_pair(Corner::LEFT, Corner::BOTTOM),
                         make_pair(Corner::TOP, Corner::RIGHT),
-                        make_pair(Corner::TOP, Corner::LEFT), offset);
+                        make_pair(Corner::TOP, Corner::LEFT), offset); */
         
-        all_rhombuses.reserve(35);
+        all_rhombuses.reserve(25);
         addRhombuses(center);
         addRhombuses(edges);
         addRhombuses(wide_loop);
-        addRhombuses(thin_edge, SkipType::SECOND);
+        /* addRhombuses(thin_edge, SkipType::SECOND); */
         
         array<GoldenRhombus*, 5> corners = 
             {&wide_loop[1], &wide_loop[4], &wide_loop[7], &wide_loop[10], &wide_loop[13]};
@@ -505,8 +505,8 @@ void GoldenRhombus::writeFloats(GLfloat* start, int& head, PentagonMemory& penta
             transformed = pentagon.rotation*transformed;
             transformed += pentagon.offset;
             
-            if(flipped) transformed -= (corners[i].z)*pentagon.normal;
-            else        transformed += (corners[i].z)*pentagon.normal;
+            if(flipped) transformed -= (corners[i].z)*pentagon.normal*(1.7f);
+            else        transformed += (corners[i].z)*pentagon.normal*(1.7f);
             
             start[head++] = transformed.x;
             start[head++] = transformed.y;

@@ -113,18 +113,22 @@ void PlayerContext::initializeMapData(){
 void PlayerContext::populateDodecaplexVAO() {
     int* surface_ptr;
     PentagonMemory memory;
-    normal_web.web_texture = 2.0f;
+    normal_web.web_texture = 4.0f;
 
     for (SubSurface surface : map_data.interior_surfaces) {
         surface_ptr = surface.indeces_ptr;
+        
         for (int f = 0; f < surface.num_faces; f++) {
-            memory = PentagonMemory(*surface_ptr);
+            
+            if (map_data.pentagons.find(*surface_ptr) == map_data.pentagons.end()) {
+                memory = PentagonMemory(*surface_ptr);                
 
-            memory.markStart(dodecaplex_buffers);
-            normal_web.buildArrays(dodecaplex_buffers, memory);
-            memory.markEnd(dodecaplex_buffers);
+                memory.markStart(dodecaplex_buffers);
+                normal_web.buildArrays(dodecaplex_buffers, memory);
+                memory.markEnd(dodecaplex_buffers);
 
-            map_data.pentagon_summary[*surface_ptr++] = memory;
+                map_data.pentagons[*surface_ptr++] = memory;
+            }
         }
     }
      
@@ -137,7 +141,7 @@ void PlayerContext::populateDodecaplexVAO() {
 void PlayerContext::updateOldPentagon(int map_index) {    
     inverted_web.web_texture = 1.0f;
 
-    PentagonMemory& pentagon = map_data.pentagon_summary[map_index];
+    PentagonMemory& pentagon = map_data.pentagons[map_index];
     pentagon.surface = Surface::BROKEN;
     
     dodecaplex_buffers.setHead(pentagon.v_start, pentagon.i_start, pentagon.i_offset);
@@ -162,7 +166,7 @@ void PlayerContext::spawnShrapnel(int map_index) {
     inverted_web.web_texture = 2.0f;
     normal_web.web_texture = 2.0f;
     
-    PentagonMemory pentagon = map_data.pentagon_summary[map_index];
+    PentagonMemory pentagon = map_data.pentagons[map_index];
     float_count = 2*pentagon.v_len*sizeof(GLfloat);
     uint_count  = 2*pentagon.i_len*sizeof(GLuint);
     CPUBufferPair shrapnel_buffer = CPUBufferPair(float_count, uint_count);
@@ -210,7 +214,7 @@ void PlayerContext::elapseShrapnel(float progress) {
             if (center.z < -0.1f) {
                 for (int j = 0; j < 12; j++){
                     if (map_data.load_side[i*12+j]) {
-                        memory = map_data.pentagon_summary[i*12+j];                        
+                        memory = map_data.pentagons[i*12+j];                        
                         if (memory.surface != Surface::BROKEN) {
                             center = transform*memory.offset;
                             if ((center.x*center.x+center.y*center.y < 0.1f)){

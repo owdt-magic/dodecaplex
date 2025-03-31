@@ -8,6 +8,7 @@
 #include <vector>
 #include <tuple>
 #include <set>
+#include <map>
 #include <functional>
 #include <glm/gtc/type_ptr.hpp>
 
@@ -22,7 +23,7 @@ struct MapData {
     std::vector<SubSurface> interior_surfaces;
     std::vector<SubSurface> adjacent_surfaces;
     bool load_cell[120] = {false};
-    PentagonMemory pentagon_summary[120*12];
+    std::map<int, PentagonMemory> pentagons;
     bool load_side[120*12] = {false};
 private:    
     std::vector<int> side_indeces; // content range: 0-120*12
