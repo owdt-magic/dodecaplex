@@ -29,7 +29,8 @@ enum SkipType {
 };
 
 enum WebType {
-    SIMPLE_STAR
+    SIMPLE_STAR,
+    DOUBLE_STAR
 };
 
 struct RhombusIndeces {

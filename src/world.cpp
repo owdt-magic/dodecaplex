@@ -9,7 +9,7 @@ using namespace std;
 #define SIDES 12
 #define CELLS 120
 #define VERT_ELEM_COUNT 7
-#define VERT_PER_PENT 11
+#define VERT_PER_PENT 75
 #define TRI_PER_PENT 15
 #define DEBUG
 
@@ -111,7 +111,7 @@ void PlayerContext::initializeMapData(){
 };
 
 PentagonMemory loadNewPentagon(int* index_ptr, CPUBufferPair& buffer_writer) {        
-    static RhombusWeb simple_web = RhombusWeb(WebType::SIMPLE_STAR, false);
+    static RhombusWeb simple_web = RhombusWeb(WebType::DOUBLE_STAR, false);
     simple_web.web_texture = 2.0f;
 
     PentagonMemory pentagon(*index_ptr);
@@ -142,13 +142,12 @@ void PlayerContext::populateDodecaplexVAO() {
     
 };
 void PlayerContext::updateOldPentagon(int map_index) {
-    static RhombusWeb inverted_web = RhombusWeb(WebType::SIMPLE_STAR, true);
+    static RhombusWeb inverted_web = RhombusWeb(WebType::DOUBLE_STAR, true);
     inverted_web.web_texture = 1.0f;
 
-    PentagonMemory pentagon = map_data.pentagon_summary[map_index];
+    PentagonMemory& pentagon = map_data.pentagon_summary[map_index];
     pentagon.surface = Surface::BROKEN;
     
-
     dodecaplex_buffers.setHead(pentagon.v_start, pentagon.i_start, pentagon.i_offset);
 
     inverted_web.buildArrays(dodecaplex_buffers, pentagon);
@@ -163,20 +162,19 @@ void PlayerContext::updateOldPentagon(int map_index) {
     /* dodecaplex_vao.UpdateAttribSubset(dodecaplex_vao.ebo, pentagon.i_start*sizeof(GLuint), 
             pentagon.i_len*sizeof(GLuint),  (void*) &dodecaplex_buffers.i_buff[pentagon.i_start]); */
     // Since this is a flipped array, with 1:1 index patterning, we can skip this step!
-    map_data.pentagon_summary[map_index] = pentagon;
 };
 void PlayerContext::spawnShrapnel(int map_index) {
     static size_t float_count;
     static size_t uint_count;
     
-    static RhombusWeb inverted_web = RhombusWeb(WebType::SIMPLE_STAR, true);
-    static RhombusWeb normal_web   = RhombusWeb(WebType::SIMPLE_STAR, false);
+    static RhombusWeb inverted_web = RhombusWeb(WebType::DOUBLE_STAR, true);
+    static RhombusWeb normal_web   = RhombusWeb(WebType::DOUBLE_STAR, false);
     inverted_web.web_texture = 2.0f;
     normal_web.web_texture = 2.0f;
     
     PentagonMemory pentagon = map_data.pentagon_summary[map_index];
-    float_count = 2.0f*pentagon.v_len*sizeof(GLfloat);
-    uint_count  = 2.0f*pentagon.i_len*sizeof(GLuint);
+    float_count = 2*pentagon.v_len*sizeof(GLfloat);
+    uint_count  = 2*pentagon.i_len*sizeof(GLuint);
     CPUBufferPair shrapnel_buffer = CPUBufferPair(float_count, uint_count);
     
     normal_web.buildArrays(  shrapnel_buffer, pentagon);
@@ -187,7 +185,7 @@ void PlayerContext::spawnShrapnel(int map_index) {
     shrapnel_vao.LinkAttrib(shrapnel_vao.vbo, 0, 4, GL_FLOAT, VERT_ELEM_COUNT*sizeof(float), (void*)0);
     shrapnel_vao.LinkAttrib(shrapnel_vao.vbo, 1, 3, GL_FLOAT, VERT_ELEM_COUNT*sizeof(float), (void*)(4*sizeof(float)));
 
-    additional_vaos.push_back(shrapnel_vao);
+    additional_vaos.push_back(shrapnel_vao);    
 };
 void PlayerContext::elapseShrapnel(float progress) {
     vec4 center;

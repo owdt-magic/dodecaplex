@@ -18,6 +18,8 @@ using std::array;
 
 #define COSTPF cos(2.0f*PI/5.0f)
 #define SINTPF sin(2.0f*PI/5.0f)
+#define COSNTPF cos(-2.0f*PI/5.0f)
+#define SINNTPF sin(-2.0f*PI/5.0f)
 #define COSPF cos(PI/5.0f)
 #define SINPF sin(PI/5.0f)
 #define DODECAPLEX_SIDE_LEN (3.0f-sqrt(5.0f))
@@ -29,11 +31,11 @@ float Rx_WIDE(vec2 xy) {
 float Ry_WIDE(vec2 xy) {
     return SINTPF*xy.x + COSTPF*xy.y;
 };
-float Rx_WIDE_T(vec2 xy) {
-    return SINTPF*xy.x - COSTPF*xy.y;    
+float Rx_WIDE_R(vec2 xy) {
+    return COSNTPF*xy.x - SINNTPF*xy.y;
 };
-float Ry_WIDE_T(vec2 xy) {
-    return COSTPF*xy.x + SINTPF*xy.y;
+float Ry_WIDE_R(vec2 xy) {
+    return SINNTPF*xy.x + COSNTPF*xy.y;
 };
 float Rx_THIN(vec2 xy) {
     return COSPF*xy.x - SINPF*xy.y;
@@ -148,7 +150,19 @@ GoldenRhombus::GoldenRhombus(GoldenRhombus& neighbor, RhombusType type,
             indeces[Corner::RIGHT] = offset++;
 
             break;
-        //case Corner::LEFT: break;
+        case Corner::RIGHT: 
+            rot.x = corners[Corner::RIGHT].x - corners[Corner::BOTTOM].x;
+            rot.y = corners[Corner::RIGHT].y - corners[Corner::BOTTOM].y;
+            
+            corners[Corner::LEFT] = vec3( Rx_WIDE_R(rot) + corners[Corner::BOTTOM].x,
+                                          Ry_WIDE_R(rot) + corners[Corner::BOTTOM].y, 
+                                                           corners[Corner::RIGHT].z);
+            corners[Corner::TOP]  = corners[Corner::LEFT] - change;
+
+            indeces[Corner::LEFT] = offset++;
+            indeces[Corner::TOP]  = offset++;
+            
+            break;
         default: throw std::invalid_argument("Specify horizontal destination corner with corner_2 variable");
         }
         break;
@@ -178,9 +192,13 @@ GoldenRhombus::GoldenRhombus(GoldenRhombus& neighbor_a, GoldenRhombus& neighbor_
         case Corner::RIGHT:
             switch (corner_b.second) 
             {
-            case Corner::LEFT: // Corner::TOP:Corner::RIGHT:Corner::LEFT
+            case Corner::LEFT:
                 corners[Corner::BOTTOM] = corners[Corner::LEFT] - change;
                 indeces[Corner::BOTTOM] = offset++;
+                break;
+            case Corner::BOTTOM:
+                corners[Corner::LEFT] = corners[Corner::BOTTOM] + change;
+                indeces[Corner::LEFT] = offset++;
                 break;
             default:
                 throw std::invalid_argument("Not implemented");
@@ -192,7 +210,17 @@ GoldenRhombus::GoldenRhombus(GoldenRhombus& neighbor_a, GoldenRhombus& neighbor_
     case Corner::BOTTOM: 
         switch (corner_a2.second) 
         {
-        case Corner::RIGHT: throw std::invalid_argument("Not implemented");
+        case Corner::RIGHT: 
+            switch (corner_b.second) 
+            {
+            case Corner::LEFT:
+                corners[Corner::TOP] = corners[Corner::LEFT] - change;
+                indeces[Corner::TOP] = offset++;
+                break;
+            default:
+                throw std::invalid_argument("Not implemented");
+            }
+            break;
         case Corner::LEFT:
             switch (corner_b.second) 
             {
@@ -230,57 +258,181 @@ void RhombusWeb::rescaleValues(){
     }
 }
 
-RhombusWeb::RhombusWeb(WebType pattern, bool flip) {
+RhombusWeb::RhombusWeb(WebType pattern, bool flip) : flipped(flip) {
     offset = 0;
     array<GoldenRhombus, 5> center;
     array<GoldenRhombus, 5> edges;
 
-    flipped = flip;
-
-    center[0] = GoldenRhombus(RhombusType::WIDE, Corner::TOP, offset);
-    center[1] = GoldenRhombus(center[0], RhombusType::WIDE,
-                    make_pair(Corner::TOP, Corner::TOP), 
-                    make_pair(Corner::LEFT, Corner::RIGHT), offset);
-    center[2] = GoldenRhombus(center[1], RhombusType::WIDE,
-                    make_pair(Corner::TOP, Corner::TOP), 
-                    make_pair(Corner::LEFT, Corner::RIGHT), offset);
-    center[3] = GoldenRhombus(center[2], RhombusType::WIDE,
-                    make_pair(Corner::TOP, Corner::TOP), 
-                    make_pair(Corner::LEFT, Corner::RIGHT), offset);
-    center[4] = GoldenRhombus(center[3], center[0], RhombusType::WIDE,
-                    make_pair(Corner::TOP, Corner::TOP), 
-                    make_pair(Corner::LEFT, Corner::RIGHT), 
-                    make_pair(Corner::RIGHT, Corner::LEFT), offset);
-   
-    edges[0] = GoldenRhombus(center[0], center[1], RhombusType::THIN,
-                    make_pair(Corner::LEFT, Corner::TOP), 
-                    make_pair(Corner::BOTTOM, Corner::RIGHT), 
-                    make_pair(Corner::BOTTOM, Corner::LEFT), offset);
-    edges[1] = GoldenRhombus(center[1], center[2], RhombusType::THIN,
-                    make_pair(Corner::LEFT, Corner::TOP), 
-                    make_pair(Corner::BOTTOM, Corner::RIGHT), 
-                    make_pair(Corner::BOTTOM, Corner::LEFT), offset);
-    edges[2] = GoldenRhombus(center[2], center[3], RhombusType::THIN,
-                    make_pair(Corner::LEFT, Corner::TOP), 
-                    make_pair(Corner::BOTTOM, Corner::RIGHT), 
-                    make_pair(Corner::BOTTOM, Corner::LEFT), offset);
-    edges[3] = GoldenRhombus(center[3], center[4], RhombusType::THIN,
-                    make_pair(Corner::LEFT, Corner::TOP), 
-                    make_pair(Corner::BOTTOM, Corner::RIGHT), 
-                    make_pair(Corner::BOTTOM, Corner::LEFT), offset);
-    edges[4] = GoldenRhombus(center[4], center[0], RhombusType::THIN,
-                    make_pair(Corner::LEFT, Corner::TOP), 
-                    make_pair(Corner::BOTTOM, Corner::RIGHT), 
-                    make_pair(Corner::BOTTOM, Corner::LEFT), offset);
-
-    all_rhombuses.reserve(5);
-
-    for (int i = 0; i < 5; i ++) all_rhombuses.push_back(center[i]);
-    for (int i = 0; i < 5; i ++) {
-        edges[i].skip = SkipType::FIRST;
-        all_rhombuses.push_back(edges[i]);
+    switch (pattern)
+    {
+    case WebType::DOUBLE_STAR:
+    case WebType::SIMPLE_STAR:
+        center[0] = GoldenRhombus(RhombusType::WIDE, Corner::TOP, offset);
+        center[1] = GoldenRhombus(center[0], RhombusType::WIDE,
+                        make_pair(Corner::TOP, Corner::TOP), 
+                        make_pair(Corner::LEFT, Corner::RIGHT), offset);
+        center[2] = GoldenRhombus(center[1], RhombusType::WIDE,
+                        make_pair(Corner::TOP, Corner::TOP), 
+                        make_pair(Corner::LEFT, Corner::RIGHT), offset);
+        center[3] = GoldenRhombus(center[2], RhombusType::WIDE,
+                        make_pair(Corner::TOP, Corner::TOP), 
+                        make_pair(Corner::LEFT, Corner::RIGHT), offset);
+        center[4] = GoldenRhombus(center[3], center[0], RhombusType::WIDE,
+                        make_pair(Corner::TOP, Corner::TOP), 
+                        make_pair(Corner::LEFT, Corner::RIGHT), 
+                        make_pair(Corner::RIGHT, Corner::LEFT), offset);
+    
+        edges[0] = GoldenRhombus(center[0], center[1], RhombusType::THIN,
+                        make_pair(Corner::LEFT, Corner::TOP), 
+                        make_pair(Corner::BOTTOM, Corner::RIGHT), 
+                        make_pair(Corner::BOTTOM, Corner::LEFT), offset);
+        edges[1] = GoldenRhombus(center[1], center[2], RhombusType::THIN,
+                        make_pair(Corner::LEFT, Corner::TOP), 
+                        make_pair(Corner::BOTTOM, Corner::RIGHT), 
+                        make_pair(Corner::BOTTOM, Corner::LEFT), offset);
+        edges[2] = GoldenRhombus(center[2], center[3], RhombusType::THIN,
+                        make_pair(Corner::LEFT, Corner::TOP), 
+                        make_pair(Corner::BOTTOM, Corner::RIGHT), 
+                        make_pair(Corner::BOTTOM, Corner::LEFT), offset);
+        edges[3] = GoldenRhombus(center[3], center[4], RhombusType::THIN,
+                        make_pair(Corner::LEFT, Corner::TOP), 
+                        make_pair(Corner::BOTTOM, Corner::RIGHT), 
+                        make_pair(Corner::BOTTOM, Corner::LEFT), offset);
+        edges[4] = GoldenRhombus(center[4], center[0], RhombusType::THIN,
+                        make_pair(Corner::LEFT, Corner::TOP), 
+                        make_pair(Corner::BOTTOM, Corner::RIGHT), 
+                        make_pair(Corner::BOTTOM, Corner::LEFT), offset);
+        break;
     }
-    assignCorners(center, Corner::BOTTOM);
+    switch (pattern)
+    {
+    case WebType::SIMPLE_STAR:
+        all_rhombuses.reserve(10);
+        for (GoldenRhombus r : center) all_rhombuses.push_back(r);
+        for (GoldenRhombus r : edges) {
+            r.skip = SkipType::FIRST;
+            all_rhombuses.push_back(r);
+        }
+        assignCorners(center, Corner::BOTTOM);
+        return;
+    case WebType::DOUBLE_STAR:
+        array<GoldenRhombus, 15> wide_loop;
+        array<GoldenRhombus, 10> thin_edge;
+        array<GoldenRhombus, 5> corners;
+
+        wide_loop[0] = GoldenRhombus(edges[0], RhombusType::WIDE,
+                        make_pair(Corner::BOTTOM, Corner::BOTTOM),
+                        make_pair(Corner::LEFT, Corner::RIGHT), offset);
+        wide_loop[1] = GoldenRhombus(wide_loop[0], RhombusType::WIDE,
+                        make_pair(Corner::BOTTOM, Corner::BOTTOM),
+                        make_pair(Corner::LEFT, Corner::RIGHT), offset);
+        wide_loop[2] = GoldenRhombus(wide_loop[1], edges[0], RhombusType::WIDE,
+                        make_pair(Corner::BOTTOM, Corner::BOTTOM),
+                        make_pair(Corner::LEFT, Corner::RIGHT),
+                        make_pair(Corner::RIGHT, Corner::LEFT), offset);
+        wide_loop[3] = GoldenRhombus(wide_loop[2], edges[4], RhombusType::WIDE,
+                        make_pair(Corner::TOP, Corner::TOP),
+                        make_pair(Corner::LEFT, Corner::RIGHT),
+                        make_pair(Corner::BOTTOM, Corner::BOTTOM), offset);
+        wide_loop[4] = GoldenRhombus(wide_loop[3], RhombusType::WIDE,
+                        make_pair(Corner::BOTTOM, Corner::BOTTOM),
+                        make_pair(Corner::LEFT, Corner::RIGHT), offset);
+        wide_loop[5] = GoldenRhombus(wide_loop[4], edges[4], RhombusType::WIDE,
+                        make_pair(Corner::BOTTOM, Corner::BOTTOM),
+                        make_pair(Corner::LEFT, Corner::RIGHT),
+                        make_pair(Corner::RIGHT, Corner::LEFT), offset);
+        wide_loop[6] = GoldenRhombus(wide_loop[5], edges[3], RhombusType::WIDE,
+                        make_pair(Corner::TOP, Corner::TOP),
+                        make_pair(Corner::LEFT, Corner::RIGHT),
+                        make_pair(Corner::BOTTOM, Corner::BOTTOM), offset);
+        wide_loop[7] = GoldenRhombus(wide_loop[6], RhombusType::WIDE,
+                        make_pair(Corner::BOTTOM, Corner::BOTTOM),
+                        make_pair(Corner::LEFT, Corner::RIGHT), offset);
+        wide_loop[8] = GoldenRhombus(wide_loop[7], edges[3], RhombusType::WIDE,
+                        make_pair(Corner::BOTTOM, Corner::BOTTOM),
+                        make_pair(Corner::LEFT, Corner::RIGHT),
+                        make_pair(Corner::RIGHT, Corner::LEFT), offset);
+        wide_loop[9] = GoldenRhombus(wide_loop[8], edges[2], RhombusType::WIDE,
+                        make_pair(Corner::TOP, Corner::TOP),
+                        make_pair(Corner::LEFT, Corner::RIGHT),
+                        make_pair(Corner::BOTTOM, Corner::BOTTOM), offset);
+        wide_loop[10] = GoldenRhombus(wide_loop[9], RhombusType::WIDE,
+                        make_pair(Corner::BOTTOM, Corner::BOTTOM),
+                        make_pair(Corner::LEFT, Corner::RIGHT), offset);
+        wide_loop[11] = GoldenRhombus(wide_loop[10], edges[2], RhombusType::WIDE,
+                        make_pair(Corner::BOTTOM, Corner::BOTTOM),
+                        make_pair(Corner::LEFT, Corner::RIGHT),
+                        make_pair(Corner::RIGHT, Corner::LEFT), offset);
+        wide_loop[12] = GoldenRhombus(wide_loop[11], edges[1], RhombusType::WIDE,
+                        make_pair(Corner::TOP, Corner::TOP),
+                        make_pair(Corner::LEFT, Corner::RIGHT),
+                        make_pair(Corner::BOTTOM, Corner::BOTTOM), offset);
+        wide_loop[13] = GoldenRhombus(wide_loop[12], RhombusType::WIDE,
+                        make_pair(Corner::BOTTOM, Corner::BOTTOM), 
+                        make_pair(Corner::LEFT, Corner::RIGHT), offset);
+        wide_loop[14] = GoldenRhombus(wide_loop[13], edges[1], RhombusType::WIDE,
+                        make_pair(Corner::BOTTOM, Corner::BOTTOM),
+                        make_pair(Corner::LEFT, Corner::RIGHT),
+                        make_pair(Corner::RIGHT, Corner::LEFT), offset);
+        
+        thin_edge[0] = GoldenRhombus(wide_loop[0], wide_loop[1], RhombusType::WIDE,
+                        make_pair(Corner::LEFT, Corner::BOTTOM),
+                        make_pair(Corner::TOP, Corner::RIGHT),
+                        make_pair(Corner::TOP, Corner::LEFT), offset);
+        thin_edge[1] = GoldenRhombus(wide_loop[1], wide_loop[2], RhombusType::WIDE,
+                        make_pair(Corner::LEFT, Corner::BOTTOM),
+                        make_pair(Corner::TOP, Corner::RIGHT),
+                        make_pair(Corner::TOP, Corner::LEFT), offset);
+        thin_edge[2] = GoldenRhombus(wide_loop[3], wide_loop[4], RhombusType::WIDE,
+                        make_pair(Corner::LEFT, Corner::BOTTOM),
+                        make_pair(Corner::TOP, Corner::RIGHT),
+                        make_pair(Corner::TOP, Corner::LEFT), offset);
+        thin_edge[3] = GoldenRhombus(wide_loop[4], wide_loop[5], RhombusType::WIDE,
+                        make_pair(Corner::LEFT, Corner::BOTTOM),
+                        make_pair(Corner::TOP, Corner::RIGHT),
+                        make_pair(Corner::TOP, Corner::LEFT), offset);
+        thin_edge[4] = GoldenRhombus(wide_loop[6], wide_loop[7], RhombusType::WIDE,
+                        make_pair(Corner::LEFT, Corner::BOTTOM),
+                        make_pair(Corner::TOP, Corner::RIGHT),
+                        make_pair(Corner::TOP, Corner::LEFT), offset);
+        thin_edge[5] = GoldenRhombus(wide_loop[7], wide_loop[8], RhombusType::WIDE,
+                        make_pair(Corner::LEFT, Corner::BOTTOM),
+                        make_pair(Corner::TOP, Corner::RIGHT),
+                        make_pair(Corner::TOP, Corner::LEFT), offset);
+        thin_edge[6] = GoldenRhombus(wide_loop[9], wide_loop[10], RhombusType::WIDE,
+                        make_pair(Corner::LEFT, Corner::BOTTOM),
+                        make_pair(Corner::TOP, Corner::RIGHT),
+                        make_pair(Corner::TOP, Corner::LEFT), offset);
+        thin_edge[7] = GoldenRhombus(wide_loop[10], wide_loop[11], RhombusType::WIDE,
+                        make_pair(Corner::LEFT, Corner::BOTTOM),
+                        make_pair(Corner::TOP, Corner::RIGHT),
+                        make_pair(Corner::TOP, Corner::LEFT), offset);
+        thin_edge[8] = GoldenRhombus(wide_loop[12], wide_loop[13], RhombusType::WIDE,
+                        make_pair(Corner::LEFT, Corner::BOTTOM),
+                        make_pair(Corner::TOP, Corner::RIGHT),
+                        make_pair(Corner::TOP, Corner::LEFT), offset);
+        thin_edge[9] = GoldenRhombus(wide_loop[13], wide_loop[14], RhombusType::WIDE,
+                        make_pair(Corner::LEFT, Corner::BOTTOM),
+                        make_pair(Corner::TOP, Corner::RIGHT),
+                        make_pair(Corner::TOP, Corner::LEFT), offset);
+        
+        all_rhombuses.reserve(35);
+        for (GoldenRhombus r : center)      all_rhombuses.push_back(r);
+        for (GoldenRhombus r : edges)       all_rhombuses.push_back(r);
+        for (GoldenRhombus r : wide_loop)   all_rhombuses.push_back(r);
+        for (GoldenRhombus r : thin_edge){
+            r.skip = SkipType::SECOND;
+            all_rhombuses.push_back(r);
+        }
+        corners[0] = wide_loop[1];
+        corners[1] = wide_loop[4];
+        corners[2] = wide_loop[7];
+        corners[3] = wide_loop[10];
+        corners[4] = wide_loop[13];
+        
+        assignCorners(corners, Corner::TOP);
+        return;        
+    }
 }
 
 RhombusIndeces GoldenRhombus::getIndeces(){
@@ -325,8 +477,8 @@ void GoldenRhombus::writeFloats(GLfloat* start, int& head, PentagonMemory& penta
             start[head++] = transformed.w;
             
             //Texture information
-            start[head++] = (-corners[i].x/(DODECAPLEX_SIDE_LEN*CIRCUMRADIUS_RATIO) + 1.0f)/2.0f;
-            start[head++] = (-corners[i].y/(DODECAPLEX_SIDE_LEN*CIRCUMRADIUS_RATIO) + 1.0f)/2.0f;
+            start[head++] = (corners[i].x/(DODECAPLEX_SIDE_LEN*CIRCUMRADIUS_RATIO) + 1.0f)/2.0f;
+            start[head++] = (corners[i].y/(DODECAPLEX_SIDE_LEN*CIRCUMRADIUS_RATIO) + 1.0f)/2.0f;
             start[head++] = texture;
         }
     }    
