@@ -41,11 +41,13 @@ subroutine (spell) vec4 castMining(vec4 color) {
 }
 subroutine (spell) vec4 releaseMining(vec4 color) {
     float wall_dist = length(cross(SPELL_FOCUS, SPELL_HEAD-model_Coords.xyz));
-    return mix(color, 
+    return mix(color,
+            mix(color, 
                 mix(color, 
-                    mix(color, vec4(1.0, 1.1, 1.3, 1.0)*wall_dist,  pow((1.0-SPELL_LIFE), 1.5)), 
-                pow(wall_dist, -1.0)), 
-            clamp(0.01, 1.0, pow(SPELL_LIFE, 2.0)));
+                    mix(color, vec4(1.0, 1.1, 1.3, 1.0)/sqrt(wall_dist),  pow((1.0-SPELL_LIFE)*8.0, -1.5)), 
+                pow(wall_dist, 1.0)), 
+            clamp(0.01, 1.0, pow(SPELL_LIFE, -2.0)/wall_dist)),            
+            1.0/wall_dist);
 }
 
 void main(){
