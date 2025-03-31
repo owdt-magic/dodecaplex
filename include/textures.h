@@ -5,12 +5,15 @@
 #include <array>
 
 struct TextureLibrary {
-    const char* pentagon_paths[3] = {
+    static const int PENT_COUNT = 4;
+    static const int SPEC_COUNT = 3;
+    const char* pentagon_paths[PENT_COUNT] = {
         TEXTURE_DIR "/curved.png",
         TEXTURE_DIR "/tile_floor_b.png",
-        TEXTURE_DIR "/tile_floor_a.png"
+        TEXTURE_DIR "/tile_floor_a.png",
+        TEXTURE_DIR "/test_text.png"
     };
-    const char* specular_paths[3] = {
+    const char* specular_paths[SPEC_COUNT] = {
         TEXTURE_DIR "/curved_spec.png",
         TEXTURE_DIR "/tile_floor_b_disp.png",
         TEXTURE_DIR "/tile_floor_a.png"

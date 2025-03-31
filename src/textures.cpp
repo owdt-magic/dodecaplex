@@ -28,11 +28,11 @@ void TextureLibrary::readRGBATextureArray(const char* paths[], int num_imgs, int
 void TextureLibrary::linkPentagonLibrary(GLuint shaderID) {
     GLuint location;
     
-    readRGBATextureArray(pentagon_paths, 3, 0);
+    readRGBATextureArray(pentagon_paths, PENT_COUNT, 0);
     location = glGetUniformLocation(shaderID, "pentagonTextures");        
     glUniform1i(location, 0);
 
-    readRGBATextureArray(specular_paths, 3, 1);
+    readRGBATextureArray(specular_paths, SPEC_COUNT, 1);
     location = glGetUniformLocation(shaderID, "specularTextures");
     glUniform1i(location, 1);
 
