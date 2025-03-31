@@ -256,6 +256,12 @@ void RhombusWeb::assignCorners(array<GoldenRhombus*, 5> rhombuses, Corner corner
     for (int i=0; i < 5; i++) web_pentagon[i] = vec4(vec2(rhombuses[i]->corners[corner]), 0.0f, 0.0f);
     rescaleValues();
 }
+template<long unsigned int N>
+void RhombusWeb::assignEdge(array<GoldenRhombus*, N> rhombuses, int edge_index){
+    for (GoldenRhombus* r : rhombuses) {
+        r->skip = SkipType::BOTH;
+    }
+}
 void RhombusWeb::rescaleValues(){
     for (GoldenRhombus& rhombus : all_rhombuses) {
         for (vec3& corner : rhombus.corners) {
@@ -269,6 +275,8 @@ void RhombusWeb::pushAndCount(GoldenRhombus rhombus){
     all_rhombuses.push_back(rhombus);
     if (rhombus.skip == SkipType::NONE) {
            index_count += 6;
+    } else if (rhombus.skip == SkipType::BOTH) {
+           index_count += 0;
     } else index_count += 3;
     for (bool unique : rhombus.uniques) {
         if (unique) vertex_count++;
@@ -414,7 +422,7 @@ RhombusWeb::RhombusWeb(WebType pattern, bool flip) : flipped(flip) {
                         make_pair(Corner::LEFT, Corner::RIGHT),
                         make_pair(Corner::RIGHT, Corner::LEFT), offset);
         
-        /* thin_edge[0] = GoldenRhombus(wide_loop[0], wide_loop[1], RhombusType::WIDE,
+        thin_edge[0] = GoldenRhombus(wide_loop[0], wide_loop[1], RhombusType::WIDE,
                         make_pair(Corner::LEFT, Corner::BOTTOM),
                         make_pair(Corner::TOP, Corner::RIGHT),
                         make_pair(Corner::TOP, Corner::LEFT), offset);
@@ -453,17 +461,28 @@ RhombusWeb::RhombusWeb(WebType pattern, bool flip) : flipped(flip) {
         thin_edge[9] = GoldenRhombus(wide_loop[13], wide_loop[14], RhombusType::WIDE,
                         make_pair(Corner::LEFT, Corner::BOTTOM),
                         make_pair(Corner::TOP, Corner::RIGHT),
-                        make_pair(Corner::TOP, Corner::LEFT), offset); */
+                        make_pair(Corner::TOP, Corner::LEFT), offset);
         
+
+        array<GoldenRhombus*, 5> corners =  {&wide_loop[1],  &wide_loop[4], &wide_loop[7], 
+                                             &wide_loop[10], &wide_loop[13]};
+                                             
+        array<GoldenRhombus*, 2> edge0 =    {&thin_edge[0],  &thin_edge[1]};
+        assignEdge(edge0, 0);
+        array<GoldenRhombus*, 2> edge1 =    {&thin_edge[2],  &thin_edge[3]};
+        assignEdge(edge1, 1);
+        array<GoldenRhombus*, 2> edge2 =    {&thin_edge[4],  &thin_edge[5]};
+        assignEdge(edge2, 2);
+        array<GoldenRhombus*, 2> edge3 =    {&thin_edge[6],  &thin_edge[7]};
+        assignEdge(edge3, 3);
+        array<GoldenRhombus*, 2> edge4 =    {&thin_edge[8],  &thin_edge[9]};
+        assignEdge(edge4, 4);
+
         all_rhombuses.reserve(25);
         addRhombuses(center);
         addRhombuses(edges);
         addRhombuses(wide_loop);
-        /* addRhombuses(thin_edge, SkipType::SECOND); */
-        
-        array<GoldenRhombus*, 5> corners = 
-            {&wide_loop[1], &wide_loop[4], &wide_loop[7], &wide_loop[10], &wide_loop[13]};
-        
+        addRhombuses(thin_edge, SkipType::SECOND);
         assignCorners(corners, Corner::TOP);
         upsidedown = true;
         std::cout << "indeces: " << index_count << " vertices: " << vertex_count << std::endl;
@@ -536,6 +555,8 @@ void GoldenRhombus::writeUints(GLuint* start, int& head, uint i_offset) {
             start[head++] = i_offset + rhombus_indeces.triangle_a[t_idx++];
             start[head++] = i_offset + rhombus_indeces.triangle_a[t_idx++];
             start[head++] = i_offset + rhombus_indeces.triangle_a[t_idx++];
+            break;
+        case SkipType::BOTH:
             break;
         default:
             start[head++] = i_offset + rhombus_indeces.triangle_a[t_idx++];

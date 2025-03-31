@@ -25,7 +25,8 @@ enum SplitType {
 enum SkipType {
     NONE,
     FIRST,
-    SECOND
+    SECOND,
+    BOTH
 };
 
 enum WebType {
@@ -91,6 +92,8 @@ private:
     void addRhombuses(std::array<GoldenRhombus, N>& rhombuses, SplitType split);
     void assignCorners(std::array<GoldenRhombus, 5>& rhombuses, Corner corner);
     void assignCorners(std::array<GoldenRhombus*, 5> rhombuses, Corner corner);
+    template<long unsigned int N>
+    void assignEdge(std::array<GoldenRhombus*, N> rhombuses, int edge_index);
     void rescaleValues();
 };
 
