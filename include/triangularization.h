@@ -54,30 +54,43 @@ struct GoldenRhombus {
         // NOTE: Always use this initialization when possible!
         // NOTE: There is no 4 corner version - build the RhombusWeb in an order that accounts!
     void writeUints(GLuint* start, int& head, uint i_offset);
-    void writeFloats(GLfloat* start, int& head, PentagonMemory& pentagon, float texture, bool flipped);
+    void writeFloats(GLfloat* start, int& head, PentagonMemory& pentagon, float texture, bool flipped, bool upsidedown);
     glm::vec3 corners[4]; // always clockwise!!
     enum SplitType split = SplitType::SHORT;
     enum SkipType skip = SkipType::NONE;
+    bool uniques[4] = {true, true, true, true}; // Avoid redundant counting
 private:
     RhombusIndeces getIndeces();
     void shareCorner(GoldenRhombus& source, std::pair<Corner, Corner> corner);
-    bool uniques[4] = {true, true, true, true}; // Avoid redundant counting
     uint indeces[4];
     GoldenRhombus* branches[4];
 };
 
 struct RhombusWeb {
-    std::vector<GoldenRhombus> all_rhombuses;
     float pentagon_scale;
     float vertical_offset;
     uint offset;
+    int vertex_count = 0;
+    int index_count = 0;
     bool flipped;
+    bool upsidedown = false;
     float web_texture = 1.0f;
     RhombusWeb(WebType pattern, bool flip);
     void buildArrays(CPUBufferPair& buffer_writer, PentagonMemory& pentagon);
     std::array<glm::vec4,5> web_pentagon;
 private:
+    std::vector<GoldenRhombus> all_rhombuses;
+    void pushAndCount(GoldenRhombus rhombus);
+    template<long unsigned int N>
+    void addRhombuses(std::array<GoldenRhombus, N>& rhombuses);
+    template<long unsigned int N>
+    void addRhombuses(std::array<GoldenRhombus, N>& rhombuses, SkipType skip);
+    template<long unsigned int N>
+    void addRhombuses(std::array<GoldenRhombus, N>& rhombuses, SkipType skip, SplitType split);
+    template<long unsigned int N>
+    void addRhombuses(std::array<GoldenRhombus, N>& rhombuses, SplitType split);
     void assignCorners(std::array<GoldenRhombus, 5>& rhombuses, Corner corner);
+    void assignCorners(std::array<GoldenRhombus*, 5> rhombuses, Corner corner);
     void rescaleValues();
 };
 

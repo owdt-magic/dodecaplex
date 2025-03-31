@@ -9,8 +9,8 @@ using namespace std;
 #define SIDES 12
 #define CELLS 120
 #define VERT_ELEM_COUNT 7
-#define VERT_PER_PENT 75
-#define TRI_PER_PENT 15
+#define VERT_PER_PENT 47
+#define TRI_PER_PENT 60
 #define DEBUG
 
 void MapData::establishMap(){
@@ -102,35 +102,28 @@ PlayerContext::PlayerContext() {
     dodecaplex_buffers = CPUBufferPair(vertex_max_size, index_max_size);
 };
 PlayerContext::~PlayerContext() {
-    free(player_location);
-    free(dodecaplex_buffers.v_buff);
-    free(dodecaplex_buffers.i_buff);
+    if (player_location)  free(player_location);
+    if (dodecaplex_buffers.v_buff) free(dodecaplex_buffers.v_buff);
+    if (dodecaplex_buffers.i_buff) free(dodecaplex_buffers.i_buff);
 };
 void PlayerContext::initializeMapData(){
     map_data.establishMap();
 };
 
-PentagonMemory loadNewPentagon(int* index_ptr, CPUBufferPair& buffer_writer) {        
-    static RhombusWeb simple_web = RhombusWeb(WebType::DOUBLE_STAR, false);
-    simple_web.web_texture = 2.0f;
-
-    PentagonMemory pentagon(*index_ptr);
-
-    pentagon.markStart(buffer_writer);
-    simple_web.buildArrays(buffer_writer, pentagon);
-    pentagon.markEnd(buffer_writer);
-    
-    return pentagon;
-};
-
 void PlayerContext::populateDodecaplexVAO() {
     int* surface_ptr;
     PentagonMemory memory;
+    normal_web.web_texture = 2.0f;
 
     for (SubSurface surface : map_data.interior_surfaces) {
         surface_ptr = surface.indeces_ptr;
         for (int f = 0; f < surface.num_faces; f++) {
-            memory = loadNewPentagon(surface_ptr, dodecaplex_buffers);
+            memory = PentagonMemory(*surface_ptr);
+
+            memory.markStart(dodecaplex_buffers);
+            normal_web.buildArrays(dodecaplex_buffers, memory);
+            memory.markEnd(dodecaplex_buffers);
+
             map_data.pentagon_summary[*surface_ptr++] = memory;
         }
     }
@@ -141,8 +134,7 @@ void PlayerContext::populateDodecaplexVAO() {
     dodecaplex_vao.LinkAttrib(dodecaplex_vao.vbo, 1, 3, GL_FLOAT, VERT_ELEM_COUNT*sizeof(float), (void*)(4*sizeof(float)));
     
 };
-void PlayerContext::updateOldPentagon(int map_index) {
-    static RhombusWeb inverted_web = RhombusWeb(WebType::DOUBLE_STAR, true);
+void PlayerContext::updateOldPentagon(int map_index) {    
     inverted_web.web_texture = 1.0f;
 
     PentagonMemory& pentagon = map_data.pentagon_summary[map_index];
@@ -167,8 +159,6 @@ void PlayerContext::spawnShrapnel(int map_index) {
     static size_t float_count;
     static size_t uint_count;
     
-    static RhombusWeb inverted_web = RhombusWeb(WebType::DOUBLE_STAR, true);
-    static RhombusWeb normal_web   = RhombusWeb(WebType::DOUBLE_STAR, false);
     inverted_web.web_texture = 2.0f;
     normal_web.web_texture = 2.0f;
     
@@ -185,7 +175,10 @@ void PlayerContext::spawnShrapnel(int map_index) {
     shrapnel_vao.LinkAttrib(shrapnel_vao.vbo, 0, 4, GL_FLOAT, VERT_ELEM_COUNT*sizeof(float), (void*)0);
     shrapnel_vao.LinkAttrib(shrapnel_vao.vbo, 1, 3, GL_FLOAT, VERT_ELEM_COUNT*sizeof(float), (void*)(4*sizeof(float)));
 
-    additional_vaos.push_back(shrapnel_vao);    
+    additional_vaos.push_back(shrapnel_vao);
+    
+    free(shrapnel_buffer.i_buff);
+    free(shrapnel_buffer.v_buff);
 };
 void PlayerContext::elapseShrapnel(float progress) {
     vec4 center;

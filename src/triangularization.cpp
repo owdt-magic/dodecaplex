@@ -248,13 +248,56 @@ void RhombusWeb::assignCorners(array<GoldenRhombus, 5>& rhombuses, Corner corner
     for (int i=0; i < 5; i++) web_pentagon[i] = vec4(vec2(rhombuses[i].corners[corner]), 0.0f, 0.0f);
     rescaleValues();
 }
-
+void RhombusWeb::assignCorners(array<GoldenRhombus*, 5> rhombuses, Corner corner) {
+    // If this is used correctly, these two values should be identical for every corner...
+    pentagon_scale  = length(vec2(rhombuses[0]->corners[corner]));
+    vertical_offset = rhombuses[0]->corners[corner].z;
+    
+    for (int i=0; i < 5; i++) web_pentagon[i] = vec4(vec2(rhombuses[i]->corners[corner]), 0.0f, 0.0f);
+    rescaleValues();
+}
 void RhombusWeb::rescaleValues(){
     for (GoldenRhombus& rhombus : all_rhombuses) {
         for (vec3& corner : rhombus.corners) {
             corner.z -= vertical_offset;
             corner *= ( (DODECAPLEX_SIDE_LEN * CIRCUMRADIUS_RATIO) / pentagon_scale );
         }
+    }
+}
+
+void RhombusWeb::pushAndCount(GoldenRhombus rhombus){
+    all_rhombuses.push_back(rhombus);
+    if (rhombus.skip == SkipType::NONE) {
+           index_count += 6;
+    } else index_count += 3;
+    for (bool unique : rhombus.uniques) {
+        if (unique) vertex_count++;
+    }
+}
+template<long unsigned int N>
+void RhombusWeb::addRhombuses(std::array<GoldenRhombus, N>& rhombuses){
+    for (GoldenRhombus r : rhombuses) pushAndCount(r);
+}
+template<long unsigned int N>
+void RhombusWeb::addRhombuses(std::array<GoldenRhombus, N>& rhombuses, SkipType skip){
+    for (GoldenRhombus r : rhombuses) {
+        r.skip = skip;
+        pushAndCount(r);
+    }
+}
+template<long unsigned int N>
+void RhombusWeb::addRhombuses(std::array<GoldenRhombus, N>& rhombuses, SkipType skip, SplitType split){
+    for (GoldenRhombus r : rhombuses) {
+        r.skip = skip;
+        r.split = split;
+        pushAndCount(r);
+    }
+}
+template<long unsigned int N>
+void RhombusWeb::addRhombuses(std::array<GoldenRhombus, N>& rhombuses, SplitType split){
+    for (GoldenRhombus r : rhombuses) {
+        r.split = split;
+        pushAndCount(r);
     }
 }
 
@@ -308,17 +351,13 @@ RhombusWeb::RhombusWeb(WebType pattern, bool flip) : flipped(flip) {
     {
     case WebType::SIMPLE_STAR:
         all_rhombuses.reserve(10);
-        for (GoldenRhombus r : center) all_rhombuses.push_back(r);
-        for (GoldenRhombus r : edges) {
-            r.skip = SkipType::FIRST;
-            all_rhombuses.push_back(r);
-        }
+        addRhombuses(center);
+        addRhombuses(edges, SkipType::FIRST);
         assignCorners(center, Corner::BOTTOM);
         return;
     case WebType::DOUBLE_STAR:
         array<GoldenRhombus, 15> wide_loop;
         array<GoldenRhombus, 10> thin_edge;
-        array<GoldenRhombus, 5> corners;
 
         wide_loop[0] = GoldenRhombus(edges[0], RhombusType::WIDE,
                         make_pair(Corner::BOTTOM, Corner::BOTTOM),
@@ -417,20 +456,17 @@ RhombusWeb::RhombusWeb(WebType pattern, bool flip) : flipped(flip) {
                         make_pair(Corner::TOP, Corner::LEFT), offset);
         
         all_rhombuses.reserve(35);
-        for (GoldenRhombus r : center)      all_rhombuses.push_back(r);
-        for (GoldenRhombus r : edges)       all_rhombuses.push_back(r);
-        for (GoldenRhombus r : wide_loop)   all_rhombuses.push_back(r);
-        for (GoldenRhombus r : thin_edge){
-            r.skip = SkipType::SECOND;
-            all_rhombuses.push_back(r);
-        }
-        corners[0] = wide_loop[1];
-        corners[1] = wide_loop[4];
-        corners[2] = wide_loop[7];
-        corners[3] = wide_loop[10];
-        corners[4] = wide_loop[13];
+        addRhombuses(center);
+        addRhombuses(edges);
+        addRhombuses(wide_loop);
+        addRhombuses(thin_edge, SkipType::SECOND);
+        
+        array<GoldenRhombus*, 5> corners = 
+            {&wide_loop[1], &wide_loop[4], &wide_loop[7], &wide_loop[10], &wide_loop[13]};
         
         assignCorners(corners, Corner::TOP);
+        upsidedown = true;
+        std::cout << "indeces: " << index_count << " vertices: " << vertex_count << std::endl;
         return;        
     }
 }
@@ -460,8 +496,9 @@ RhombusIndeces GoldenRhombus::getIndeces(){
     return result;
 }
 
-void GoldenRhombus::writeFloats(GLfloat* start, int& head, PentagonMemory& pentagon, float texture, bool flipped){
+void GoldenRhombus::writeFloats(GLfloat* start, int& head, PentagonMemory& pentagon, float texture, bool flipped, bool upsidedown){
     vec4 transformed;
+    float t1, t2;
     for (int i = 0; i < 4; i++) {
         if (uniques[i]) {
             transformed = vec4(corners[i].x, corners[i].y, 0.0f, 0.0f);
@@ -477,8 +514,10 @@ void GoldenRhombus::writeFloats(GLfloat* start, int& head, PentagonMemory& penta
             start[head++] = transformed.w;
             
             //Texture information
-            start[head++] = (corners[i].x/(DODECAPLEX_SIDE_LEN*CIRCUMRADIUS_RATIO) + 1.0f)/2.0f;
-            start[head++] = (corners[i].y/(DODECAPLEX_SIDE_LEN*CIRCUMRADIUS_RATIO) + 1.0f)/2.0f;
+            t1 = (upsidedown ? corners[i].x : -corners[i].x);
+            t2 = (upsidedown ? corners[i].y : -corners[i].y);           
+            start[head++] = (t1/(DODECAPLEX_SIDE_LEN*CIRCUMRADIUS_RATIO) + 1.0f)/2.0f;
+            start[head++] = (t2/(DODECAPLEX_SIDE_LEN*CIRCUMRADIUS_RATIO) + 1.0f)/2.0f;
             start[head++] = texture;
         }
     }    
@@ -514,7 +553,7 @@ void RhombusWeb::buildArrays(CPUBufferPair& buffer_writer, PentagonMemory& penta
     pentagon.solveRotation(web_pentagon, false);
 
     for (GoldenRhombus rhombus : all_rhombuses) {
-        rhombus.writeFloats(buffer_writer.v_buff, buffer_writer.v_head, pentagon, web_texture, flipped);
+        rhombus.writeFloats(buffer_writer.v_buff, buffer_writer.v_head, pentagon, web_texture, flipped, upsidedown);
         rhombus.writeUints( buffer_writer.i_buff, buffer_writer.i_head, buffer_writer.offset);
     }
     buffer_writer.offset += offset;

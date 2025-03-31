@@ -46,6 +46,8 @@ private:
     CPUBufferPair dodecaplex_buffers;
     VAO dodecaplex_vao;
     std::vector<VAO> additional_vaos;
+    RhombusWeb normal_web   = RhombusWeb(WebType::DOUBLE_STAR, false);
+    RhombusWeb inverted_web = RhombusWeb(WebType::DOUBLE_STAR, true);
 };
 
 
