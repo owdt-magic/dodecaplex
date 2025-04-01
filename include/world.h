@@ -35,7 +35,8 @@ struct PlayerContext {
     ~PlayerContext();
     void initializeMapData();
     void populateDodecaplexVAO();
-    void drawAllVAOs(GLuint U_WORLD);
+    void drawMainVAO();
+    void drawShrapnelVAOs();
     void updateOldPentagon(int map_index);
     void elapseShrapnel(float progress);
     glm::mat4 getModelMatrix(std::array<bool, 4> WASD, float mouseX, float mouseY, float dt);
@@ -46,9 +47,12 @@ private:
     glm::mat4 shrapnel_scatter = glm::mat4(1.0f);
     CPUBufferPair dodecaplex_buffers;
     VAO dodecaplex_vao;
-    std::vector<VAO> additional_vaos;
-    RhombusWeb normal_web   = RhombusWeb(WebType::DOUBLE_STAR, false);
-    RhombusWeb inverted_web = RhombusWeb(WebType::DOUBLE_STAR, true);
+    std::vector<VAO> shrapnel_vaos;
+    RhombusWeb normal_web   = RhombusWeb(WebType::SIMPLE_STAR, false);
+    RhombusWeb inverted_web = RhombusWeb(WebType::SIMPLE_STAR, true);
+    float starting_texture = 2.0f;
+    float flipped_texture  = 1.0f;
+    float shrapnel_texture = 2.0f;
 };
 
 

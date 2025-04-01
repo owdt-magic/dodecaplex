@@ -9,8 +9,6 @@ using namespace std;
 #define SIDES 12
 #define CELLS 120
 #define VERT_ELEM_COUNT 7
-#define VERT_PER_PENT 47
-#define TRI_PER_PENT 60
 #define DEBUG
 
 void MapData::establishMap(){
@@ -75,7 +73,6 @@ void MapData::establishMap(){
     populateSurfaces(10, &adjacent_side_indeces[0], adjacent_surfaces);
 
     #ifdef DEBUG
-    
     auto coutSizeHist = [] (vector<SubSurface>& surfaces) {
         int counts[SIDES] = {0};
         cout << "\t";
@@ -96,15 +93,15 @@ PlayerContext::PlayerContext() {
 
     srand(time(NULL)); // Randomize the map...
     
-    size_t vertex_max_size = 120*12*VERT_PER_PENT*VERT_ELEM_COUNT*sizeof(GLfloat);
-    size_t index_max_size  = 120*12*TRI_PER_PENT*3*sizeof(GLuint);
+    size_t vertex_max_size = 120*12*normal_web.vertex_count*VERT_ELEM_COUNT*sizeof(GLfloat);
+    size_t index_max_size  = 120*12*normal_web.index_count*sizeof(GLuint);
     
     dodecaplex_buffers = CPUBufferPair(vertex_max_size, index_max_size);
 };
 PlayerContext::~PlayerContext() {
-    if (player_location)  free(player_location);
-    if (dodecaplex_buffers.v_buff) free(dodecaplex_buffers.v_buff);
-    if (dodecaplex_buffers.i_buff) free(dodecaplex_buffers.i_buff);
+    if (player_location)            free(player_location);
+    if (dodecaplex_buffers.v_buff)  free(dodecaplex_buffers.v_buff);
+    if (dodecaplex_buffers.i_buff)  free(dodecaplex_buffers.i_buff);
 };
 void PlayerContext::initializeMapData(){
     map_data.establishMap();
@@ -113,7 +110,7 @@ void PlayerContext::initializeMapData(){
 void PlayerContext::populateDodecaplexVAO() {
     int* surface_ptr;
     PentagonMemory memory;
-    normal_web.web_texture = 4.0f;
+    normal_web.web_texture = starting_texture;
 
     for (SubSurface surface : map_data.interior_surfaces) {
         surface_ptr = surface.indeces_ptr;
@@ -139,7 +136,7 @@ void PlayerContext::populateDodecaplexVAO() {
     
 };
 void PlayerContext::updateOldPentagon(int map_index) {    
-    inverted_web.web_texture = 1.0f;
+    inverted_web.web_texture = flipped_texture;
 
     PentagonMemory& pentagon = map_data.pentagons[map_index];
     pentagon.surface = Surface::BROKEN;
@@ -163,23 +160,24 @@ void PlayerContext::spawnShrapnel(int map_index) {
     static size_t float_count;
     static size_t uint_count;
     
-    inverted_web.web_texture = 2.0f;
-    normal_web.web_texture = 2.0f;
+    inverted_web.web_texture = shrapnel_texture;
+    normal_web.web_texture   = shrapnel_texture;
     
     PentagonMemory pentagon = map_data.pentagons[map_index];
-    float_count = 2*pentagon.v_len*sizeof(GLfloat);
+    float_count = (2*pentagon.v_len*(7+4)/7)*sizeof(GLfloat);
     uint_count  = 2*pentagon.i_len*sizeof(GLuint);
     CPUBufferPair shrapnel_buffer = CPUBufferPair(float_count, uint_count);
     
-    normal_web.buildArrays(  shrapnel_buffer, pentagon);
-    inverted_web.buildArrays(shrapnel_buffer, pentagon);
+    normal_web.buildArrays(  shrapnel_buffer, pentagon, true);
+    inverted_web.buildArrays(shrapnel_buffer, pentagon, true);
 
     VAO shrapnel_vao = VAO(shrapnel_buffer);
+    
+    shrapnel_vao.LinkAttrib(shrapnel_vao.vbo, 0, 4, GL_FLOAT, (VERT_ELEM_COUNT+4)*sizeof(float), (void*)0);
+    shrapnel_vao.LinkAttrib(shrapnel_vao.vbo, 1, 3, GL_FLOAT, (VERT_ELEM_COUNT+4)*sizeof(float), (void*)(4*sizeof(float)));    
+    shrapnel_vao.LinkAttrib(shrapnel_vao.vbo, 2, 4, GL_FLOAT, (VERT_ELEM_COUNT+4)*sizeof(float), (void*)(7*sizeof(float)));
 
-    shrapnel_vao.LinkAttrib(shrapnel_vao.vbo, 0, 4, GL_FLOAT, VERT_ELEM_COUNT*sizeof(float), (void*)0);
-    shrapnel_vao.LinkAttrib(shrapnel_vao.vbo, 1, 3, GL_FLOAT, VERT_ELEM_COUNT*sizeof(float), (void*)(4*sizeof(float)));
-
-    additional_vaos.push_back(shrapnel_vao);
+    shrapnel_vaos.push_back(shrapnel_vao);
     
     free(shrapnel_buffer.i_buff);
     free(shrapnel_buffer.v_buff);
@@ -189,24 +187,7 @@ void PlayerContext::elapseShrapnel(float progress) {
     PentagonMemory memory;
     mat4 transform = player_location->currentTransform();
 
-    if ( progress < 0.2) { additional_vaos.clear(); return; }
-    float rt = 3.14f*(0.66f + progress/3.0f);
-    shrapnel_scatter = mat4({
-        1.0f,  0.0f,     0.0f,     0.0f,
-        0.0f,  cos(rt), sin(rt), 0.0f,
-        0.0f, -sin(rt), cos(rt), 0.0f,
-        0.0f,  0.0f,     0.0f,     1.0f
-    })*mat4({
-        cos(rt), 0.0f, -sin(rt), 0.0f,
-        0.0f,     1.0f,  0.0f,     0.0f,
-        sin(rt), 0.0f,  cos(rt), 0.0f,
-        0.0f,     0.0f,  0.0f,     1.0f
-    })*mat4({
-        cos(rt), sin(rt), 0.0f, 0.0f,
-       -sin(rt), cos(rt), 0.0f, 0.0f,
-        0.0f,     0.0f,     1.0f, 0.0f,
-        0.0f,     0.0f,     0.0f, 1.0f
-    });
+    if ( progress < 0.2) { shrapnel_vaos.clear(); return; }   //TODO: HIGH ERROR POTENTIAL!!
 
     for (int i = 0; i < 120; i++) {
         if (map_data.load_cell[i]) {
@@ -228,12 +209,12 @@ void PlayerContext::elapseShrapnel(float progress) {
         }
     }
 };
-void PlayerContext::drawAllVAOs(GLuint U_WORLD) {
+void PlayerContext::drawMainVAO(){
     dodecaplex_vao.DrawElements(GL_TRIANGLES);
-    
-    for (int i = 0; i < additional_vaos.size(); i++){
-        glUniformMatrix4fv(U_WORLD,  1, GL_FALSE, &(shrapnel_scatter*player_location->currentTransform())[0][0]);
-        additional_vaos[i].DrawElements(GL_TRIANGLES);
+};
+void PlayerContext::drawShrapnelVAOs(){
+    for (int i = 0; i < shrapnel_vaos.size(); i++){     
+        shrapnel_vaos[i].DrawElements(GL_TRIANGLES);
     }
 };
 mat4 PlayerContext::getModelMatrix(array<bool, 4> WASD, float mouseX, float mouseY, float dt) {

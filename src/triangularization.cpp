@@ -485,7 +485,6 @@ RhombusWeb::RhombusWeb(WebType pattern, bool flip) : flipped(flip) {
         addRhombuses(thin_edge, SkipType::SECOND);
         assignCorners(corners, Corner::TOP);
         upsidedown = true;
-        std::cout << "indeces: " << index_count << " vertices: " << vertex_count << std::endl;
         return;        
     }
 }
@@ -515,7 +514,8 @@ RhombusIndeces GoldenRhombus::getIndeces(){
     return result;
 }
 
-void GoldenRhombus::writeFloats(GLfloat* start, int& head, PentagonMemory& pentagon, float texture, bool flipped, bool upsidedown){
+void GoldenRhombus::writeFloats(GLfloat* start, int& head, PentagonMemory& pentagon, float texture, 
+                                    bool flip_norms, bool flip_text, bool write_norms){
     vec4 transformed;
     float t1, t2;
     for (int i = 0; i < 4; i++) {
@@ -524,8 +524,8 @@ void GoldenRhombus::writeFloats(GLfloat* start, int& head, PentagonMemory& penta
             transformed = pentagon.rotation*transformed;
             transformed += pentagon.offset;
             
-            if(flipped) transformed -= (corners[i].z)*pentagon.normal*(1.7f);
-            else        transformed += (corners[i].z)*pentagon.normal*(1.7f);
+            if(flip_norms) transformed -= (corners[i].z)*pentagon.normal;
+            else           transformed += (corners[i].z)*pentagon.normal;
             
             start[head++] = transformed.x;
             start[head++] = transformed.y;
@@ -533,13 +533,20 @@ void GoldenRhombus::writeFloats(GLfloat* start, int& head, PentagonMemory& penta
             start[head++] = transformed.w;
             
             //Texture information
-            t1 = (upsidedown ? corners[i].x : -corners[i].x);
-            t2 = (upsidedown ? corners[i].y : -corners[i].y);           
+            t1 = (flip_text ? corners[i].x : -corners[i].x);
+            t2 = (flip_text ? corners[i].y : -corners[i].y);           
             start[head++] = (t1/(DODECAPLEX_SIDE_LEN*CIRCUMRADIUS_RATIO) + 1.0f)/2.0f;
             start[head++] = (t2/(DODECAPLEX_SIDE_LEN*CIRCUMRADIUS_RATIO) + 1.0f)/2.0f;
             start[head++] = texture;
+            
+            if (write_norms) {
+                start[head++] = pentagon.normal.x;
+                start[head++] = pentagon.normal.y;
+                start[head++] = pentagon.normal.z;
+                start[head++] = pentagon.normal.w;
+            }
         }
-    }    
+    }
 }
 
 void GoldenRhombus::writeUints(GLuint* start, int& head, uint i_offset) {
@@ -570,12 +577,16 @@ void GoldenRhombus::writeUints(GLuint* start, int& head, uint i_offset) {
 }
 
 
-void RhombusWeb::buildArrays(CPUBufferPair& buffer_writer, PentagonMemory& pentagon){
+void RhombusWeb::buildArrays(CPUBufferPair& buffer_writer, PentagonMemory& pentagon, bool include_normals){
     pentagon.solveRotation(web_pentagon, false);
 
     for (GoldenRhombus rhombus : all_rhombuses) {
-        rhombus.writeFloats(buffer_writer.v_buff, buffer_writer.v_head, pentagon, web_texture, flipped, upsidedown);
+        rhombus.writeFloats(buffer_writer.v_buff, buffer_writer.v_head, pentagon, web_texture, 
+                            flipped, upsidedown, include_normals);
         rhombus.writeUints( buffer_writer.i_buff, buffer_writer.i_head, buffer_writer.offset);
     }
     buffer_writer.offset += offset;
+}
+void RhombusWeb::buildArrays(CPUBufferPair& buffer_writer, PentagonMemory& pentagon) {
+    buildArrays(buffer_writer, pentagon, false);
 }
