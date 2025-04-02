@@ -1,5 +1,5 @@
-#ifndef TRIANGULARIZATION_H
-#define TRIANGULARIZATION_H
+#ifndef RHOMBUS_H
+#define RHOMBUS_H
 
 #include "pentagon.h"
 #include <vector>
