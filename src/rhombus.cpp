@@ -1,4 +1,4 @@
-#include "triangularization.h"
+#include "rhombus.h"
 #include <stdexcept>
 #include <algorithm>
 #include <iostream>
@@ -99,17 +99,76 @@ void GoldenRhombus::shareCorner(GoldenRhombus& source, pair<Corner, Corner> corn
     corners[corner.second] = source.corners[corner.first];
     indeces[corner.second] = source.indeces[corner.first];
     uniques[corner.second] = false;
-
-    source.branches[corner.first] = this;
 }
 
+void GoldenRhombus::shareSide(GoldenRhombus& neighbor,
+                                pair<Corner, Corner> corner_1,
+                                pair<Corner, Corner> corner_2) {
+    shareCorner(neighbor, corner_1);
+    shareCorner(neighbor, corner_2);
+    switch (corner_1.first)
+    {
+    case Corner::TOP:
+        switch (corner_2.first)
+        {
+        case Corner::RIGHT:     neighbor.branches[0] = this;    break;
+        case Corner::LEFT:      neighbor.branches[3] = this;    break;
+        default:    throw std::invalid_argument("Bad corners");
+        }
+        break;
+    case Corner::BOTTOM:
+        switch (corner_2.first)
+        {
+        case Corner::RIGHT:     neighbor.branches[1] = this;    break;
+        case Corner::LEFT:      neighbor.branches[2] = this;    break;
+        default:    throw std::invalid_argument("Bad corners");
+        }
+        break;    
+    case Corner::LEFT:
+        switch (corner_2.first)
+        {
+        case Corner::TOP:       neighbor.branches[3] = this;    break;
+        case Corner::BOTTOM:    neighbor.branches[2] = this;    break;
+        default:    throw std::invalid_argument("Bad corners");
+        }
+        break;
+    case Corner::RIGHT:
+        switch (corner_2.first)
+        {
+        case Corner::TOP:       neighbor.branches[0] = this;    break;
+        case Corner::BOTTOM:    neighbor.branches[1] = this;    break;
+        default:    throw std::invalid_argument("Bad corners");
+        }
+        break;    
+    default:    throw std::invalid_argument("Bad corners");
+    }
+    switch (corner_1.second)
+    {
+    case Corner::TOP:
+        switch (corner_2.second)
+        {
+        case Corner::RIGHT:     branches[0] = &neighbor;    break;
+        case Corner::LEFT:      branches[3] = &neighbor;    break;
+        default:    throw std::invalid_argument("Bad corners");
+        }
+        break;
+    case Corner::BOTTOM:
+        switch (corner_2.second)
+        {
+        case Corner::RIGHT:     branches[1] = &neighbor;    break;
+        case Corner::LEFT:      branches[2] = &neighbor;    break;
+        default:    throw std::invalid_argument("Bad corners");
+        }
+        break;    
+    default:    throw std::invalid_argument("Bad corners");
+    }
+};
 GoldenRhombus::GoldenRhombus(GoldenRhombus& neighbor, RhombusType type, 
                                 pair<Corner, Corner> corner_1,
                                 pair<Corner, Corner> corner_2, uint& offset){
     vec2 rot;
     vec3 change;
-    shareCorner(neighbor, corner_1);
-    shareCorner(neighbor, corner_2);
+    shareSide(neighbor, corner_1, corner_2);
     change = corners[corner_1.second] - corners[corner_2.second];
 
     switch (corner_1.second) 
@@ -177,8 +236,8 @@ GoldenRhombus::GoldenRhombus(GoldenRhombus& neighbor_a, GoldenRhombus& neighbor_
     vec2 rot;
     vec3 change;
     
-    shareCorner(neighbor_a, corner_a1);
-    shareCorner(neighbor_a, corner_a2);
+    shareSide(neighbor_a, corner_a1, corner_a2);
+    
     shareCorner(neighbor_b, corner_b);
     
     change = corners[corner_a1.second] - corners[corner_a2.second];

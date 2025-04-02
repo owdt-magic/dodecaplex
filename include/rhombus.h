@@ -64,8 +64,14 @@ struct GoldenRhombus {
 private:
     RhombusIndeces getIndeces();
     void shareCorner(GoldenRhombus& source, std::pair<Corner, Corner> corner);
+    
+    void shareSide(GoldenRhombus& neighbor,
+                        std::pair<Corner, Corner> corner_1,
+                        std::pair<Corner, Corner> corner_2);
+    void shareSide( GoldenRhombus& old_neighbor, 
+                    GoldenRhombus& new_neighbor, std::pair<Corner, Corner> corner);
     uint indeces[4];
-    GoldenRhombus* branches[4];
+    GoldenRhombus* branches[4] = {NULL};
 };
 
 struct RhombusWeb {
