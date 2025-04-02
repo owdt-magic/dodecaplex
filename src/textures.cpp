@@ -36,6 +36,10 @@ void TextureLibrary::linkPentagonLibrary(GLuint shaderID) {
     location = glGetUniformLocation(shaderID, "specularTextures");
     glUniform1i(location, 1);
 
+    readRGBATextureArray(spell_paths, 1, 3);
+    location = glGetUniformLocation(shaderID, "spellTextures");
+    glUniform1i(location, 3);
+
 }
 
 void TextureLibrary::linkGrimoireLibrary(GLuint shaderID) {

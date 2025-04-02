@@ -18,6 +18,9 @@ struct TextureLibrary {
         TEXTURE_DIR "/tile_floor_b_disp.png",
         TEXTURE_DIR "/tile_floor_a.png"
     };
+    const char* spell_paths[1] = {
+        TEXTURE_DIR "/mining_spell_256.png"
+    };
     const char* grimoire_paths[2] = {
         TEXTURE_DIR "/grimoire_cover.png",
         TEXTURE_DIR "/grimoire_page_1.png"

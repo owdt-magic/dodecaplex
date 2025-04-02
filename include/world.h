@@ -1,7 +1,7 @@
 #ifndef WORLD_H
 #define WORLD_H
 
-#include "triangularization.h"
+#include "rhombus.h"
 #include "playerLocation.h"
 
 #include <time.h>
@@ -53,6 +53,12 @@ private:
     float starting_texture = 2.0f;
     float flipped_texture  = 1.0f;
     float shrapnel_texture = 2.0f;
+
+    /* RhombusWeb normal_web   = RhombusWeb(WebType::DOUBLE_STAR, false);
+    RhombusWeb inverted_web = RhombusWeb(WebType::DOUBLE_STAR, true);
+    float starting_texture = 4.0f;
+    float flipped_texture  = 4.0f;
+    float shrapnel_texture = 4.0f; */
 };
 
 
