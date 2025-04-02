@@ -28,8 +28,8 @@ subroutine (spell) vec4 castMining(vec4 color) {
     float spell_life = 0.0;
     vec3 spell_head = SPELL_HEAD;
     vec3 spell_focus = SPELL_FOCUS;
-    float cast_life  = CAST_LIFE*.95;
-
+    float cast_life  = pow(CAST_LIFE*.95, 1.5);
+    
     vec2 window      = (gl_FragCoord.xy-(u_resolution/2.0))/((max(u_resolution.x, u_resolution.y) * pow(.1, spell_life))*.5);
     float wall_dist  = length(cross(spell_focus, spell_head-model_Coords.xyz))*0.5;
     vec4 spec_data   = max(texture(specularTextures, texture_Coords), 0.5 );
@@ -42,7 +42,7 @@ subroutine (spell) vec4 castMining(vec4 color) {
           spiral     += mix(sin(spell_flux*15.0f-sin(u_time)/radius+angle), 0.0f, log(2*radius));
     float aura       = max(pow(spiral, .5), (.2+(0.05*cos(u_time*5.f)))/radius*2.)/max(zDepth*1.5, 1.0);;
     vec4 spec_lit    = vec4(1./max(1.0, pow(wall_dist*7.0, 3.0)))*vec4(1.0, .8, .8, 1.0);
-    float s_time = u_time*2;
+    float s_time = u_time*5;
     spec_lit        = max(spec_lit+vec4(0.1*cast_life/wall_dist), mix(spec_lit, vec4((aura)/radius)*vec4(0.5, 1.0, 1.0, 1.0), cast_life));
     
     vec4 perif_lighting = texture(spellTextures, vec3(cos(s_time)*window.x, sin(s_time)*window.y,1.0f));
@@ -50,25 +50,33 @@ subroutine (spell) vec4 castMining(vec4 color) {
     perif_lighting += texture(spellTextures, vec3(-sin(s_time)*window.x, cos(s_time)*window.y,1.0f));
     
     mat2 cast_mat = mat2(sin(cast_life), cos(cast_life),-sin(cast_life), cos(cast_life));
-
+    float c_time = u_time/2;
+    c_time = mix(c_time, c_time*5, sin(c_time/2));
 
     for (int i=2; i < 4; i++) {
         perif_lighting += texture(spellTextures, vec3(-sin(pow(s_time, i))*window.x, cos(pow(s_time,i))*window.y,1.0f));
     }    
     
     vec2 newwin = window*3;
+    mat2 rit_mat = cast_mat*mat2(sin(c_time), cos(c_time),-sin(c_time), cos(c_time));
+    window = rit_mat*window;
     newwin = pow(window, vec2(0.9));
 
     vec2 winnorm = vec2(newwin.x+0.5, newwin.y+0.5);
     newwin = pow(window, vec2(1.14));
     vec2 winnorm2 = vec2(newwin.x+0.5, newwin.y+0.5); 
+    //winnorm2/=2;
     vec4 cent_lighting = texture(spellTextures, vec3(winnorm*cast_mat, 1.0f));
         cent_lighting += pow(texture(spellTextures, vec3(winnorm2, 1.0f)), vec4(10.0));
         cent_lighting += texture(spellTextures, vec3(cast_mat*winnorm2, 1.0f));
-    perif_lighting /= length(window);
-    cent_lighting = max(cent_lighting, pow(perif_lighting, vec4(0.2, 0.2, 0.3, 1.0)))*pow(cast_life, 1.4);
-    cent_lighting = max(spec_lit, cent_lighting);
-    return max(color, pow(cent_lighting, vec4(2.0)));
+    vec4 lightning_rit = cent_lighting;
+    perif_lighting /= 2*length(window);
+    perif_lighting = pow(perif_lighting, vec4(.7));
+    cent_lighting = mix(cent_lighting, pow(perif_lighting, vec4(0.2, 0.2, 0.3, 1.0)), log(perif_lighting+1))*pow(cast_life, 1.4);
+    cent_lighting = mix(spec_lit, pow(cent_lighting, vec4(10.0)), -pow(spec_data, vec4(2.0)));//+pow(lightning_rit, vec4(1/sin(cast_life)));
+    return mix(color, 
+    pow(cent_lighting, vec4(2.0)), 
+    pow(cent_lighting*vec4(.2, .3+.1*sin(s_time), .6, 1.0), vec4(10.0)));
 }
 subroutine (spell) vec4 releaseMining(vec4 color) {
     float wall_dist = length(cross(SPELL_FOCUS, SPELL_HEAD-model_Coords.xyz));
