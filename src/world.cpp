@@ -11,21 +11,24 @@ using namespace std;
 #define VERT_ELEM_COUNT 7
 #define DEBUG
 
-void MapData::establishMap(){
-    int side_count = 0,
-        num_faces, sub_idx;
-    int* face_ptr;    
-    bool side_checklist[CELLS*SIDES];
-
-    // First, for all 120 cells we set whether they are loaded, 
-    //  aka can the player enter them?
+void MapData::randomizeCells(){
     for (int i = 0; i < CELLS; i++) {
         load_cell[i] = rand()%2;
     }
     load_cell[0] = true; //Origin should load around player
     load_cell[neighbor_side_orders[0]] = false; //Floor should load below player
-
-    // Second, for every side, we determine whether it should be rendered.
+};
+void MapData::resetStructure(){
+    fill(begin(load_side), end(load_side), false);
+    side_count = 0;
+    side_indeces.clear();
+    interior_surfaces.clear();
+    adjacent_surfaces.clear();
+};
+void MapData::establishSides(){
+    resetStructure();
+    bool side_checklist[CELLS*SIDES] = {false};
+    // For every side, we determine whether it should be rendered.
     for (int ci = 0; ci < CELLS; ci++) {
         if (!load_cell[ci]) continue;
         for (int oi = ci*SIDES; oi < ci*SIDES + SIDES; oi++){
@@ -104,9 +107,9 @@ PlayerContext::~PlayerContext() {
     if (dodecaplex_buffers.i_buff)  free(dodecaplex_buffers.i_buff);
 };
 void PlayerContext::initializeMapData(){
-    map_data.establishMap();
+    map_data.randomizeCells();
+    map_data.establishSides();
 };
-
 void PlayerContext::populateDodecaplexVAO() {
     int* surface_ptr;
     PentagonMemory memory;
@@ -182,32 +185,46 @@ void PlayerContext::spawnShrapnel(int map_index) {
     free(shrapnel_buffer.i_buff);
     free(shrapnel_buffer.v_buff);
 };
-void PlayerContext::elapseShrapnel(float progress) {
+int PlayerContext::getTargetedSurface(){
     vec4 center;
-    PentagonMemory memory;
     mat4 transform = player_location->currentTransform();
+    int best_index = -1;
+    const float max_cell_dist = -0.1f;
+    float best_distance = -1000.0f;
 
-    if ( progress < 0.2) { shrapnel_vaos.clear(); return; }   //TODO: HIGH ERROR POTENTIAL!!
-
-    for (int i = 0; i < 120; i++) {
+    for (int i = 0; i < CELLS; i++) {
         if (map_data.load_cell[i]) {
             center = transform*dodecaplex_centroids[i];
-            if (center.z < -0.1f) {
-                for (int j = 0; j < 12; j++){
-                    if (map_data.load_side[i*12+j]) {
-                        memory = map_data.pentagons[i*12+j];                        
-                        if (memory.surface != Surface::BROKEN) {
-                            center = transform*memory.offset;
-                            if ((center.x*center.x+center.y*center.y < 0.1f)){
-                                spawnShrapnel(i*12+j);                      
-                                updateOldPentagon(i*12+j);
-                            }
+            if (center.z < max_cell_dist) {
+                for (int j = 0; j < SIDES; j++){
+                    if (map_data.load_side[i*SIDES+j]) {
+                        center = transform*map_data.pentagons[i*SIDES+j].offset;
+                        if ((center.x*center.x+center.y*center.y < 0.1f) &&
+                            (center.z > best_distance )){
+                            best_index = i*SIDES+j;
+                            best_distance = center.z;
                         }
                     }
                 }
             }
         }
     }
+    return best_index;
+};
+void PlayerContext::elapseShrapnel(float progress) {
+    int target_index = getTargetedSurface();
+    if ( progress < 0.2) { shrapnel_vaos.clear(); return; }   //TODO: HIGH ERROR POTENTIAL!!
+    if (target_index > 0 && map_data.pentagons[target_index].surface != Surface::BROKEN) {
+        spawnShrapnel(target_index);
+        updateOldPentagon(target_index);
+    }
+};
+void PlayerContext::elapseGrowth(float progress){
+    int target_index = getTargetedSurface();
+    if (target_index < 0) return;
+    map_data.load_cell[neighbor_side_orders[target_index]] = true;
+    map_data.establishSides();
+    populateDodecaplexVAO();
 };
 void PlayerContext::drawMainVAO(){
     dodecaplex_vao.DrawElements(GL_TRIANGLES);

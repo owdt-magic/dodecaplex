@@ -19,14 +19,18 @@ struct SubSurface {
 };
 
 struct MapData {
-    void establishMap();
+    void randomizeCells();
+    void establishSides();
     std::vector<SubSurface> interior_surfaces;
     std::vector<SubSurface> adjacent_surfaces;
     bool load_cell[120] = {false};
     std::map<int, PentagonMemory> pentagons;
     bool load_side[120*12] = {false};
-private:    
+private:
+    void resetStructure();
     std::vector<int> side_indeces; // content range: 0-120*12
+    int side_count, num_faces, sub_idx;
+    int* face_ptr;    
     
 };
 
@@ -39,11 +43,13 @@ struct PlayerContext {
     void drawShrapnelVAOs();
     void updateOldPentagon(int map_index);
     void elapseShrapnel(float progress);
+    void elapseGrowth(float progress);
     glm::mat4 getModelMatrix(std::array<bool, 4> WASD, float mouseX, float mouseY, float dt);
     void spawnShrapnel(int map_index);
     PlayerLocation* player_location = NULL;
     MapData map_data;
 private:
+    int getTargetedSurface();
     glm::mat4 shrapnel_scatter = glm::mat4(1.0f);
     CPUBufferPair dodecaplex_buffers;
     VAO dodecaplex_vao;

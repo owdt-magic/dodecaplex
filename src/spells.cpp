@@ -9,8 +9,7 @@ void miningSpellCharge(SpellContext sc){
     //TODO: Temporary omission. Spells don't work in new 4D version...    
 };
 
-void Grimoire::updateSpellLife(float time, PlayerContext* player_context) {
-    spell_life[active_spell] = 1.0f-std::max(0.0f, std::min(1.0f, (time-release_times[active_spell])/spell_durrations[active_spell]));
+void Grimoire::updateSpellLife(float time, PlayerContext* player_context) {    
     updateSpellFunction[active_spell](
         SpellContext(            
             spell_head          [active_spell], 
@@ -18,6 +17,7 @@ void Grimoire::updateSpellLife(float time, PlayerContext* player_context) {
             spell_life          [active_spell]
         )
     );
+    spell_life[active_spell] = 1.0f-std::max(0.0f, std::min(1.0f, (time-release_times[active_spell])/spell_durrations[active_spell]));
 };
 void Grimoire::startSpell(float time, vec3 focus, vec3 head, vec3 player_up, PlayerContext* player_context) {
     spell_life          [active_spell] = 1.0f;
