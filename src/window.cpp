@@ -128,17 +128,17 @@ void accountCameraControls(Uniforms* uniforms, CameraInfo &camera_info) {
 GLuint getSpellSubroutine(Uniforms* uniforms, Grimoire& grimoire, GLuint shader_id) {
     static GLuint subroutine_index = 0;
     float current_time = glfwGetTime();
-    if (uniforms->click_states[0] && !grimoire.spell_life[grimoire.active_spell] && !grimoire.flip_progress) {
+    if (uniforms->click_states[0] && !grimoire.active_spell.spell_life && !grimoire.flip_progress) {
         // The mouse is being held down... AND the spell is not currently running.
-        if(!grimoire.click_times[grimoire.active_spell]) {
+        if(!grimoire.active_spell.click_time) {
             subroutine_index = glGetSubroutineIndex(shader_id, GL_FRAGMENT_SHADER, "castMining");
             // And it's the first frame of it being held down...
-            grimoire.click_times[grimoire.active_spell] = current_time;
+            grimoire.active_spell.click_time = current_time;
         }
         grimoire.chargeSpell(current_time, 
                 uniforms->player_context->player_location->getFocus(),
                 uniforms->player_context->player_location->getHead());
-    } else if (grimoire.click_times[grimoire.active_spell]) {
+    } else if (grimoire.active_spell.click_time) {
         subroutine_index = glGetSubroutineIndex(shader_id, GL_FRAGMENT_SHADER, "releaseMining");
         // The mouse was JUST released
         grimoire.startSpell(current_time, 
@@ -146,11 +146,11 @@ GLuint getSpellSubroutine(Uniforms* uniforms, Grimoire& grimoire, GLuint shader_
                 uniforms->player_context->player_location->getHead(),
                 uniforms->player_context->player_location->getPUp(),
                 uniforms->player_context);
-    } else if (grimoire.spell_life[grimoire.active_spell]) {
+    } else if (grimoire.active_spell.spell_life) {
         // The spell has been cast, and will decay from 1.0f to 0.0f
         // If its at 0.0f this will not be triggered..
         grimoire.updateSpellLife(current_time, uniforms->player_context);
-        if (grimoire.spell_life[grimoire.active_spell] == 0.0f) {
+        if (grimoire.active_spell.spell_life == 0.0f) {
             subroutine_index = glGetSubroutineIndex(shader_id, GL_FRAGMENT_SHADER, "emptySpell");
             // The spell is complete, we change the subroutine for the last pass..
         }

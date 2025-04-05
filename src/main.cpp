@@ -101,14 +101,14 @@ int main() {
         
         glUniformSubroutinesuiv(GL_FRAGMENT_SHADER, 1, &subroutine_index);
 
-        glUniform1f(U_CAST_LIFE,    grimoire.cast_life[grimoire.active_spell]);
-        glUniform1f(U_SPELL_LIFE,   grimoire.spell_life[grimoire.active_spell]);
-        glUniform3f(U_SPELL_FOCUS,  grimoire.spell_focus[grimoire.active_spell].x,
-                                    grimoire.spell_focus[grimoire.active_spell].y,
-                                    grimoire.spell_focus[grimoire.active_spell].z);
-        glUniform3f(U_SPELL_HEAD,   grimoire.spell_head[grimoire.active_spell].x,
-                                    grimoire.spell_head[grimoire.active_spell].y,
-                                    grimoire.spell_head[grimoire.active_spell].z);
+        glUniform1f(U_CAST_LIFE,    grimoire.active_spell.cast_life);
+        glUniform1f(U_SPELL_LIFE,   grimoire.active_spell.spell_life);
+        glUniform3f(U_SPELL_FOCUS,  grimoire.active_spell.spell_focus.x,
+                                    grimoire.active_spell.spell_focus.y,
+                                    grimoire.active_spell.spell_focus.z);
+        glUniform3f(U_SPELL_HEAD,   grimoire.active_spell.spell_head.x,
+                                    grimoire.active_spell.spell_head.y,
+                                    grimoire.active_spell.spell_head.z);
 
         accountCameraControls(uniforms, cam);
 
@@ -118,7 +118,7 @@ int main() {
         player_context.drawMainVAO();
         
         shrapnel_shader.Activate();
-        glUniform1f(S_SPELL_LIFE,   grimoire.spell_life[grimoire.active_spell]);
+        glUniform1f(S_SPELL_LIFE,   grimoire.active_spell.spell_life);
                 
         glUniformMatrix4fv(S_CAMERA, 1, GL_FALSE, &(cam.Projection)[0][0]);
         glUniformMatrix4fv(S_WORLD,  1, GL_FALSE, &(cam.Model)[0][0]);

@@ -3,44 +3,45 @@
 
 #include "world.h"
 
-struct SpellContext
-{
-    glm::vec3 start; 
-    glm::vec3 start_up; 
-    PlayerContext* context;
-    float progress;
-    SpellContext(
-        glm::vec3 v_1,
-        glm::vec3 v_2,
-        PlayerContext* pc,
-        float p
-    ) : start(v_1), start_up(v_2), context(pc), progress(p) {}
-};
-
-void miningSpell(SpellContext spell_context);
-void miningSpellCharge(SpellContext spell_context);
-
 const int MAX_SPELLS = 2;
 const uint PAGE_LOD = 10;
+
+struct Spell {
+    float click_time;
+    float release_time;
+    float spell_durration = 0.0f;
+    float cast_durration = 0.0f;
+    float spell_life;
+    float cast_life;
+    float progress;
+    glm::vec3 spell_focus;
+    glm::vec3 spell_head;
+    glm::vec3 cast_intercepts;
+    glm::vec3 cast_player_up;
+    int intercept_indeces;
+    void (*updateSpellFunction)(PlayerContext*, Spell&);
+    void (*startSpellFunction)(PlayerContext*, Spell&);
+    Spell();
+    Spell(float sd, float cd, 
+        void (*f1)(PlayerContext*, Spell&), 
+        void (*f2)(PlayerContext*, Spell&));
+};
+
+void miningSpell(PlayerContext* player_context, Spell& spell);
+void miningSpellCharge(PlayerContext* player_context, Spell& spell);
 
 struct Grimoire
 {
     Grimoire();
-    int active_spell = 1;
-    float click_times               [MAX_SPELLS] = {};
-    float release_times             [MAX_SPELLS] = {};
-    const float spell_durrations    [MAX_SPELLS] = {0.0f, 0.333f};
-    const float cast_durrations     [MAX_SPELLS] = {0.0f, 1.0f};
-    float spell_life                [MAX_SPELLS] = {};
-    float cast_life                 [MAX_SPELLS] = {};
-    glm::vec3 spell_focus           [MAX_SPELLS] = {};
-    glm::vec3 spell_head            [MAX_SPELLS] = {};
-    glm::vec3 cast_intercepts       [MAX_SPELLS] = {};
-    glm::vec3 cast_player_up        [MAX_SPELLS] = {};
-    int intercept_indeces           [MAX_SPELLS] = {};
+
+    Spell all_spells[MAX_SPELLS] = {
+        Spell(),
+        Spell(0.333f, 1.0f, 
+            miningSpell,
+            miningSpellCharge)
+    };
     
-    void (*updateSpellFunction[MAX_SPELLS])(SpellContext) = {NULL, miningSpell};
-    void (*startSpellFunction[MAX_SPELLS])(SpellContext) = {NULL, miningSpellCharge};
+    Spell& active_spell = all_spells[1];
 
     void updateSpellLife(float time, PlayerContext* context);
     void startSpell(float time, glm::vec3 focus, glm::vec3 head, glm::vec3 player_up, PlayerContext* context);

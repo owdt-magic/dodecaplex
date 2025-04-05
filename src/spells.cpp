@@ -2,43 +2,37 @@
 
 using namespace glm;
 
-void miningSpell(SpellContext sc){
-    sc.context->elapseShrapnel(sc.progress);
+Spell::Spell(){};
+Spell::Spell(float sd, float cd, 
+        void (*f1)(PlayerContext*, Spell&),
+        void (*f2)(PlayerContext*, Spell&)) :
+    spell_durration(sd), 
+    cast_durration(cd), 
+    updateSpellFunction(f1), 
+    startSpellFunction(f2) {};
+    
+void miningSpell(PlayerContext* pc, Spell& spell){
+    pc->elapseShrapnel(spell.spell_life);
 };
-void miningSpellCharge(SpellContext sc){
-    //TODO: Temporary omission. Spells don't work in new 4D version...    
-};
+void miningSpellCharge(PlayerContext* pc, Spell& spell){ };
 
-void Grimoire::updateSpellLife(float time, PlayerContext* player_context) {    
-    updateSpellFunction[active_spell](
-        SpellContext(            
-            spell_head          [active_spell], 
-            cast_player_up      [active_spell], player_context,
-            spell_life          [active_spell]
-        )
-    );
-    spell_life[active_spell] = 1.0f-std::max(0.0f, std::min(1.0f, (time-release_times[active_spell])/spell_durrations[active_spell]));
+void Grimoire::updateSpellLife(float time, PlayerContext* player_context) {
+    active_spell.updateSpellFunction(player_context, active_spell);
+    active_spell.spell_life = 1.0f-std::max(0.0f, std::min(1.0f, (time-active_spell.release_time)/active_spell.spell_durration));
 };
 void Grimoire::startSpell(float time, vec3 focus, vec3 head, vec3 player_up, PlayerContext* player_context) {
-    spell_life          [active_spell] = 1.0f;
-    release_times       [active_spell] = time;
-    spell_focus         [active_spell] = focus;
-    spell_head          [active_spell] = head;
-    cast_player_up      [active_spell] = player_up;
-    click_times         [active_spell] = 0.0f;
-    startSpellFunction[active_spell](
-        SpellContext(
-            spell_head          [active_spell], 
-            cast_player_up      [active_spell],
-            player_context, 0.0f
-        )
-    );
-
+    active_spell.spell_life      = 1.0f;
+    active_spell.release_time    = time;
+    active_spell.spell_focus     = focus;
+    active_spell.spell_head      = head;
+    active_spell.cast_player_up  = player_up;
+    active_spell.click_time      = 0.0f;
+    active_spell.startSpellFunction(player_context, active_spell);
 };
 void Grimoire::chargeSpell(float time, vec3 focus, vec3 head){
-    cast_life   [active_spell] = std::max(0.0f, std::min(1.0f, (time-click_times[active_spell])/cast_durrations[active_spell]));
-    spell_focus [active_spell] = focus;
-    spell_head  [active_spell] = head;
+    active_spell.cast_life   = std::max(0.0f, std::min(1.0f, (time-active_spell.click_time)/active_spell.cast_durration));
+    active_spell.spell_focus = focus;
+    active_spell.spell_head  = head;
 };
 void Grimoire::flipRight(float time){
     flip_direction = true;

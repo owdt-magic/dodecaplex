@@ -189,20 +189,24 @@ int PlayerContext::getTargetedSurface(){
     vec4 center;
     mat4 transform = player_location->currentTransform();
     int best_index = -1;
+    int surface_index;
     const float max_cell_dist = -0.1f;
     float best_distance = -1000.0f;
+    float projected_dist;
 
     for (int i = 0; i < CELLS; i++) {
         if (map_data.load_cell[i]) {
             center = transform*dodecaplex_centroids[i];
             if (center.z < max_cell_dist) {
                 for (int j = 0; j < SIDES; j++){
-                    if (map_data.load_side[i*SIDES+j]) {
-                        center = transform*map_data.pentagons[i*SIDES+j].offset;
-                        if ((center.x*center.x+center.y*center.y < 0.1f) &&
-                            (center.z > best_distance )){
-                            best_index = i*SIDES+j;
-                            best_distance = center.z;
+                    surface_index = i*SIDES+j;
+                    if (map_data.load_side[surface_index]) {
+                        center = transform*map_data.pentagons[surface_index].offset;
+                        projected_dist = center.z*ROOT_FIVE/(ROOT_FIVE+center.w);
+                        if ((center.x*center.x+center.y*center.y < 0.2f) &&
+                            (projected_dist > best_distance ) && (projected_dist < 0.0f)){
+                            best_index = surface_index;
+                            best_distance = projected_dist;
                         }
                     }
                 }
@@ -212,9 +216,10 @@ int PlayerContext::getTargetedSurface(){
     return best_index;
 };
 void PlayerContext::elapseShrapnel(float progress) {
-    int target_index = getTargetedSurface();
+    int target_index;
     if ( progress < 0.2) { shrapnel_vaos.clear(); return; }   //TODO: HIGH ERROR POTENTIAL!!
-    if (target_index > 0 && map_data.pentagons[target_index].surface != Surface::BROKEN) {
+    target_index = getTargetedSurface();
+    if ((target_index > -1) && (map_data.pentagons[target_index].surface != Surface::BROKEN)) {
         spawnShrapnel(target_index);
         updateOldPentagon(target_index);
     }
