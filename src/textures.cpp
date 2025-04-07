@@ -44,7 +44,7 @@ void TextureLibrary::linkPentagonLibrary(GLuint shaderID) {
 
 void TextureLibrary::linkGrimoireLibrary(GLuint shaderID) {
     GLuint location;
-    readRGBATextureArray(grimoire_paths, 2, 2);
+    readRGBATextureArray(grimoire_paths, BOOK_COUNT, 2);
     location = glGetUniformLocation(shaderID, "grimoireTextures");
     glUniform1i(location, 2);
 }

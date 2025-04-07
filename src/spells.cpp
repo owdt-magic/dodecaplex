@@ -1,20 +1,15 @@
 #include "spells.h"
+#include "sigils.h"
 
 using namespace glm;
 
-Spell::Spell(){};
-Spell::Spell(float sd, float cd, 
-        void (*f1)(PlayerContext*, Spell&),
-        void (*f2)(PlayerContext*, Spell&)) :
-    spell_durration(sd), 
-    cast_durration(cd), 
-    updateSpellFunction(f1), 
-    startSpellFunction(f2) {};
-    
 void miningSpell(PlayerContext* pc, Spell& spell){
     pc->elapseShrapnel(spell.spell_life);
 };
-void miningSpellCharge(PlayerContext* pc, Spell& spell){ };
+void buildingSpell(PlayerContext* pc, Spell& spell){
+    if (spell.spell_life == 1.0f) pc->elapseGrowth(spell.spell_life);
+ };
+void emptySpell(PlayerContext* pc, Spell& spell){ };
 
 void Grimoire::updateSpellLife(float time, PlayerContext* player_context) {
     active_spell.updateSpellFunction(player_context, active_spell);
@@ -35,14 +30,23 @@ void Grimoire::chargeSpell(float time, vec3 focus, vec3 head){
     active_spell.spell_head  = head;
 };
 void Grimoire::flipRight(float time){
-    flip_direction = true;
-    flip_start = time;
-    flip_progress = -1.0f;
+    if (time-flip_start > 0.5f) {
+        flip_direction = true;
+        flip_start = time;
+        flip_progress = -1.0f;
+        page++;
+        page = page%SPELL_COUNT;
+    }
+
 };
 void Grimoire::flipLeft(float time){
-    flip_direction = false;
-    flip_start = time;
-    flip_progress = 1.0f;    
+    if (time-flip_start > 0.5f) {
+        flip_direction = false;
+        flip_start = time;
+        flip_progress = 1.0f;
+        page--;
+        page = page%SPELL_COUNT;
+    }
 };
 void Grimoire::updateFlip(float time){
     static float start = -1.0f;
@@ -54,10 +58,6 @@ void Grimoire::updateFlip(float time){
         if (!flip_direction) flip_progress *= -1.0f;
     }
 };
-void Grimoire::linkGrimoireVAOs(){
-    pages_vao.LinkAttrib(pages_vao.vbo, 0, 3, GL_FLOAT, 6 * sizeof(float), (void*)0); // Position attribute
-    pages_vao.LinkAttrib(pages_vao.vbo, 1, 3, GL_FLOAT, 6 * sizeof(float), (void*)(3 * sizeof(float))); // Texture coord attribute
-};
 void Grimoire::drawGrimoireVAOs(GLuint flip_uniform_index){
     glDisable(GL_DEPTH_TEST);
     glUniform1f(flip_uniform_index, -1.0f);
@@ -65,9 +65,15 @@ void Grimoire::drawGrimoireVAOs(GLuint flip_uniform_index){
     glUniform1f(flip_uniform_index, 1.0f);
     pages_vao.DrawElements(GL_TRIANGLES);
     if (flip_progress != 0.0f) {
-        glUniform1f(flip_uniform_index, flip_progress);
+        sigil_vaos[(page+1)%SPELL_COUNT].DrawElements(GL_TRIANGLES);
+        glUniform1f(flip_uniform_index, flip_progress);        
         pages_vao.DrawElements(GL_TRIANGLES);
-    }
+        if (flip_progress > 0.5f) {
+            sigil_vaos[page].DrawElements(GL_TRIANGLES);
+        }
+    } else {
+        sigil_vaos[page].DrawElements(GL_TRIANGLES);
+    }    
     glEnable(GL_DEPTH_TEST);
     
 };
@@ -118,12 +124,33 @@ void Grimoire::populateCurvedPageData() {
             curved_page_indeces[pi++] = (vi - 18)/6;
         }
     }
-
     pages_vao = VAO(curved_page_verts, sizeof(curved_page_verts), curved_page_indeces, sizeof(curved_page_indeces));
-
+    pages_vao.LinkAttrib(pages_vao.vbo, 0, 3, GL_FLOAT, 6 * sizeof(float), (void*)0); // Position attribute
+    pages_vao.LinkAttrib(pages_vao.vbo, 1, 3, GL_FLOAT, 6 * sizeof(float), (void*)(3 * sizeof(float))); // Texture coord attribute
+};
+void Grimoire::populateSigilData() {
+    int num_verts;
+    int w;
+    
+    for (int s = 0; s < SPELL_COUNT; s++) {        
+        num_verts = all_sigils[s].vert_len/2;
+        GLfloat sigil_verts[num_verts*6];
+        w = 0;
+        for (int i = 0; i < num_verts; i++) {
+            sigil_verts[w++] = all_sigils[s].verts[i*2];
+            sigil_verts[w++] = all_sigils[s].verts[i*2+1];
+            sigil_verts[w++] = sin(all_sigils[s].verts[i*2]*3.14f)*-0.3f;
+            sigil_verts[w++] = all_sigils[s].verts[i*2];
+            sigil_verts[w++] = all_sigils[s].verts[i*2+1];
+            sigil_verts[w++] = 2.0f;
+        }
+        sigil_vaos[s] = VAO(sigil_verts, sizeof(sigil_verts), all_sigils[s].indeces, all_sigils[s].indx_len*sizeof(GLuint));
+        sigil_vaos[s].LinkAttrib(sigil_vaos[s].vbo, 0, 3, GL_FLOAT, 6 * sizeof(float), (void*)0);
+        sigil_vaos[s].LinkAttrib(sigil_vaos[s].vbo, 1, 3, GL_FLOAT, 6 * sizeof(float), (void*)(3 * sizeof(float)));
+    }
 }
-
 Grimoire::Grimoire() {
     // Initialize other members...
     populateCurvedPageData();
+    populateSigilData();
 }

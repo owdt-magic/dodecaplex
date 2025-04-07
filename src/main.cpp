@@ -7,6 +7,8 @@
 #include <thread>
 #include "debug.h"
 
+#define DRAW_BOOK
+
 int main() {
     GLFWwindow* window = initializeWindow(1024, 1024, "DODECAPLEX");
 
@@ -23,7 +25,6 @@ int main() {
     player_context.initializeMapData();
 
     Grimoire grimoire;    
-    grimoire.linkGrimoireVAOs();
 
     Uniforms* uniforms = getUniforms(window);
     
