@@ -81,6 +81,10 @@ void Grimoire::drawGrimoireVAOs(GLuint flip_uniform_index){
 GLfloat Grimoire::curved_page_verts[PAGE_LOD*6*2];
 GLuint Grimoire::curved_page_indeces[PAGE_LOD*2*3];
 
+float pageDepth(float x){
+    return sin((pow(x, 0.7f))*PHI*3.14f)*-0.1f;
+};
+
 void Grimoire::populateCurvedPageData() {
     static float upper_bound = 0.0f,
                 lower_bound = 1.0f,
@@ -98,7 +102,7 @@ void Grimoire::populateCurvedPageData() {
     for (int i = 0; i < PAGE_LOD; i++) {
         inter_vert = mix(left_bound, right_bound, float(i) / float(PAGE_LOD-1));
         inter_text = mix(texture_left, texture_right, float(i) / float(PAGE_LOD-1));
-        depth = sin((float(i) / float(PAGE_LOD-1))*3.14f)*-0.3f;
+        depth = pageDepth(float(i) / float(PAGE_LOD-1));
         
         curved_page_verts[vi++] = inter_vert;
         curved_page_verts[vi++] = upper_bound;
@@ -139,9 +143,9 @@ void Grimoire::populateSigilData() {
         for (int i = 0; i < num_verts; i++) {
             sigil_verts[w++] = all_sigils[s].verts[i*2];
             sigil_verts[w++] = all_sigils[s].verts[i*2+1];
-            sigil_verts[w++] = sin(all_sigils[s].verts[i*2]*3.14f)*-0.3f;
-            sigil_verts[w++] = all_sigils[s].verts[i*2];
-            sigil_verts[w++] = all_sigils[s].verts[i*2+1];
+            sigil_verts[w++] = pageDepth(all_sigils[s].verts[i*2]);
+            sigil_verts[w++] = all_sigils[s].verts[i*2]/2.0f;
+            sigil_verts[w++] = all_sigils[s].verts[i*2+1]/2.0f;
             sigil_verts[w++] = 2.0f;
         }
         sigil_vaos[s] = VAO(sigil_verts, sizeof(sigil_verts), all_sigils[s].indeces, all_sigils[s].indx_len*sizeof(GLuint));

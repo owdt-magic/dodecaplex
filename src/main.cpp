@@ -31,7 +31,7 @@ int main() {
     float time;
     GLuint  U_RESOLUTION, U_MOUSE, U_SCROLL, U_TIME, U_CAMERA, U_WORLD,
             U_SPELL_LIFE, U_CAST_LIFE, U_SPELL_FOCUS, U_SPELL_HEAD,
-            U_FLIP_PROGRESS, U_CAMERA_BOOK;            
+            U_FLIP_PROGRESS, U_CAMERA_BOOK, U_TIME_BOOK;      
     GLuint  S_CAMERA, S_WORLD, S_SPELL_LIFE;
     GLuint subroutine_index;
     CameraInfo cam;
@@ -74,6 +74,7 @@ int main() {
 
             U_FLIP_PROGRESS = glGetUniformLocation(book_shader.ID, "u_flip_progress");
             U_CAMERA_BOOK   = glGetUniformLocation(book_shader.ID, "CAMERA");
+            U_TIME_BOOK     = glGetUniformLocation(book_shader.ID, "u_time");
             #endif
 
             uniforms->last_time         = glfwGetTime();
@@ -130,6 +131,7 @@ int main() {
         book_shader.Activate();
         
         glUniformMatrix4fv(U_CAMERA_BOOK, 1, GL_FALSE, &(cam.Projection)[0][0]);
+        glUniform1f(U_TIME_BOOK, time);
 
         grimoire.drawGrimoireVAOs(U_FLIP_PROGRESS);
         #endif
