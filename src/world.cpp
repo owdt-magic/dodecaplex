@@ -114,21 +114,20 @@ void PlayerContext::populateDodecaplexVAO() {
     int* surface_ptr;
     PentagonMemory memory;
     normal_web.web_texture = starting_texture;
+    dodecaplex_buffers.reset();
 
     for (SubSurface surface : map_data.interior_surfaces) {
         surface_ptr = surface.indeces_ptr;
         
         for (int f = 0; f < surface.num_faces; f++) {
-            
-            if (map_data.pentagons.find(*surface_ptr) == map_data.pentagons.end()) {
-                memory = PentagonMemory(*surface_ptr);                
+            memory = PentagonMemory(*surface_ptr);
+                //NOTE: eventually good to check this:
+                //if (map_data.pentagons.find(*surface_ptr) != map_data.pentagons.end())
+            memory.markStart(dodecaplex_buffers);
+            normal_web.buildArrays(dodecaplex_buffers, memory);
+            memory.markEnd(dodecaplex_buffers);
 
-                memory.markStart(dodecaplex_buffers);
-                normal_web.buildArrays(dodecaplex_buffers, memory);
-                memory.markEnd(dodecaplex_buffers);
-
-                map_data.pentagons[*surface_ptr++] = memory;
-            }
+            map_data.pentagons[*surface_ptr++] = memory;
         }
     }
      
@@ -227,7 +226,7 @@ void PlayerContext::elapseShrapnel(float progress) {
 void PlayerContext::elapseGrowth(float progress){
     int target_index = getTargetedSurface();
     if (target_index < 0) return;
-    map_data.load_cell[neighbor_side_orders[target_index]] = true;
+    map_data.load_cell[target_index/12] = false;
     map_data.establishSides();
     populateDodecaplexVAO();
 };
