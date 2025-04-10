@@ -53,7 +53,7 @@ struct GoldenRhombus {
                     std::pair<Corner, Corner> corner_b, uint& offset);
         // Uses the first enums 2 for neighbor_a, and the third from b,
         // NOTE: Always use this initialization when possible!
-        // NOTE: There is no 4 corner version - build the RhombusWeb in an order that accounts!
+        // NOTE: There is no 4 corner version - build the RhombusPattern in an order that accounts!
     void writeUints(GLuint* start, int& head, uint i_offset);
     void writeFloats(GLfloat* start, int& head, PentagonMemory& pentagon, float texture, 
         bool flip_norms, bool flip_text, bool write_norms);
@@ -74,7 +74,7 @@ private:
     GoldenRhombus* branches[4] = {NULL};
 };
 
-struct RhombusWeb {
+struct RhombusPattern {
     float pentagon_scale;
     float vertical_offset;
     uint offset;
@@ -83,7 +83,7 @@ struct RhombusWeb {
     bool flipped;
     bool upsidedown = false;
     float web_texture = 1.0f;
-    RhombusWeb(WebType pattern, bool flip);
+    RhombusPattern(WebType pattern, bool flip);
     void buildArrays(CPUBufferPair& buffer_writer, PentagonMemory& pentagon, bool include_normals);
     void buildArrays(CPUBufferPair& buffer_writer, PentagonMemory& pentagon);
     std::array<glm::vec4,5> web_pentagon;
