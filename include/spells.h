@@ -62,7 +62,7 @@ struct Grimoire {
     void chargeSpell(float time, glm::vec3 focus, glm::vec3 head);    
     
     // Variables/Methods for drawing the Grimoire
-    float flip_start, flip_progress = 1.0f, flip_durration = 0.333f;
+    float flip_start, flip_progress = 1.0f, flip_durration = 0.45f;
     bool flip_direction = true;
 
     void drawGrimoireVAOs(GLuint flip_uniform_index);
@@ -78,7 +78,7 @@ private:
     static GLfloat curved_page_verts[PAGE_LOD*6*2];
     static GLuint curved_page_indeces[PAGE_LOD*2*3];
     
-    VAO covers_vao, pages_vao, sigil_vaos[SPELL_COUNT];
+    VAO covers_vao, pages_vao, sigil_vaos[SPELL_COUNT], writing_vao;
 };
 
 #endif
