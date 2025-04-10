@@ -1,5 +1,4 @@
-/* uniform mat4 CAMERA;
-uniform mat4 WORLD; */
+
 out vec4 mCoords;
 out vec4 wCoords;
 out vec3 tCoords;
