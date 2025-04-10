@@ -1,10 +1,9 @@
-#version 330 core
+#include global.glsl
 
 layout(location = 0) in vec3 aPos; // Vertex position
 layout(location = 1) in vec3 aTexCoord; // Texture coordinate
 
 uniform float u_flip_progress;
-uniform mat4 CAMERA;
 uniform float u_time;
 
 out vec3 TexCoord; // Output texture coordinate to the fragment shader
