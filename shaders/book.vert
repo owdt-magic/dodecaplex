@@ -23,10 +23,10 @@ void main() {
     pagePos.y = -pagePos.y;
     pagePos.z -= pagePos.x/4.;
     pagePos.x = pagePos.x*(u_flip_progress);    
-    mat3 hand_mat = setCamera(vec3(0., 0.0, 0.), vec3(75.0+10.0*sin(u_time), -5.*sin(u_time), 100.0), 3.14/2);
+    mat3 hand_mat = setCamera(vec3(10., 100.0, 0.), vec3(75.0+10.0*sin(u_time), -5.*sin(u_time), 100.0), 0);
     pagePos = hand_mat*pagePos;
     pagePos.z = -1.5-pagePos.z;
     gl_Position = CAMERA*vec4(pagePos, 1.0);
-    gl_Position += vec4(1.0, -0.666,  .0, 0.);
+    gl_Position += vec4(0.9, -0.666,  .0, 0.);
     TexCoord = aTexCoord;
 }

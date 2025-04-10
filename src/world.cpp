@@ -216,7 +216,7 @@ int PlayerContext::getTargetedSurface(){
 };
 void PlayerContext::elapseShrapnel(float progress) {
     int target_index;
-    if ( progress < 0.2) { shrapnel_vaos.clear(); return; }   //TODO: HIGH ERROR POTENTIAL!!
+    if ( progress == 0.0f) { shrapnel_vaos.clear(); return; }
     target_index = getTargetedSurface();
     if ((target_index > -1) && (map_data.pentagons[target_index].surface != Surface::BROKEN)) {
         spawnShrapnel(target_index);

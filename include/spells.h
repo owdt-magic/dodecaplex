@@ -62,13 +62,14 @@ struct Grimoire {
     void chargeSpell(float time, glm::vec3 focus, glm::vec3 head);    
     
     // Variables/Methods for drawing the Grimoire
-    float flip_start, flip_progress = 0.0f, flip_durration = 0.333f;
+    float flip_start, flip_progress = 1.0f, flip_durration = 0.333f;
     bool flip_direction = true;
 
     void drawGrimoireVAOs(GLuint flip_uniform_index);
     void flipRight(float time);
     void flipLeft(float time);
     void updateFlip(float time);
+    bool flipping();
 private:
     int page = 0;
     void populateCurvedPageData();

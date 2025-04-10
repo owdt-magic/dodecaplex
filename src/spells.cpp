@@ -1,5 +1,6 @@
 #include "spells.h"
 #include "sigils.h"
+#include <limits>
 
 using namespace glm;
 
@@ -60,30 +61,28 @@ void Grimoire::updateFlip(float time){
     static float start = -1.0f;
     static float end = 1.0f;
     flip_progress = mix(start, end, (time-flip_start)/flip_durration);
-    if (flip_progress > end) {
-        flip_progress = 0.0f;
-    } else {
-        if (!flip_direction) flip_progress *= -1.0f;
-    }
+    flip_progress = std::clamp(flip_progress, start, end);
+    if (!flip_direction) flip_progress *= -1.0f;
+};
+bool Grimoire::flipping(){
+    return abs(flip_progress) < 1.0f;
 };
 void Grimoire::drawGrimoireVAOs(GLuint flip_uniform_index){
+    int page_off, flip_page, still_page;
     glDisable(GL_DEPTH_TEST);
     glUniform1f(flip_uniform_index, -1.0f);
     pages_vao.DrawElements(GL_TRIANGLES);
     glUniform1f(flip_uniform_index, 1.0f);
     pages_vao.DrawElements(GL_TRIANGLES);
-    if (flip_progress != 0.0f) {
-        sigil_vaos[(page+1)%SPELL_COUNT].DrawElements(GL_TRIANGLES);
-        glUniform1f(flip_uniform_index, flip_progress);        
-        pages_vao.DrawElements(GL_TRIANGLES);
-        if (flip_progress > 0.5f) {
-            sigil_vaos[page].DrawElements(GL_TRIANGLES);
-        }
-    } else {
-        sigil_vaos[page].DrawElements(GL_TRIANGLES);
-    }    
+    page_off    = (page+1)%SPELL_COUNT;
+    flip_page   = flip_direction ? page : page_off;
+    still_page  = flip_direction ? page_off : page;    
+    sigil_vaos[still_page].DrawElements(GL_TRIANGLES);
+    glUniform1f(flip_uniform_index, flip_progress);        
+    pages_vao.DrawElements(GL_TRIANGLES);
+    if (flip_progress > 0.0f) 
+        sigil_vaos[flip_page].DrawElements(GL_TRIANGLES);
     glEnable(GL_DEPTH_TEST);
-    
 };
 
 GLfloat Grimoire::curved_page_verts[PAGE_LOD*6*2];

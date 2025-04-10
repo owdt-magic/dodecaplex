@@ -126,9 +126,9 @@ void accountCameraControls(Uniforms* uniforms, CameraInfo &camera_info) {
 }
 
 GLuint getSpellSubroutine(Uniforms* uniforms, Grimoire& grimoire, GLuint shader_id) {
-    static GLuint subroutine_index = 0;
+    static GLuint subroutine_index = 0;    
     float current_time = glfwGetTime();
-    if (uniforms->click_states[0] && !grimoire.active_spell->spell_life && !grimoire.flip_progress) {
+    if (uniforms->click_states[0] && !grimoire.active_spell->spell_life && !grimoire.flipping()) {
         // The mouse is being held down... AND the spell is not currently running.
         if(!grimoire.active_spell->click_time) {
             subroutine_index = glGetSubroutineIndex(shader_id, GL_FRAGMENT_SHADER, 
@@ -155,6 +155,8 @@ GLuint getSpellSubroutine(Uniforms* uniforms, Grimoire& grimoire, GLuint shader_
         if (grimoire.active_spell->spell_life == 0.0f) {
             subroutine_index = glGetSubroutineIndex(shader_id, GL_FRAGMENT_SHADER, "emptySpell");
             // The spell is complete, we change the subroutine for the last pass..
+            grimoire.updateSpellLife(current_time, uniforms->player_context);
+            //And ensure that 0.0f is passed so that cleanup can occur.
         }
     } else {
         // This is the condition where the player can change pages of their grimoire and
@@ -166,8 +168,6 @@ GLuint getSpellSubroutine(Uniforms* uniforms, Grimoire& grimoire, GLuint shader_
         } else if ( abs(current_time-grimoire.flip_start) < grimoire.flip_durration*1.1f) {
             grimoire.updateFlip(current_time);
         }
-
-
     }
     return subroutine_index;
 }
