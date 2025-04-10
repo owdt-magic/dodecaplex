@@ -299,7 +299,7 @@ GoldenRhombus::GoldenRhombus(GoldenRhombus& neighbor_a, GoldenRhombus& neighbor_
 
 }
 
-void RhombusWeb::assignCorners(array<GoldenRhombus, 5>& rhombuses, Corner corner) {
+void RhombusPattern::assignCorners(array<GoldenRhombus, 5>& rhombuses, Corner corner) {
     // If this is used correctly, these two values should be identical for every corner...
     pentagon_scale  = length(vec2(rhombuses[0].corners[corner]));
     vertical_offset = rhombuses[0].corners[corner].z;
@@ -307,7 +307,7 @@ void RhombusWeb::assignCorners(array<GoldenRhombus, 5>& rhombuses, Corner corner
     for (int i=0; i < 5; i++) web_pentagon[i] = vec4(vec2(rhombuses[i].corners[corner]), 0.0f, 0.0f);
     rescaleValues();
 }
-void RhombusWeb::assignCorners(array<GoldenRhombus*, 5> rhombuses, Corner corner) {
+void RhombusPattern::assignCorners(array<GoldenRhombus*, 5> rhombuses, Corner corner) {
     // If this is used correctly, these two values should be identical for every corner...
     pentagon_scale  = length(vec2(rhombuses[0]->corners[corner]));
     vertical_offset = rhombuses[0]->corners[corner].z;
@@ -316,12 +316,12 @@ void RhombusWeb::assignCorners(array<GoldenRhombus*, 5> rhombuses, Corner corner
     rescaleValues();
 }
 template<long unsigned int N>
-void RhombusWeb::assignEdge(array<GoldenRhombus*, N> rhombuses, int edge_index){
+void RhombusPattern::assignEdge(array<GoldenRhombus*, N> rhombuses, int edge_index){
     for (GoldenRhombus* r : rhombuses) {
         r->skip = SkipType::BOTH;
     }
 }
-void RhombusWeb::rescaleValues(){
+void RhombusPattern::rescaleValues(){
     for (GoldenRhombus& rhombus : all_rhombuses) {
         for (vec3& corner : rhombus.corners) {
             corner.z -= vertical_offset;
@@ -330,7 +330,7 @@ void RhombusWeb::rescaleValues(){
     }
 }
 
-void RhombusWeb::pushAndCount(GoldenRhombus rhombus){
+void RhombusPattern::pushAndCount(GoldenRhombus rhombus){
     all_rhombuses.push_back(rhombus);
     if (rhombus.skip == SkipType::NONE) {
            index_count += 6;
@@ -342,18 +342,18 @@ void RhombusWeb::pushAndCount(GoldenRhombus rhombus){
     }
 }
 template<long unsigned int N>
-void RhombusWeb::addRhombuses(std::array<GoldenRhombus, N>& rhombuses){
+void RhombusPattern::addRhombuses(std::array<GoldenRhombus, N>& rhombuses){
     for (GoldenRhombus r : rhombuses) pushAndCount(r);
 }
 template<long unsigned int N>
-void RhombusWeb::addRhombuses(std::array<GoldenRhombus, N>& rhombuses, SkipType skip){
+void RhombusPattern::addRhombuses(std::array<GoldenRhombus, N>& rhombuses, SkipType skip){
     for (GoldenRhombus r : rhombuses) {
         r.skip = skip;
         pushAndCount(r);
     }
 }
 template<long unsigned int N>
-void RhombusWeb::addRhombuses(std::array<GoldenRhombus, N>& rhombuses, SkipType skip, SplitType split){
+void RhombusPattern::addRhombuses(std::array<GoldenRhombus, N>& rhombuses, SkipType skip, SplitType split){
     for (GoldenRhombus r : rhombuses) {
         r.skip = skip;
         r.split = split;
@@ -361,14 +361,14 @@ void RhombusWeb::addRhombuses(std::array<GoldenRhombus, N>& rhombuses, SkipType 
     }
 }
 template<long unsigned int N>
-void RhombusWeb::addRhombuses(std::array<GoldenRhombus, N>& rhombuses, SplitType split){
+void RhombusPattern::addRhombuses(std::array<GoldenRhombus, N>& rhombuses, SplitType split){
     for (GoldenRhombus r : rhombuses) {
         r.split = split;
         pushAndCount(r);
     }
 }
 
-RhombusWeb::RhombusWeb(WebType pattern, bool flip) : flipped(flip) {
+RhombusPattern::RhombusPattern(WebType pattern, bool flip) : flipped(flip) {
     offset = 0;
     array<GoldenRhombus, 5> center;
     array<GoldenRhombus, 5> edges;
@@ -636,7 +636,7 @@ void GoldenRhombus::writeUints(GLuint* start, int& head, uint i_offset) {
 }
 
 
-void RhombusWeb::buildArrays(CPUBufferPair& buffer_writer, PentagonMemory& pentagon, bool include_normals){
+void RhombusPattern::buildArrays(CPUBufferPair& buffer_writer, PentagonMemory& pentagon, bool include_normals) {
     pentagon.solveRotation(web_pentagon, false);
 
     for (GoldenRhombus rhombus : all_rhombuses) {
@@ -646,6 +646,6 @@ void RhombusWeb::buildArrays(CPUBufferPair& buffer_writer, PentagonMemory& penta
     }
     buffer_writer.offset += offset;
 }
-void RhombusWeb::buildArrays(CPUBufferPair& buffer_writer, PentagonMemory& pentagon) {
+void RhombusPattern::buildArrays(CPUBufferPair& buffer_writer, PentagonMemory& pentagon) {
     buildArrays(buffer_writer, pentagon, false);
 }
