@@ -151,6 +151,8 @@ void PlayerContext::updateOldPentagon(int map_index) {
             std::cout << dodecaplex_buffers.i_head << ", "<< pentagon.i_end << std::endl;
         throw std::invalid_argument("Bad buffer writing length.");
     }
+    dodecaplex_buffers.setHead(pentagon.v_start, pentagon.i_start, pentagon.i_offset);
+    inverted_web.applyDamage(dodecaplex_buffers, player_location->currentTransform(), pentagon);
 
     dodecaplex_vao.UpdateAttribSubset(dodecaplex_vao.vbo, pentagon.v_start*sizeof(GLfloat), 
             pentagon.v_len*sizeof(GLfloat), (void*) &dodecaplex_buffers.v_buff[pentagon.v_start]);

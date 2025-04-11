@@ -2,12 +2,14 @@
 #include <stdexcept>
 #include <algorithm>
 #include <iostream>
+#include <vector>
 
 using namespace glm;
 
 using std::pair;
 using std::make_pair;
 using std::array;
+using std::vector;
 
 #define PI 3.1415f
 #define AY tan(0.3f*PI)
@@ -421,7 +423,7 @@ RhombusPattern::RhombusPattern(WebType pattern, bool flip) : flipped(flip) {
         addRhombuses(center);
         addRhombuses(edges, SkipType::FIRST);
         assignCorners(center, Corner::BOTTOM);
-        return;
+        break;
     case WebType::DOUBLE_STAR:
         array<GoldenRhombus, 15> wide_loop;
         array<GoldenRhombus, 10> thin_edge;
@@ -544,7 +546,16 @@ RhombusPattern::RhombusPattern(WebType pattern, bool flip) : flipped(flip) {
         addRhombuses(thin_edge, SkipType::SECOND);
         assignCorners(corners, Corner::TOP);
         upsidedown = true;
-        return;        
+        break;        
+    }
+    countVerts();
+}
+
+void RhombusPattern::countVerts(){
+    for (GoldenRhombus rhombus : all_rhombuses) {
+        for (bool status : rhombus.uniques) {
+            if (status) num_verts++;
+        }
     }
 }
 
@@ -573,19 +584,24 @@ RhombusIndeces GoldenRhombus::getIndeces(){
     return result;
 }
 
+vec4 GoldenRhombus::getTransformedCorner(enum Corner corner, PentagonMemory& pentagon, bool flip_norms){
+    vec4 transformed;
+    transformed = vec4(corners[corner].x, corners[corner].y, 0.0f, 0.0f);
+    transformed = pentagon.rotation*transformed;
+    transformed += pentagon.offset;
+    
+    if(flip_norms) transformed -= (corners[corner].z)*pentagon.normal;
+    else           transformed += (corners[corner].z)*pentagon.normal;
+    return transformed;
+}
+
 void GoldenRhombus::writeFloats(GLfloat* start, int& head, PentagonMemory& pentagon, float texture, 
                                     bool flip_norms, bool flip_text, bool write_norms){
     vec4 transformed;
     float t1, t2;
     for (int i = 0; i < 4; i++) {
         if (uniques[i]) {
-            transformed = vec4(corners[i].x, corners[i].y, 0.0f, 0.0f);
-            transformed = pentagon.rotation*transformed;
-            transformed += pentagon.offset;
-            
-            if(flip_norms) transformed -= (corners[i].z)*pentagon.normal;
-            else           transformed += (corners[i].z)*pentagon.normal;
-            
+            transformed = getTransformedCorner((Corner) i, pentagon, flip_norms);
             start[head++] = transformed.x;
             start[head++] = transformed.y;
             start[head++] = transformed.z;
@@ -648,4 +664,34 @@ void RhombusPattern::buildArrays(CPUBufferPair& buffer_writer, PentagonMemory& p
 }
 void RhombusPattern::buildArrays(CPUBufferPair& buffer_writer, PentagonMemory& pentagon) {
     buildArrays(buffer_writer, pentagon, false);
+}
+void RhombusPattern::rankVerts(mat4& player_view, PentagonMemory& pentagon) {
+    vec4 result;
+    int i=0;
+
+    ranked_verts.clear();
+    ranked_verts.reserve(num_verts);
+    for (GoldenRhombus& rhombus : all_rhombuses){
+        for (int j=0; j < 4; ++j){
+            if (rhombus.uniques[j]) {
+                result = player_view*rhombus.getTransformedCorner((Corner) j, pentagon, flipped);
+                ranked_verts.push_back(make_pair(i++, length(vec2(result.x, result.y))));
+            }
+        }
+    }
+    sort(ranked_verts.begin(), ranked_verts.end(), 
+        [&](pair<int,float> a, pair<int,float> b){
+            return a.second < b.second;
+        }
+    );
+}
+void RhombusPattern::applyDamage(CPUBufferPair& buffer_writer, mat4 player_view, PentagonMemory& pentagon) {
+    rankVerts(player_view, pentagon);
+    for (pair<int,float>& vert_data : ranked_verts){
+        buffer_writer.v_buff[
+            pentagon.v_start+
+            vert_data.first*7+6
+            ] = 0.0f;
+        break;
+    }
 }
