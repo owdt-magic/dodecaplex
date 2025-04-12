@@ -13,7 +13,7 @@ using namespace std;
 
 void MapData::randomizeCells(){
     for (int i = 0; i < CELLS; i++) {
-        load_cell[i] = rand()%2;
+        load_cell[i] = rand()%3;
     }
     load_cell[0] = true; //Origin should load around player
     load_cell[neighbor_side_orders[0]] = false; //Floor should load below player
@@ -141,18 +141,18 @@ void PlayerContext::updateOldPentagon(int map_index) {
     inverted_web.web_texture = flipped_texture;
 
     PentagonMemory& pentagon = map_data.pentagons[map_index];
-    pentagon.surface = Surface::BROKEN;
+    //pentagon.surface = Surface::BROKEN;
     
     dodecaplex_buffers.setHead(pentagon.v_start, pentagon.i_start, pentagon.i_offset);
 
-    inverted_web.buildArrays(dodecaplex_buffers, pentagon);
+    /* inverted_web.buildArrays(dodecaplex_buffers, pentagon);
     if (dodecaplex_buffers.v_head != pentagon.v_end || 
         dodecaplex_buffers.i_head != pentagon.i_end) {
             std::cout << dodecaplex_buffers.i_head << ", "<< pentagon.i_end << std::endl;
         throw std::invalid_argument("Bad buffer writing length.");
     }
-    dodecaplex_buffers.setHead(pentagon.v_start, pentagon.i_start, pentagon.i_offset);
-    inverted_web.applyDamage(dodecaplex_buffers, player_location->currentTransform(), pentagon);
+    dodecaplex_buffers.setHead(pentagon.v_start, pentagon.i_start, pentagon.i_offset); */
+    normal_web.applyDamage(dodecaplex_buffers, player_location->currentTransform(), pentagon);
 
     dodecaplex_vao.UpdateAttribSubset(dodecaplex_vao.vbo, pentagon.v_start*sizeof(GLfloat), 
             pentagon.v_len*sizeof(GLfloat), (void*) &dodecaplex_buffers.v_buff[pentagon.v_start]);
@@ -186,47 +186,58 @@ void PlayerContext::spawnShrapnel(int map_index) {
     free(shrapnel_buffer.i_buff);
     free(shrapnel_buffer.v_buff);
 };
-int PlayerContext::getTargetedSurface(){
-    vec4 center;
+template<int N>
+array<int, N> PlayerContext::getTargetedSurfaces(){
     mat4 transform = player_location->currentTransform();
-    int best_index = -1;
-    int surface_index;
-    const float max_cell_dist = -0.1f;
-    float best_distance = -1000.0f;
-    float projected_dist;
+    vec4 center;
+    float best_center_dist   = -1000.0f, // Center of pentagon
+          projected_dist;    
+    
+    array<int, N> output = {-1};
+    vector<pair<int, float>> metrics;
+    
+    auto projectPoint = [](vec4 in) {
+        return in.z*ROOT_FIVE/(ROOT_FIVE+in.w);
+    };
 
     for (int i = 0; i < CELLS; i++) {
-        if (map_data.load_cell[i]) {
-            center = transform*dodecaplex_centroids[i];
-            if (center.z < max_cell_dist) {
-                for (int j = 0; j < SIDES; j++){
-                    surface_index = i*SIDES+j;
-                    if (map_data.load_side[surface_index]) {
-                        center = transform*map_data.pentagons[surface_index].offset;
-                        projected_dist = center.z*ROOT_FIVE/(ROOT_FIVE+center.w);
-                        if ((center.x*center.x+center.y*center.y < 0.2f) &&
-                            (projected_dist > best_distance ) && (projected_dist < 0.0f)){
-                            best_index = surface_index;
-                            best_distance = projected_dist;
-                        }
-                    }
-                }
-            }
+        if (!map_data.load_cell[i])
+            continue;
+        center = transform*dodecaplex_centroids[i];
+        if (center.z > -0.1f)
+            continue;
+        for (int j = i*SIDES; j < (i+1)*SIDES; j++){
+            if (!map_data.load_side[j])
+                continue;
+            center = transform*map_data.pentagons[j].offset;
+            projected_dist = projectPoint(center);
+            if ((center.x*center.x+center.y*center.y > 0.4f) || (projected_dist > 0.0f)) 
+                continue;
+            metrics.push_back(make_pair(j, projected_dist));
+            best_center_dist = std::max(best_center_dist, projected_dist);
         }
     }
-    return best_index;
+    sort(metrics.begin(), metrics.end(), [](pair<int,float> a, pair<int,float> b){
+        return a.second > b.second;
+    });
+    for (int i = 0; i < metrics.size(); ++i){
+        if (metrics[i].second >= best_center_dist-0.4f) {
+            output[i] = metrics[i].first;
+        }        
+    }
+    return output;
 };
 void PlayerContext::elapseShrapnel(float progress) {
-    int target_index;
     if ( progress == 0.0f) { shrapnel_vaos.clear(); return; }
-    target_index = getTargetedSurface();
-    if ((target_index > -1) && (map_data.pentagons[target_index].surface != Surface::BROKEN)) {
-        spawnShrapnel(target_index);
-        updateOldPentagon(target_index);
+    for (int target_index : getTargetedSurfaces<5>()) {
+        if (target_index > -1) {
+            spawnShrapnel(target_index);
+            updateOldPentagon(target_index);
+        }
     }
 };
 void PlayerContext::elapseGrowth(float progress){
-    int target_index = getTargetedSurface();
+    int target_index = getTargetedSurfaces<1>()[0];
     if (target_index < 0) return;
     map_data.load_cell[target_index/12] = false;
     map_data.establishSides();

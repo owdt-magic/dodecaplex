@@ -101,6 +101,9 @@ void GoldenRhombus::shareCorner(GoldenRhombus& source, pair<Corner, Corner> corn
     corners[corner.second] = source.corners[corner.first];
     indeces[corner.second] = source.indeces[corner.first];
     uniques[corner.second] = false;
+
+    shared[corner.second].push_back(make_pair(&source, corner.first));
+    source.shared[corner.first].push_back(make_pair(this, corner.second));
 }
 
 void GoldenRhombus::shareSide(GoldenRhombus& neighbor,
@@ -675,23 +678,33 @@ void RhombusPattern::rankVerts(mat4& player_view, PentagonMemory& pentagon) {
         for (int j=0; j < 4; ++j){
             if (rhombus.uniques[j]) {
                 result = player_view*rhombus.getTransformedCorner((Corner) j, pentagon, flipped);
-                ranked_verts.push_back(make_pair(i++, length(vec2(result.x, result.y))));
+                ranked_verts.push_back(
+                    VertexRankResult(i++, length(vec2(result.x, result.y)), &rhombus, (Corner) j)
+                    );
             }
         }
     }
     sort(ranked_verts.begin(), ranked_verts.end(), 
-        [&](pair<int,float> a, pair<int,float> b){
-            return a.second < b.second;
+        [](VertexRankResult a, VertexRankResult b){
+            return a.radius < b.radius;
         }
     );
 }
 void RhombusPattern::applyDamage(CPUBufferPair& buffer_writer, mat4 player_view, PentagonMemory& pentagon) {
     rankVerts(player_view, pentagon);
-    for (pair<int,float>& vert_data : ranked_verts){
-        buffer_writer.v_buff[
-            pentagon.v_start+
-            vert_data.first*7+6
-            ] = 0.0f;
-        break;
+    vec4 tmp;
+    int off;
+    for (VertexRankResult vert_data : ranked_verts){
+        if (vert_data.radius > 0.3f) break;
+        tmp = vert_data.source->getTransformedCorner(vert_data.corner, pentagon, flipped); 
+        tmp = mix(tmp, pentagon.centroids[1]*3.0f, 0.2f);
+        off = pentagon.v_start+vert_data.web_index*7;
+        buffer_writer.v_buff[off++] = tmp.x;
+        buffer_writer.v_buff[off++] = tmp.y;
+        buffer_writer.v_buff[off++] = tmp.z;
+        buffer_writer.v_buff[off++] = tmp.w;
+        off++;
+        off++;
+        buffer_writer.v_buff[off++] = 0.0f;
     }
 }

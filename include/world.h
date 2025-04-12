@@ -49,22 +49,23 @@ struct PlayerContext {
     PlayerLocation* player_location = NULL;
     MapData map_data;
 private:
-    int getTargetedSurface();
+    template<int N>
+    std::array<int, N> getTargetedSurfaces();
     glm::mat4 shrapnel_scatter = glm::mat4(1.0f);
     CPUBufferPair dodecaplex_buffers;
     VAO dodecaplex_vao;
     std::vector<VAO> shrapnel_vaos;
-    RhombusPattern normal_web   = RhombusPattern(WebType::SIMPLE_STAR, false);
+    /* RhombusPattern normal_web   = RhombusPattern(WebType::SIMPLE_STAR, false);
     RhombusPattern inverted_web = RhombusPattern(WebType::SIMPLE_STAR, true);
     float starting_texture = 2.0f;
     float flipped_texture  = 1.0f;
-    float shrapnel_texture = 2.0f;
+    float shrapnel_texture = 2.0f; */
 
-    /* RhombusPattern normal_web   = RhombusPattern(WebType::DOUBLE_STAR, false);
+    RhombusPattern normal_web   = RhombusPattern(WebType::DOUBLE_STAR, false);
     RhombusPattern inverted_web = RhombusPattern(WebType::DOUBLE_STAR, true);
     float starting_texture = 4.0f;
     float flipped_texture  = 4.0f;
-    float shrapnel_texture = 4.0f; */
+    float shrapnel_texture = 4.0f;
 };
 
 

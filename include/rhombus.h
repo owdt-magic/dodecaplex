@@ -58,6 +58,7 @@ struct GoldenRhombus {
     void writeFloats(GLfloat* start, int& head, PentagonMemory& pentagon, float texture, 
         bool flip_norms, bool flip_text, bool write_norms);
     glm::vec3 corners[4]; // always clockwise!!
+    std::vector<std::pair<GoldenRhombus*, Corner>> shared[4];
     enum SplitType split = SplitType::SHORT;
     enum SkipType skip = SkipType::NONE;
     bool uniques[4] = {true, true, true, true}; // Avoid redundant counting
@@ -70,6 +71,15 @@ private:
                         std::pair<Corner, Corner> corner_2);
     uint indeces[4];
     GoldenRhombus* branches[4] = {NULL};
+};
+
+struct VertexRankResult {
+    int web_index;
+    float radius;
+    GoldenRhombus* source;
+    Corner corner;
+    VertexRankResult(int wi, float r, GoldenRhombus* gr, Corner c) : 
+        web_index(wi), radius(r), source(gr), corner(c) {};
 };
 
 struct RhombusPattern {
@@ -85,11 +95,12 @@ struct RhombusPattern {
     void buildArrays(CPUBufferPair& buffer_writer, PentagonMemory& pentagon, bool include_normals);
     void buildArrays(CPUBufferPair& buffer_writer, PentagonMemory& pentagon);
     std::array<glm::vec4,5> web_pentagon;
+    std::array<std::pair<GoldenRhombus*, Corner>, 5> corners;
     void applyDamage(CPUBufferPair& buffer_writer, glm::mat4 player_view, PentagonMemory& pentagon);
 private:
-    uint num_verts = 0;
-    std::vector< std::pair< int,float > > ranked_verts;
+    uint num_verts = 0;    
     std::vector<GoldenRhombus> all_rhombuses;
+    std::vector<VertexRankResult> ranked_verts;
     void pushAndCount(GoldenRhombus rhombus);
     template<long unsigned int N>
     void addRhombuses(std::array<GoldenRhombus, N>& rhombuses);
