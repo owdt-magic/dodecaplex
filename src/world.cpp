@@ -121,9 +121,7 @@ void PlayerContext::populateDodecaplexVAO() {
         
         for (int f = 0; f < surface.num_faces; f++) {
             memory = PentagonMemory(*surface_ptr);
-                //NOTE: eventually good to check this:
-                //if (map_data.pentagons.find(*surface_ptr) != map_data.pentagons.end())
-            memory.markStart(dodecaplex_buffers);
+            memory.markStart(dodecaplex_buffers);            
             normal_web.buildArrays(dodecaplex_buffers, memory);
             memory.markEnd(dodecaplex_buffers);
 
@@ -132,33 +130,15 @@ void PlayerContext::populateDodecaplexVAO() {
     }
      
     dodecaplex_vao = VAO(dodecaplex_buffers);
-    
-    dodecaplex_vao.LinkAttrib(dodecaplex_vao.vbo, 0, 4, GL_FLOAT, VERT_ELEM_COUNT*sizeof(float), (void*)0);
-    dodecaplex_vao.LinkAttrib(dodecaplex_vao.vbo, 1, 3, GL_FLOAT, VERT_ELEM_COUNT*sizeof(float), (void*)(4*sizeof(float)));
-    
+    dodecaplex_vao.LinkVecs({4,3}, 7);    
 };
-void PlayerContext::updateOldPentagon(int map_index) {    
-    inverted_web.web_texture = flipped_texture;
-
+void PlayerContext::damageOldPentagon(int map_index) {    
     PentagonMemory& pentagon = map_data.pentagons[map_index];
-    //pentagon.surface = Surface::BROKEN;
     
-    dodecaplex_buffers.setHead(pentagon.v_start, pentagon.i_start, pentagon.i_offset);
-
-    /* inverted_web.buildArrays(dodecaplex_buffers, pentagon);
-    if (dodecaplex_buffers.v_head != pentagon.v_end || 
-        dodecaplex_buffers.i_head != pentagon.i_end) {
-            std::cout << dodecaplex_buffers.i_head << ", "<< pentagon.i_end << std::endl;
-        throw std::invalid_argument("Bad buffer writing length.");
-    }
-    dodecaplex_buffers.setHead(pentagon.v_start, pentagon.i_start, pentagon.i_offset); */
     normal_web.applyDamage(dodecaplex_buffers, player_location->currentTransform(), pentagon);
 
     dodecaplex_vao.UpdateAttribSubset(dodecaplex_vao.vbo, pentagon.v_start*sizeof(GLfloat), 
             pentagon.v_len*sizeof(GLfloat), (void*) &dodecaplex_buffers.v_buff[pentagon.v_start]);
-    /* dodecaplex_vao.UpdateAttribSubset(dodecaplex_vao.ebo, pentagon.i_start*sizeof(GLuint), 
-            pentagon.i_len*sizeof(GLuint),  (void*) &dodecaplex_buffers.i_buff[pentagon.i_start]); */
-    // Since this is a flipped array, with 1:1 index patterning, we can skip this step!
 };
 void PlayerContext::spawnShrapnel(int map_index) {
     static size_t float_count;
@@ -177,9 +157,7 @@ void PlayerContext::spawnShrapnel(int map_index) {
 
     VAO shrapnel_vao = VAO(shrapnel_buffer);
     
-    shrapnel_vao.LinkAttrib(shrapnel_vao.vbo, 0, 4, GL_FLOAT, (VERT_ELEM_COUNT+4)*sizeof(float), (void*)0);
-    shrapnel_vao.LinkAttrib(shrapnel_vao.vbo, 1, 3, GL_FLOAT, (VERT_ELEM_COUNT+4)*sizeof(float), (void*)(4*sizeof(float)));    
-    shrapnel_vao.LinkAttrib(shrapnel_vao.vbo, 2, 4, GL_FLOAT, (VERT_ELEM_COUNT+4)*sizeof(float), (void*)(7*sizeof(float)));
+    shrapnel_vao.LinkVecs({4,3,4}, 11);
 
     shrapnel_vaos.push_back(shrapnel_vao);
     
@@ -190,7 +168,7 @@ template<int N>
 array<int, N> PlayerContext::getTargetedSurfaces(){
     mat4 transform = player_location->currentTransform();
     vec4 center;
-    float best_center_dist   = -1000.0f, // Center of pentagon
+    float best_center_dist   = -1000.0f,
           projected_dist;    
     
     array<int, N> output = {-1};
@@ -204,7 +182,7 @@ array<int, N> PlayerContext::getTargetedSurfaces(){
         if (!map_data.load_cell[i])
             continue;
         center = transform*dodecaplex_centroids[i];
-        if (center.z > -0.1f)
+        if (projectPoint(center) > 0.1f)
             continue;
         for (int j = i*SIDES; j < (i+1)*SIDES; j++){
             if (!map_data.load_side[j])
@@ -228,13 +206,13 @@ array<int, N> PlayerContext::getTargetedSurfaces(){
     return output;
 };
 void PlayerContext::elapseShrapnel(float progress) {
-    if ( progress == 0.0f) { shrapnel_vaos.clear(); return; }
-    for (int target_index : getTargetedSurfaces<5>()) {
-        if (target_index > -1) {
+    if ( progress == 1.0f) { 
+        for (int target_index : getTargetedSurfaces<5>()) {
+            if (target_index < 0) break;
             spawnShrapnel(target_index);
-            updateOldPentagon(target_index);
+            damageOldPentagon(target_index);
         }
-    }
+    } else if ( progress == 0.0f) shrapnel_vaos.clear();
 };
 void PlayerContext::elapseGrowth(float progress){
     int target_index = getTargetedSurfaces<1>()[0];

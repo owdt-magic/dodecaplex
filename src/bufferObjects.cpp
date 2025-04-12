@@ -1,4 +1,5 @@
 #include "bufferObjects.h"
+#include <numeric>
 
 CPUBufferPair::CPUBufferPair(size_t v_size, size_t i_size) : v_max(v_size), i_max(i_size){
     v_buff = (GLfloat*) malloc(v_size);
@@ -110,6 +111,20 @@ void VAO::LinkAttrib(VBO& VBO, GLuint attrIdx, GLuint numComponents, \
 	glEnableVertexAttribArray(attrIdx);
 	VBO.Unbind();
 	/*Attribute index, Num attributes, Type attributes, Stride Offset*/
+}
+void VAO::LinkVecs(std::vector<int> pattern, int total) {
+	int subtotal = 0;
+	vbo.Bind();
+	for (int idx = 0; idx < pattern.size(); ++idx){		
+		glVertexAttribPointer(idx, pattern[idx], GL_FLOAT, GL_FALSE, total*sizeof(float), (void*)(subtotal*sizeof(float)));
+		glEnableVertexAttribArray(idx);	
+		subtotal += pattern[idx];
+	}
+	vbo.Unbind();
+}
+void VAO::LinkVecs(std::vector<int> pattern) {	
+	int total = std::accumulate(pattern.begin(), pattern.end(), 0);	
+	LinkVecs(pattern, total);
 }
 void VAO::LinkMat4(VBO& VBO, GLuint attrIdx) {
 	/*We can make some assumptions for a Mat4 that don't generalize to all

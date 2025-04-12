@@ -140,8 +140,7 @@ void Grimoire::populateCurvedPageData() {
         }
     }
     pages_vao = VAO(curved_page_verts, sizeof(curved_page_verts), curved_page_indeces, sizeof(curved_page_indeces));
-    pages_vao.LinkAttrib(pages_vao.vbo, 0, 3, GL_FLOAT, 6 * sizeof(float), (void*)0); // Position attribute
-    pages_vao.LinkAttrib(pages_vao.vbo, 1, 3, GL_FLOAT, 6 * sizeof(float), (void*)(3 * sizeof(float))); // Texture coord attribute
+    pages_vao.LinkVecs({3,3}, 6);
 };
 VAO sigilToVAO(Sigil sigil) {
     int num_verts;
@@ -162,12 +161,10 @@ VAO sigilToVAO(Sigil sigil) {
 void Grimoire::populateSigilData() {
     for (int s = 0; s < SPELL_COUNT; s++) {
         sigil_vaos[s] = sigilToVAO(all_sigils[s]);
-        sigil_vaos[s].LinkAttrib(sigil_vaos[s].vbo, 0, 3, GL_FLOAT, 6 * sizeof(float), (void*)0);
-        sigil_vaos[s].LinkAttrib(sigil_vaos[s].vbo, 1, 3, GL_FLOAT, 6 * sizeof(float), (void*)(3 * sizeof(float)));
+        sigil_vaos[s].LinkVecs({3,3},6);
     }
     writing_vao = sigilToVAO(writing);
-    writing_vao.LinkAttrib(writing_vao.vbo, 0, 3, GL_FLOAT, 6 * sizeof(float), (void*)0);
-    writing_vao.LinkAttrib(writing_vao.vbo, 1, 3, GL_FLOAT, 6 * sizeof(float), (void*)(3 * sizeof(float)));    
+    writing_vao.LinkVecs({3,3},6);
 }
 Grimoire::Grimoire() {
     // Initialize other members...

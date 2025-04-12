@@ -691,6 +691,7 @@ void RhombusPattern::rankVerts(mat4& player_view, PentagonMemory& pentagon) {
     );
 }
 void RhombusPattern::applyDamage(CPUBufferPair& buffer_writer, mat4 player_view, PentagonMemory& pentagon) {
+    buffer_writer.setHead(pentagon.v_start, pentagon.i_start, pentagon.i_offset);
     rankVerts(player_view, pentagon);
     vec4 tmp;
     int off;

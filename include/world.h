@@ -41,7 +41,7 @@ struct PlayerContext {
     void populateDodecaplexVAO();
     void drawMainVAO();
     void drawShrapnelVAOs();
-    void updateOldPentagon(int map_index);
+    void damageOldPentagon(int map_index);
     void elapseShrapnel(float progress);
     void elapseGrowth(float progress);
     glm::mat4 getModelMatrix(std::array<bool, 4> WASD, float mouseX, float mouseY, float dt);
