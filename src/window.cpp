@@ -136,18 +136,12 @@ GLuint getSpellSubroutine(Uniforms* uniforms, Grimoire& grimoire, GLuint shader_
             // And it's the first frame of it being held down...
             grimoire.active_spell->click_time = current_time;
         }
-        grimoire.chargeSpell(current_time, 
-                uniforms->player_context->player_location->getFocus(),
-                uniforms->player_context->player_location->getHead());
+        grimoire.chargeSpell(current_time, uniforms->player_context);
     } else if (grimoire.active_spell->click_time) {        
         subroutine_index = glGetSubroutineIndex(shader_id, GL_FRAGMENT_SHADER,
                                                 grimoire.active_spell->release_subroutine);
         // The mouse was JUST released
-        grimoire.startSpell(current_time, 
-                uniforms->player_context->player_location->getFocus(),
-                uniforms->player_context->player_location->getHead(),
-                uniforms->player_context->player_location->getPUp(),
-                uniforms->player_context);
+        grimoire.startSpell(current_time, uniforms->player_context);
     } else if (grimoire.active_spell->spell_life) {
         // The spell has been cast, and will decay from 1.0f to 0.0f
         // If its at 0.0f this will not be triggered..

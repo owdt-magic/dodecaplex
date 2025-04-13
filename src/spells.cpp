@@ -23,19 +23,20 @@ void Grimoire::updateSpellLife(float time, PlayerContext* player_context) {
     active_spell->updateSpellFunction(player_context, active_spell);
     active_spell->spell_life = 1.0f-std::max(0.0f, std::min(1.0f, (time-active_spell->release_time)/active_spell->spell_durration));
 };
-void Grimoire::startSpell(float time, vec3 focus, vec3 head, vec3 player_up, PlayerContext* player_context) {
+void Grimoire::startSpell(float time, PlayerContext* player_context) {
     active_spell->spell_life      = 1.0f;
     active_spell->release_time    = time;
-    active_spell->spell_focus     = focus;
-    active_spell->spell_head      = head;
-    active_spell->cast_player_up  = player_up;
+    active_spell->spell_focus     = player_context->player_location->getFocus();
+    active_spell->spell_head      = player_context->player_location->getHead();
+    active_spell->cast_player_up  = player_context->player_location->getPUp();
     active_spell->click_time      = 0.0f;
     active_spell->startSpellFunction(player_context, active_spell);
 };
-void Grimoire::chargeSpell(float time, vec3 focus, vec3 head){
+void Grimoire::chargeSpell(float time, PlayerContext* player_context){
+    active_spell->updateSpellFunction(player_context, active_spell);
     active_spell->cast_life   = std::max(0.0f, std::min(1.0f, (time-active_spell->click_time)/active_spell->cast_durration));
-    active_spell->spell_focus = focus;
-    active_spell->spell_head  = head;
+    active_spell->spell_focus = player_context->player_location->getFocus();
+    active_spell->spell_head  = player_context->player_location->getHead();
 };
 void Grimoire::flipRight(float time){
     if (time-flip_start > 0.5f) {

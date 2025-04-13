@@ -3,6 +3,7 @@
 
 #include <glad/glad.h>
 #include <iostream>
+#include <vector>
 
 struct CPUBufferPair {
     GLfloat* v_buff;

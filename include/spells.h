@@ -57,9 +57,9 @@ struct Grimoire {
     
     Spell* active_spell = &all_spells.at(0);
 
-    void updateSpellLife(float time, PlayerContext* context);
-    void startSpell(float time, glm::vec3 focus, glm::vec3 head, glm::vec3 player_up, PlayerContext* context);
-    void chargeSpell(float time, glm::vec3 focus, glm::vec3 head);    
+    void updateSpellLife(   float time, PlayerContext* context);
+    void startSpell(        float time, PlayerContext* context);
+    void chargeSpell(       float time, PlayerContext* context);
     
     // Variables/Methods for drawing the Grimoire
     float flip_start, flip_progress = 1.0f, flip_durration = 0.45f;
