@@ -3,5 +3,6 @@
 
 #define SHADER_DIR "@SHADER_DIR@"
 #define TEXTURE_DIR "@TEXTURE_DIR@"
+#define MOUSE_SCALE 500.0f
 
 #endif

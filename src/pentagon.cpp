@@ -18,8 +18,6 @@ array<vec4, 5> readDestinationCoords(GLuint* pentagon_ptr){
 };
 
 PentagonMemory::PentagonMemory(int side_idx) : source(side_idx) {
-    neighbors_in.reserve(5);
-    neighbors_out.reserve(5);
     GLuint* pentagon_ptr = &dodecaplex_penta_indxs[side_idx*5];
 
     corners   = readDestinationCoords(pentagon_ptr);
@@ -99,3 +97,33 @@ void PentagonMemory::markEnd(CPUBufferPair& bw){
     v_len = v_end-v_start;
     i_len = i_end-i_start;
 };
+void PentagonMemory::addNeighbor(PentagonMemory* other, bool in_out){
+    const bool pattern0[5]  = {true, true, false, false, false};
+    const bool pattern1[5]  = {false, true, true, false, false};
+    const bool pattern2[5]  = {false, false, true, true, false};
+    const bool pattern3[5]  = {false, false, false, true, true};
+    const bool pattern4[5]  = {true, false, false, false, true};
+    bool matches[5]         = {false, false, false, false, false};
+    bool matches_pattern[5] = {true, true, true, true, true};
+    GLuint* this_ptr    = &dodecaplex_penta_indxs[source*5];
+    GLuint* other_ptr   = &dodecaplex_penta_indxs[(other->source)*5];
+    for (int s=0; s<5; ++s){
+        for (int o=0; o<5; ++o){
+            if (this_ptr[s]==other_ptr[o]) matches[s] = true;
+        }
+    }
+    for (int i=0; i<5; ++i){
+        if (matches[i] != pattern0[i]) matches_pattern[0] = false;
+        if (matches[i] != pattern1[i]) matches_pattern[1] = false;
+        if (matches[i] != pattern2[i]) matches_pattern[2] = false;
+        if (matches[i] != pattern3[i]) matches_pattern[3] = false;
+        if (matches[i] != pattern4[i]) matches_pattern[4] = false;
+    }
+    for (int i=0; i<5; ++i){
+        if (matches_pattern[i]){
+            neighbors[i] = std::make_pair(other, in_out);
+            return;
+        }
+    }
+    throw std::invalid_argument("Invalid neighbor");
+}

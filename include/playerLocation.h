@@ -1,6 +1,7 @@
 #ifndef PLAYERLOCATION_H
 #define PLAYERLOCATION_H
 
+#include "config.h"
 #include "dodecaplex.h"
 
 struct AnimationInfo {
@@ -38,7 +39,7 @@ private:
     float my = 0.0f;
     const float height = -3.1415f/20.0f;
     const float movement_scale = 0.5f;
-    const float mouse_scale = 5000.0f;
+    const float mouse_scale = MOUSE_SCALE;
 
     int cell_index = 0;
     int floor_index = 0;

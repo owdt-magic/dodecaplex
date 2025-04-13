@@ -5,7 +5,6 @@
 #include "dodecaplex.h"
 #include "bufferObjects.h"
 #include <array>
-#include <vector>
 
 enum Surface 
 {
@@ -33,8 +32,8 @@ struct PentagonMemory {
     void markStart(CPUBufferPair& bw);
     void markEnd(CPUBufferPair& bw);
 
-    std::vector<PentagonMemory*> neighbors_in;
-    std::vector<PentagonMemory*> neighbors_out;
+    std::array<std::pair<PentagonMemory*, bool>, 5> neighbors;
+    void addNeighbor(PentagonMemory* other, bool in_out);
 };
 
 #endif

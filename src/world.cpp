@@ -104,13 +104,13 @@ void MapData::buildPentagonMemory(){
         for (int i=0; i<5; ++i){
             index = interior_side_indeces[pair.first*5+i];
             if ((pentagons.find(index) != pentagons.end()) && (index != pair.first)){
-                pair.second.neighbors_in.push_back(&(pentagons[index]));
+                pair.second.addNeighbor(&(pentagons[index]), false);
             }
         }
         for (int i=0; i<10; ++i){
             index = adjacent_side_indeces[pair.first*10+i];
             if ((pentagons.find(index) != pentagons.end()) && (index != pair.first)){
-                pair.second.neighbors_out.push_back(&(pentagons[index]));
+                pair.second.addNeighbor(&(pentagons[index]), true);
             }
         }
     }
@@ -156,11 +156,19 @@ void PlayerContext::populateDodecaplexVAO() {
 };
 void PlayerContext::damageOldPentagon(int map_index) {    
     PentagonMemory& pentagon = map_data.pentagons[map_index];
-    
+    PentagonMemory* other;
     normal_web.applyDamage(dodecaplex_buffers, player_location->currentTransform(), pentagon);
 
     dodecaplex_vao.UpdateAttribSubset(dodecaplex_vao.vbo, pentagon.v_start*sizeof(GLfloat), 
             pentagon.v_len*sizeof(GLfloat), (void*) &dodecaplex_buffers.v_buff[pentagon.v_start]);
+
+    for (int i=0; i<5; ++i) {
+        other = pentagon.neighbors[i].first;
+        normal_web.applyDamage(dodecaplex_buffers, player_location->currentTransform(), *other);
+
+        dodecaplex_vao.UpdateAttribSubset(dodecaplex_vao.vbo, other->v_start*sizeof(GLfloat), 
+                other->v_len*sizeof(GLfloat), (void*) &dodecaplex_buffers.v_buff[other->v_start]);        
+    }
 };
 void PlayerContext::spawnShrapnel(int map_index) {
     static size_t float_count;
@@ -229,7 +237,7 @@ array<int, N> PlayerContext::getTargetedSurfaces(){
 };
 void PlayerContext::elapseShrapnel(float progress) {
     if ( progress == 1.0f) { 
-        for (int target_index : getTargetedSurfaces<5>()) {
+        for (int target_index : getTargetedSurfaces<3>()) {
             if (target_index < 0) break;
             spawnShrapnel(target_index);
             damageOldPentagon(target_index);
@@ -237,7 +245,7 @@ void PlayerContext::elapseShrapnel(float progress) {
     } else if ( progress == 0.0f) shrapnel_vaos.clear();
 };
 void PlayerContext::elapseGrowth(float progress){
-    if ( progress == 0.0f) {
+    if ( progress == 1.0f) {
         for (int target_index : getTargetedSurfaces<1>()){
             if (target_index < 0) return;
             map_data.load_cell[target_index/12] = false;
