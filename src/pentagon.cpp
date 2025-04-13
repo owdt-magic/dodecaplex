@@ -18,6 +18,8 @@ array<vec4, 5> readDestinationCoords(GLuint* pentagon_ptr){
 };
 
 PentagonMemory::PentagonMemory(int side_idx) : source(side_idx) {
+    neighbors_in.reserve(5);
+    neighbors_out.reserve(5);
     GLuint* pentagon_ptr = &dodecaplex_penta_indxs[side_idx*5];
 
     corners   = readDestinationCoords(pentagon_ptr);

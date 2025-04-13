@@ -21,6 +21,7 @@ struct SubSurface {
 struct MapData {
     void randomizeCells();
     void establishSides();
+    void buildPentagonMemory();
     std::vector<SubSurface> interior_surfaces;
     std::vector<SubSurface> adjacent_surfaces;
     bool load_cell[120] = {false};

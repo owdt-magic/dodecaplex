@@ -15,7 +15,7 @@ void miningSpell(PlayerContext* pc, Spell* spell){
     pc->elapseShrapnel(spell->spell_life);
 };
 void buildingSpell(PlayerContext* pc, Spell* spell){
-    if (spell->spell_life == 1.0f) pc->elapseGrowth(spell->spell_life);
+    pc->elapseGrowth(spell->spell_life);
  };
 void emptySpell(PlayerContext* pc, Spell* spell){ };
 

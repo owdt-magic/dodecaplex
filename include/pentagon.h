@@ -5,6 +5,7 @@
 #include "dodecaplex.h"
 #include "bufferObjects.h"
 #include <array>
+#include <vector>
 
 enum Surface 
 {
@@ -31,6 +32,9 @@ struct PentagonMemory {
     glm::mat4 solveRotation(std::array<glm::vec4, 5> start, bool force);
     void markStart(CPUBufferPair& bw);
     void markEnd(CPUBufferPair& bw);
+
+    std::vector<PentagonMemory*> neighbors_in;
+    std::vector<PentagonMemory*> neighbors_out;
 };
 
 #endif

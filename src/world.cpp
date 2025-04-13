@@ -2,6 +2,7 @@
 #include "debug.h"
 #include "glm/gtx/string_cast.hpp"
 #include <stdexcept>
+#include <algorithm>
 
 using namespace glm;
 using namespace std;
@@ -28,6 +29,8 @@ void MapData::resetStructure(){
 void MapData::establishSides(){
     resetStructure();
     bool side_checklist[CELLS*SIDES] = {false};
+    interior_surfaces.clear();
+    adjacent_surfaces.clear();
     // For every side, we determine whether it should be rendered.
     for (int ci = 0; ci < CELLS; ci++) {
         if (!load_cell[ci]) continue;
@@ -90,6 +93,28 @@ void MapData::establishSides(){
     coutSizeHist(adjacent_surfaces);
     #endif
 };
+void MapData::buildPentagonMemory(){
+    int index;
+    for (int i=0; i < CELLS*SIDES; ++i){
+        if ((!load_side[i]) || (pentagons.find(i) != pentagons.end())) continue;
+        pentagons[i] = PentagonMemory(i);
+    }
+    //TODO: building the side adjacently info could be optimized, to reduce redundancy...
+    for (auto& pair : pentagons){
+        for (int i=0; i<5; ++i){
+            index = interior_side_indeces[pair.first*5+i];
+            if ((pentagons.find(index) != pentagons.end()) && (index != pair.first)){
+                pair.second.neighbors_in.push_back(&(pentagons[index]));
+            }
+        }
+        for (int i=0; i<10; ++i){
+            index = adjacent_side_indeces[pair.first*10+i];
+            if ((pentagons.find(index) != pentagons.end()) && (index != pair.first)){
+                pair.second.neighbors_out.push_back(&(pentagons[index]));
+            }
+        }
+    }
+}
 
 PlayerContext::PlayerContext() {
     player_location = new PlayerLocation();
@@ -109,23 +134,20 @@ PlayerContext::~PlayerContext() {
 void PlayerContext::initializeMapData(){
     map_data.randomizeCells();
     map_data.establishSides();
+    map_data.buildPentagonMemory();
 };
 void PlayerContext::populateDodecaplexVAO() {
     int* surface_ptr;
-    PentagonMemory memory;
     normal_web.web_texture = starting_texture;
     dodecaplex_buffers.reset();
 
-    for (SubSurface surface : map_data.interior_surfaces) {
+    for (SubSurface surface : map_data.adjacent_surfaces) {
         surface_ptr = surface.indeces_ptr;
-        
         for (int f = 0; f < surface.num_faces; f++) {
-            memory = PentagonMemory(*surface_ptr);
-            memory.markStart(dodecaplex_buffers);            
+            PentagonMemory& memory = map_data.pentagons[*surface_ptr++];
+            memory.markStart(dodecaplex_buffers);
             normal_web.buildArrays(dodecaplex_buffers, memory);
             memory.markEnd(dodecaplex_buffers);
-
-            map_data.pentagons[*surface_ptr++] = memory;
         }
     }
      
@@ -198,7 +220,7 @@ array<int, N> PlayerContext::getTargetedSurfaces(){
     sort(metrics.begin(), metrics.end(), [](pair<int,float> a, pair<int,float> b){
         return a.second > b.second;
     });
-    for (int i = 0; i < metrics.size(); ++i){
+    for (int i = 0; i < std::min(N, (int) metrics.size()); ++i){
         if (metrics[i].second >= best_center_dist-0.4f) {
             output[i] = metrics[i].first;
         }        
@@ -215,11 +237,15 @@ void PlayerContext::elapseShrapnel(float progress) {
     } else if ( progress == 0.0f) shrapnel_vaos.clear();
 };
 void PlayerContext::elapseGrowth(float progress){
-    int target_index = getTargetedSurfaces<1>()[0];
-    if (target_index < 0) return;
-    map_data.load_cell[target_index/12] = false;
-    map_data.establishSides();
-    populateDodecaplexVAO();
+    if ( progress == 0.0f) {
+        for (int target_index : getTargetedSurfaces<1>()){
+            if (target_index < 0) return;
+            map_data.load_cell[target_index/12] = false;
+            map_data.establishSides();
+            map_data.buildPentagonMemory();
+            populateDodecaplexVAO();
+        }
+    }
 };
 void PlayerContext::drawMainVAO(){
     dodecaplex_vao.DrawElements(GL_TRIANGLES);
