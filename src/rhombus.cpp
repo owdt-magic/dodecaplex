@@ -3,6 +3,8 @@
 #include <algorithm>
 #include <iostream>
 #include <vector>
+#define GLM_ENABLE_EXPERIMENTAL
+#include "glm/gtx/hash.hpp"
 
 using namespace glm;
 
@@ -10,6 +12,7 @@ using std::pair;
 using std::make_pair;
 using std::array;
 using std::vector;
+using std::hash;
 
 #define PI 3.1415f
 #define AY tan(0.3f*PI)
@@ -47,7 +50,6 @@ float Ry_THIN(vec2 xy) {
 };
 
 GoldenRhombus::GoldenRhombus(){};
-
 GoldenRhombus::GoldenRhombus(RhombusType type, Corner origin, uint& offset){
     corners[origin] = vec3(0.);
     switch (type) 
@@ -96,7 +98,6 @@ GoldenRhombus::GoldenRhombus(RhombusType type, Corner origin, uint& offset){
     indeces[offset++] = Corner::TOP; 
     indeces[offset++] = Corner::RIGHT;
 }
-
 void GoldenRhombus::shareCorner(GoldenRhombus& source, pair<Corner, Corner> corner) {
     corners[corner.second] = source.corners[corner.first];
     indeces[corner.second] = source.indeces[corner.first];
@@ -105,7 +106,6 @@ void GoldenRhombus::shareCorner(GoldenRhombus& source, pair<Corner, Corner> corn
     shared[corner.second].push_back(make_pair(&source, corner.first));
     source.shared[corner.first].push_back(make_pair(this, corner.second));
 }
-
 void GoldenRhombus::shareSide(GoldenRhombus& neighbor,
                                 pair<Corner, Corner> corner_1,
                                 pair<Corner, Corner> corner_2) {
@@ -233,7 +233,6 @@ GoldenRhombus::GoldenRhombus(GoldenRhombus& neighbor, RhombusType type,
     default: throw std::invalid_argument("Specify vertical destination corner with corner_1 variable");
     }
 }
-
 GoldenRhombus::GoldenRhombus(GoldenRhombus& neighbor_a, GoldenRhombus& neighbor_b, RhombusType type, 
                                 pair<Corner, Corner> corner_a1, 
                                 pair<Corner, Corner> corner_a2, 
@@ -322,8 +321,23 @@ void RhombusPattern::assignCorners(array<GoldenRhombus*, 5> rhombuses, Corner co
 }
 template<long unsigned int N>
 void RhombusPattern::assignEdge(array<GoldenRhombus*, N> rhombuses, int edge_index){
+    auto updateMap = [&](GoldenRhombus* r, Corner c){
+        if (edge_map.find(r->indeces[c]) != edge_map.end()) {
+            edge_map[r->indeces[c]] = make_pair(edge_index, 
+                                                edge_map[r->indeces[c]].first);
+        } else {
+            edge_map[r->indeces[c]] = make_pair(edge_index, -1);
+        }
+    };
     for (GoldenRhombus* r : rhombuses) {
-        r->skip = SkipType::BOTH;
+        edges[edge_index].push_back(r);
+        if (r->split == SplitType::HORZ) {
+            updateMap(r, Corner::RIGHT);
+            updateMap(r, Corner::LEFT);
+        } else {
+            updateMap(r, Corner::TOP);
+            updateMap(r, Corner::BOTTOM);
+        }
     }
 }
 void RhombusPattern::rescaleValues(){
@@ -334,7 +348,6 @@ void RhombusPattern::rescaleValues(){
         }
     }
 }
-
 void RhombusPattern::pushAndCount(GoldenRhombus rhombus){
     all_rhombuses.push_back(rhombus);
     if (rhombus.skip == SkipType::NONE) {
@@ -372,7 +385,6 @@ void RhombusPattern::addRhombuses(std::array<GoldenRhombus, N>& rhombuses, Split
         pushAndCount(r);
     }
 }
-
 RhombusPattern::RhombusPattern(WebType pattern, bool flip) : flipped(flip) {
     offset = 0;
     array<GoldenRhombus, 5> center;
@@ -531,15 +543,15 @@ RhombusPattern::RhombusPattern(WebType pattern, bool flip) : flipped(flip) {
         array<GoldenRhombus*, 5> corners =  {&wide_loop[1],  &wide_loop[4], &wide_loop[7], 
                                              &wide_loop[10], &wide_loop[13]};
                                              
-        array<GoldenRhombus*, 2> edge0 =    {&thin_edge[0],  &thin_edge[1]};
+        array<GoldenRhombus*, 2> edge0 =    {&thin_edge[1],  &thin_edge[2]};
         assignEdge(edge0, 0);
-        array<GoldenRhombus*, 2> edge1 =    {&thin_edge[2],  &thin_edge[3]};
+        array<GoldenRhombus*, 2> edge1 =    {&thin_edge[3],  &thin_edge[4]};
         assignEdge(edge1, 1);
-        array<GoldenRhombus*, 2> edge2 =    {&thin_edge[4],  &thin_edge[5]};
+        array<GoldenRhombus*, 2> edge2 =    {&thin_edge[5],  &thin_edge[6]};
         assignEdge(edge2, 2);
-        array<GoldenRhombus*, 2> edge3 =    {&thin_edge[6],  &thin_edge[7]};
+        array<GoldenRhombus*, 2> edge3 =    {&thin_edge[7],  &thin_edge[8]};
         assignEdge(edge3, 3);
-        array<GoldenRhombus*, 2> edge4 =    {&thin_edge[8],  &thin_edge[9]};
+        array<GoldenRhombus*, 2> edge4 =    {&thin_edge[9],  &thin_edge[0]};
         assignEdge(edge4, 4);
 
         all_rhombuses.reserve(25);
@@ -553,7 +565,6 @@ RhombusPattern::RhombusPattern(WebType pattern, bool flip) : flipped(flip) {
     }
     countVerts();
 }
-
 void RhombusPattern::countVerts(){
     for (GoldenRhombus rhombus : all_rhombuses) {
         for (bool status : rhombus.uniques) {
@@ -565,7 +576,7 @@ void RhombusPattern::countVerts(){
 RhombusIndeces GoldenRhombus::getIndeces(){
     RhombusIndeces result;
     switch (split) {
-        case SplitType::LONG:
+        case SplitType::VERT:
             result.triangle_a[0] = (GLuint) indeces[Corner::RIGHT];
             result.triangle_a[1] = (GLuint) indeces[Corner::TOP];
             result.triangle_a[2] = (GLuint) indeces[Corner::BOTTOM];
@@ -574,7 +585,7 @@ RhombusIndeces GoldenRhombus::getIndeces(){
             result.triangle_b[1] = (GLuint) indeces[Corner::BOTTOM];
             result.triangle_b[2] = (GLuint) indeces[Corner::TOP];
             break;
-        case SplitType::SHORT:
+        case SplitType::HORZ:
             result.triangle_a[0] = (GLuint) indeces[Corner::BOTTOM];
             result.triangle_a[1] = (GLuint) indeces[Corner::LEFT];
             result.triangle_a[2] = (GLuint) indeces[Corner::RIGHT];
@@ -586,7 +597,6 @@ RhombusIndeces GoldenRhombus::getIndeces(){
     }
     return result;
 }
-
 vec4 GoldenRhombus::getTransformedCorner(enum Corner corner, PentagonMemory& pentagon, bool flip_norms){
     vec4 transformed;
     transformed = vec4(corners[corner].x, corners[corner].y, 0.0f, 0.0f);
@@ -597,7 +607,6 @@ vec4 GoldenRhombus::getTransformedCorner(enum Corner corner, PentagonMemory& pen
     else           transformed += (corners[corner].z)*pentagon.normal;
     return transformed;
 }
-
 void GoldenRhombus::writeFloats(GLfloat* start, int& head, PentagonMemory& pentagon, float texture, 
                                     bool flip_norms, bool flip_text, bool write_norms){
     vec4 transformed;
@@ -626,7 +635,6 @@ void GoldenRhombus::writeFloats(GLfloat* start, int& head, PentagonMemory& penta
         }
     }
 }
-
 void GoldenRhombus::writeUints(GLuint* start, int& head, uint i_offset) {
     int t_idx = 0;
     RhombusIndeces rhombus_indeces = getIndeces();
@@ -653,7 +661,6 @@ void GoldenRhombus::writeUints(GLuint* start, int& head, uint i_offset) {
             start[head++] = i_offset + rhombus_indeces.triangle_b[t_idx++];
     }
 }
-
 
 void RhombusPattern::buildArrays(CPUBufferPair& buffer_writer, PentagonMemory& pentagon, bool include_normals) {
     pentagon.solveRotation(web_pentagon, false);
@@ -697,6 +704,12 @@ void RhombusPattern::applyDamage(CPUBufferPair& buffer_writer, mat4 player_view,
     int off;
     for (VertexRankResult vert_data : ranked_verts){
         if (vert_data.radius > 0.3f) break;
+        if (edge_map.find(vert_data.source->indeces[vert_data.corner]) != edge_map.end()){
+            if (!pentagon.neighbors[edge_map[vert_data.source->indeces[vert_data.corner]].first].second ||
+                !pentagon.neighbors[edge_map[vert_data.source->indeces[vert_data.corner]].second].second){
+                continue;
+            }
+        } 
         tmp = vert_data.source->getTransformedCorner(vert_data.corner, pentagon, flipped); 
         tmp = mix(tmp, pentagon.centroids[1]*3.0f, 0.2f);
         off = pentagon.v_start+vert_data.web_index*7;

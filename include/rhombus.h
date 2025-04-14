@@ -4,6 +4,7 @@
 #include "pentagon.h"
 #include <vector>
 #include <utility>
+#include <map>
 
 enum RhombusType {
     WIDE,
@@ -18,8 +19,8 @@ enum Corner {
 };
 
 enum SplitType {
-    LONG,
-    SHORT
+    VERT,
+    HORZ
 };
 
 enum SkipType {
@@ -58,8 +59,9 @@ struct GoldenRhombus {
     void writeFloats(GLfloat* start, int& head, PentagonMemory& pentagon, float texture, 
         bool flip_norms, bool flip_text, bool write_norms);
     glm::vec3 corners[4]; // always clockwise!!
+    uint indeces[4];
     std::vector<std::pair<GoldenRhombus*, Corner>> shared[4];
-    enum SplitType split = SplitType::SHORT;
+    enum SplitType split = SplitType::HORZ;
     enum SkipType skip = SkipType::NONE;
     bool uniques[4] = {true, true, true, true}; // Avoid redundant counting
     glm::vec4 getTransformedCorner(enum Corner corner, PentagonMemory& pentagon, bool flip_norms);
@@ -69,7 +71,6 @@ private:
     void shareSide(GoldenRhombus& neighbor,
                         std::pair<Corner, Corner> corner_1,
                         std::pair<Corner, Corner> corner_2);
-    uint indeces[4];
     GoldenRhombus* branches[4] = {NULL};
 };
 
@@ -97,10 +98,12 @@ struct RhombusPattern {
     std::array<glm::vec4,5> web_pentagon;
     std::array<std::pair<GoldenRhombus*, Corner>, 5> corners;
     void applyDamage(CPUBufferPair& buffer_writer, glm::mat4 player_view, PentagonMemory& pentagon);
+    std::map<uint,std::pair<int,int>> edge_map;
 private:
-    uint num_verts = 0;    
+    uint num_verts = 0;
     std::vector<GoldenRhombus> all_rhombuses;
     std::vector<VertexRankResult> ranked_verts;
+    std::vector<GoldenRhombus*> edges[5];
     void pushAndCount(GoldenRhombus rhombus);
     template<long unsigned int N>
     void addRhombuses(std::array<GoldenRhombus, N>& rhombuses);
