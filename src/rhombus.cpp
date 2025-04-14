@@ -701,9 +701,9 @@ void RhombusPattern::applyDamage(CPUBufferPair& buffer_writer, mat4 player_view,
     int off;
     for (VertexRankResult vert_data : ranked_verts){
         if (vert_data.radius > 0.3f) break;
-        if (edge_map.find(vert_data.source->indeces[vert_data.corner]) != edge_map.end()){
-            if (!pentagon.neighbors[edge_map[vert_data.source->indeces[vert_data.corner]].first].second ||
-                !pentagon.neighbors[edge_map[vert_data.source->indeces[vert_data.corner]].second].second){
+        if (edge_map.find(vert_data.web_index) != edge_map.end()){
+            if (!pentagon.neighbors[edge_map[vert_data.web_index].first].second ||
+                !pentagon.neighbors[edge_map[vert_data.web_index].second].second){
                 continue;
             }
         } 
