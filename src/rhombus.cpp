@@ -3,8 +3,6 @@
 #include <algorithm>
 #include <iostream>
 #include <vector>
-#define GLM_ENABLE_EXPERIMENTAL
-#include "glm/gtx/hash.hpp"
 
 using namespace glm;
 
@@ -12,7 +10,6 @@ using std::pair;
 using std::make_pair;
 using std::array;
 using std::vector;
-using std::hash;
 
 #define PI 3.1415f
 #define AY tan(0.3f*PI)
