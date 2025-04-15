@@ -56,17 +56,18 @@ private:
     CPUBufferPair dodecaplex_buffers;
     VAO dodecaplex_vao;
     std::vector<VAO> shrapnel_vaos;
-    /* RhombusPattern normal_web   = RhombusPattern(WebType::SIMPLE_STAR, false);
+    
+    RhombusPattern normal_web   = RhombusPattern(WebType::SIMPLE_STAR, false);
     RhombusPattern inverted_web = RhombusPattern(WebType::SIMPLE_STAR, true);
     float starting_texture = 2.0f;
     float flipped_texture  = 1.0f;
-    float shrapnel_texture = 2.0f; */
+    float shrapnel_texture = 2.0f;
 
-    RhombusPattern normal_web   = RhombusPattern(WebType::DOUBLE_STAR, false);
+    /* RhombusPattern normal_web   = RhombusPattern(WebType::DOUBLE_STAR, false);
     RhombusPattern inverted_web = RhombusPattern(WebType::DOUBLE_STAR, true);
     float starting_texture = 4.0f;
     float flipped_texture  = 4.0f;
-    float shrapnel_texture = 4.0f;
+    float shrapnel_texture = 4.0f; */
 };
 
 

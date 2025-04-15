@@ -433,9 +433,16 @@ RhombusPattern::RhombusPattern(WebType pattern, bool flip) : flipped(flip) {
     switch (pattern)
     {
     case WebType::SIMPLE_STAR:
-        all_rhombuses.reserve(10);
+        all_rhombuses.reserve(10);        
+        
         addRhombuses(center);
         addRhombuses(edges, SkipType::FIRST);
+        
+        assignEdge( (array<GoldenRhombus*,1>) {&edges[0]}, 0);
+        assignEdge( (array<GoldenRhombus*,1>) {&edges[1]}, 1);
+        assignEdge( (array<GoldenRhombus*,1>) {&edges[2]}, 2);
+        assignEdge( (array<GoldenRhombus*,1>) {&edges[3]}, 3);
+        assignEdge( (array<GoldenRhombus*,1>) {&edges[4]}, 4);
         assignCorners(center, Corner::BOTTOM);
         break;
     case WebType::DOUBLE_STAR:
@@ -536,29 +543,22 @@ RhombusPattern::RhombusPattern(WebType pattern, bool flip) : flipped(flip) {
         thin_edge[9] = GoldenRhombus(wide_loop[13], wide_loop[14], RhombusType::WIDE,
                         make_pair(Corner::LEFT, Corner::BOTTOM),
                         make_pair(Corner::TOP, Corner::RIGHT),
-                        make_pair(Corner::TOP, Corner::LEFT), offset);
-        
-
-        array<GoldenRhombus*, 5> corners =  {&wide_loop[1],  &wide_loop[4], &wide_loop[7], 
-                                             &wide_loop[10], &wide_loop[13]};
-                                             
-        array<GoldenRhombus*, 2> edge0 =    {&thin_edge[1],  &thin_edge[2]};
-        assignEdge(edge0, 0);
-        array<GoldenRhombus*, 2> edge1 =    {&thin_edge[3],  &thin_edge[4]};
-        assignEdge(edge1, 1);
-        array<GoldenRhombus*, 2> edge2 =    {&thin_edge[5],  &thin_edge[6]};
-        assignEdge(edge2, 2);
-        array<GoldenRhombus*, 2> edge3 =    {&thin_edge[7],  &thin_edge[8]};
-        assignEdge(edge3, 3);
-        array<GoldenRhombus*, 2> edge4 =    {&thin_edge[9],  &thin_edge[0]};
-        assignEdge(edge4, 4);
+                        make_pair(Corner::TOP, Corner::LEFT), offset);        
 
         all_rhombuses.reserve(25);
+        
         addRhombuses(center);
         addRhombuses(edges);
         addRhombuses(wide_loop);
         addRhombuses(thin_edge, SkipType::SECOND);
-        assignCorners(corners, Corner::TOP);
+
+        assignEdge(     (array<GoldenRhombus*, 2>) {&thin_edge[1],  &thin_edge[2]}, 0);
+        assignEdge(     (array<GoldenRhombus*, 2>) {&thin_edge[3],  &thin_edge[4]}, 1);
+        assignEdge(     (array<GoldenRhombus*, 2>) {&thin_edge[5],  &thin_edge[6]}, 2);
+        assignEdge(     (array<GoldenRhombus*, 2>) {&thin_edge[7],  &thin_edge[8]}, 3);
+        assignEdge(     (array<GoldenRhombus*, 2>) {&thin_edge[9],  &thin_edge[0]}, 4);
+        assignCorners(  (array<GoldenRhombus*, 5>) {&wide_loop[1],  &wide_loop[4], &wide_loop[7], 
+                                                    &wide_loop[10], &wide_loop[13]}, Corner::TOP);
         upsidedown = true;
         break;        
     }
@@ -734,16 +734,17 @@ void RhombusPattern::applyDamage(CPUBufferPair& buffer_writer, mat4 player_view,
     vec4 tmp;
     int off;
     for (VertexRankResult vert_data : ranked_verts){
+        off = pentagon.v_start+vert_data.web_index*7;
         if (vert_data.radius > 0.3f) break;
         if (edge_map.find(vert_data.web_index) != edge_map.end()){
             if (!pentagon.neighbors[edge_map[vert_data.web_index].first].second ||
                 !pentagon.neighbors[edge_map[vert_data.web_index].second].second){
+                buffer_writer.v_buff[off+6] = 0.0f;
                 continue;
             }
         } 
         tmp = vert_data.source->getTransformedCorner(vert_data.corner, pentagon, flipped); 
-        tmp = mix(tmp, pentagon.centroids[1]*3.0f, 0.2f);
-        off = pentagon.v_start+vert_data.web_index*7;
+        tmp = mix(tmp, pentagon.centroids[1]*3.0f, 0.2f);        
         buffer_writer.v_buff[off++] = tmp.x;
         buffer_writer.v_buff[off++] = tmp.y;
         buffer_writer.v_buff[off++] = tmp.z;

@@ -236,13 +236,12 @@ array<int, N> PlayerContext::getTargetedSurfaces(){
     return output;
 };
 void PlayerContext::elapseShrapnel(float progress) {
-    if ( progress == 1.0f) { 
-        for (int target_index : getTargetedSurfaces<3>()) {
-            if (target_index < 0) break;
-            spawnShrapnel(target_index);
-            damageOldPentagon(target_index);
-        }
-    } else if ( progress == 0.0f) shrapnel_vaos.clear();
+    for (int target_index : getTargetedSurfaces<3>()) {
+        if (target_index < 0) break;
+        if (progress == 1.0f) spawnShrapnel(target_index);
+        damageOldPentagon(target_index);
+    }
+    if ( progress == 0.0f) shrapnel_vaos.clear();
 };
 void PlayerContext::elapseGrowth(float progress){
     if ( progress == 1.0f) {

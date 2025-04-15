@@ -9,7 +9,7 @@ struct TextureLibrary {
     static const int SPEC_COUNT = 3;
     static const int BOOK_COUNT = 3;
     const char* pentagon_paths[PENT_COUNT] = {
-        TEXTURE_DIR "/curved.png",
+        TEXTURE_DIR "/gem.png",
         TEXTURE_DIR "/tile_floor_b.png",
         TEXTURE_DIR "/tile_floor_a.png",
         TEXTURE_DIR "/test_text.png"

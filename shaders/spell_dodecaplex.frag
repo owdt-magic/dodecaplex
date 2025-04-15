@@ -82,7 +82,12 @@ subroutine (spell) vec4 releaseMining(vec4 color) {
 }
 
 void main(){
-    color = texture(pentagonTextures, texture_Coords);
+    float remainder = texture_Coords.z- floor(texture_Coords.z);
+    vec4 v1, v2;
+    v1 = texture(pentagonTextures, vec3(texture_Coords.xy, ceil(texture_Coords.z)));
+    v2 = texture(pentagonTextures, vec3(texture_Coords.xy, floor(texture_Coords.z)));
+    color = mix(v1, v2, pow(remainder, 2));
+    color = mix(color, mix(v1, v2, 1-pow(remainder, 3)), 1-remainder);
     color /= max(zDepth*1.5, 1.0);
     color = currentSpell(color);
 }
