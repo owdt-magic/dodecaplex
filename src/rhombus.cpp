@@ -10,6 +10,8 @@ using std::pair;
 using std::make_pair;
 using std::array;
 using std::vector;
+using std::cout;
+using std::endl;
 
 #define PI 3.1415f
 #define AY tan(0.3f*PI)
@@ -659,6 +661,38 @@ void GoldenRhombus::writeUints(GLuint* start, int& head, uint i_offset) {
     }
 }
 
+void GoldenRhombus::printFloats(){
+    vec3 corner;
+    for (int i = 0; i < 4; i++) {
+        if (!uniques[i]) continue;
+        corner = corners[(Corner) i];
+        cout << "v";
+        cout << " " << corner.x;
+        cout << " " << corner.y;
+        cout << " " << corner.z << endl;
+    }
+}
+void GoldenRhombus::printUints() {
+    int t_idx = 0;
+    RhombusIndeces rhombus_indeces = getIndeces();
+    cout << "f";
+    cout << " " << rhombus_indeces.triangle_a[t_idx++]+1;
+    cout << " " << rhombus_indeces.triangle_a[t_idx++]+1;
+    cout << " " << rhombus_indeces.triangle_a[t_idx++]+1 << endl;;
+        t_idx = 0;
+    cout << "f";
+    cout << " " << rhombus_indeces.triangle_b[t_idx++]+1;
+    cout << " " << rhombus_indeces.triangle_b[t_idx++]+1;
+    cout << " " << rhombus_indeces.triangle_b[t_idx++]+1 << endl;
+}
+
+
+void RhombusPattern::writeObj(){
+    for (GoldenRhombus rhombus: all_rhombuses) {
+        rhombus.printFloats();
+        rhombus.printUints();
+    }
+}
 void RhombusPattern::buildArrays(CPUBufferPair& buffer_writer, PentagonMemory& pentagon, bool include_normals) {
     pentagon.solveRotation(web_pentagon, false);
 

@@ -65,6 +65,8 @@ struct GoldenRhombus {
     enum SkipType skip = SkipType::NONE;
     bool uniques[4] = {true, true, true, true}; // Avoid redundant counting
     glm::vec4 getTransformedCorner(enum Corner corner, PentagonMemory& pentagon, bool flip_norms);
+    void printUints();
+    void printFloats();
 private:
     RhombusIndeces getIndeces();
     void shareCorner(GoldenRhombus& source, std::pair<Corner, Corner> corner);
@@ -120,6 +122,7 @@ private:
     void rescaleValues();
     void countVerts();
     void rankVerts(glm::mat4& player_view, PentagonMemory& pentagon);
+    void writeObj();
 };
 
 #endif
