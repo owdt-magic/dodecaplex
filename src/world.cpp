@@ -29,8 +29,6 @@ void MapData::resetStructure(){
 void MapData::establishSides(){
     resetStructure();
     bool side_checklist[CELLS*SIDES] = {false};
-    interior_surfaces.clear();
-    adjacent_surfaces.clear();
     // For every side, we determine whether it should be rendered.
     for (int ci = 0; ci < CELLS; ci++) {
         if (!load_cell[ci]) continue;
@@ -78,6 +76,7 @@ void MapData::establishSides(){
     // 2 : Adjacent (nearby cells / convex)
     populateSurfaces(10, &adjacent_side_indeces[0], adjacent_surfaces);
 
+    buildPentagonMemory();
     #ifdef DEBUG
     auto coutSizeHist = [] (vector<SubSurface>& surfaces) {
         int counts[SIDES] = {0};
@@ -95,6 +94,7 @@ void MapData::establishSides(){
 };
 void MapData::buildPentagonMemory(){
     int index;
+    pentagons.clear();
     for (int i=0; i < CELLS*SIDES; ++i){
         if ((!load_side[i]) || (pentagons.find(i) != pentagons.end())) continue;
         pentagons[i] = PentagonMemory(i);
@@ -134,7 +134,6 @@ PlayerContext::~PlayerContext() {
 void PlayerContext::initializeMapData(){
     map_data.randomizeCells();
     map_data.establishSides();
-    map_data.buildPentagonMemory();
 };
 void PlayerContext::populateDodecaplexVAO() {
     int* surface_ptr;
@@ -249,7 +248,6 @@ void PlayerContext::elapseGrowth(float progress){
             if (target_index < 0) return;
             map_data.load_cell[target_index/12] = false;
             map_data.establishSides();
-            map_data.buildPentagonMemory();
             populateDodecaplexVAO();
         }
     }
