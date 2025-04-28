@@ -193,47 +193,58 @@ void PlayerContext::spawnShrapnel(int map_index) {
     free(shrapnel_buffer.i_buff);
     free(shrapnel_buffer.v_buff);
 };
-template<int N>
-array<int, N> PlayerContext::getTargetedSurfaces(){
+float projectPoint(vec4 in) {
+    return in.z*ROOT_FIVE/(ROOT_FIVE+in.w);
+};
+template<int N, typename BoolLambdaA, typename BoolLambdaB, typename FloatLambda>
+array<int, N> PlayerContext::findSurfaces(BoolLambdaA skipCell, BoolLambdaB skipSide, FloatLambda computeScore, float score_window){
     mat4 transform = player_location->currentTransform();
-    vec4 center;
-    float best_center_dist   = -1000.0f,
-          projected_dist;    
-    
-    array<int, N> output = {-1};
+    array<int, N> output;
+    output.fill(-1);
     vector<pair<int, float>> metrics;
-    
-    auto projectPoint = [](vec4 in) {
-        return in.z*ROOT_FIVE/(ROOT_FIVE+in.w);
-    };
+    vec4 center;
 
-    for (int i = 0; i < CELLS; i++) {
+    for (int i = 0; i < CELLS; ++i) {
         if (!map_data.load_cell[i])
             continue;
         center = transform*dodecaplex_centroids[i];
-        if (projectPoint(center) > 0.1f)
+        if (skipCell(center))
             continue;
-        for (int j = i*SIDES; j < (i+1)*SIDES; j++){
+        for (int j = i*SIDES; j < (i+1)*SIDES; ++j){
             if (!map_data.load_side[j])
                 continue;
             center = transform*map_data.pentagons[j].offset;
-            projected_dist = projectPoint(center);
-            if ((center.x*center.x+center.y*center.y > 0.4f) || (projected_dist > 0.0f)) 
+            if (skipSide(center))
                 continue;
-            metrics.push_back(make_pair(j, projected_dist));
-            best_center_dist = std::max(best_center_dist, projected_dist);
+            metrics.emplace_back(j, computeScore(center));
         }
     }
-    sort(metrics.begin(), metrics.end(), [](pair<int,float> a, pair<int,float> b){
+    sort(metrics.begin(), metrics.end(), [](auto& a, auto& b){
         return a.second > b.second;
     });
-    for (int i = 0; i < std::min(N, (int) metrics.size()); ++i){
-        if (metrics[i].second >= best_center_dist-0.4f) {
+    float best_score = metrics.empty() ? -1000.0f : metrics.front().second;
+    for (int i = 0; i < std::min(N, (int)metrics.size()); ++i){
+        if (metrics[i].second >= best_score-score_window) {
             output[i] = metrics[i].first;
-        }        
+        }
     }
     return output;
-};
+}
+
+template<int N>
+std::array<int, N> PlayerContext::getTargetedSurfaces() {
+    return findSurfaces<N>(
+        [](vec4 center){
+            return center.z > 0.1f;
+        },
+        [](vec4 center){
+            return center.x*center.x + center.y*center.y > 0.4f || projectPoint(center) > 0.0f;
+        },
+        [](vec4 center){
+            return projectPoint(center);
+        }, 0.4f
+    );
+}
 void PlayerContext::elapseShrapnel(float progress) {
     for (int target_index : getTargetedSurfaces<3>()) {
         if (target_index < 0) break;

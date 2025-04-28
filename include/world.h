@@ -52,6 +52,8 @@ struct PlayerContext {
 private:
     template<int N>
     std::array<int, N> getTargetedSurfaces();
+    template<int N, typename BoolLambdaA, typename BoolLambdaB, typename FloatLambda>
+    std::array<int, N> findSurfaces(BoolLambdaA skipCell, BoolLambdaB skipSide, FloatLambda computeScore, float score_window);
     glm::mat4 shrapnel_scatter = glm::mat4(1.0f);
     CPUBufferPair dodecaplex_buffers;
     VAO dodecaplex_vao;
