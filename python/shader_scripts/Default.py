@@ -20,7 +20,7 @@ class UniformImporter(mglw.WindowConfig):
         if 'u_scroll' in self.program:
             self.program['u_scroll'] = self.u_scroll
 
-    def render(self, time, frame_time):
+    def on_render(self, time, frame_time):
         self.ctx.clear()
         if 'u_time' in self.program:
             self.program['u_time'] = time        

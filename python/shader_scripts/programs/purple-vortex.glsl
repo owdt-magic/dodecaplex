@@ -80,8 +80,8 @@ vec3 render(in vec2 uv) {
     // Camera data
     vec3 col;
     vec3 ro = vec3(1.0, .00001 ,0.0);
-    mouseControl(ro);
-    vec3 lookAt = vec3(0., 0., -.6);
+    //mouseControl(ro);
+    vec3 lookAt = vec3(0., 0., -.3);
     vec3 rd = getCam(ro, lookAt) * normalize(vec3(uv, FOV));
 
     // Scene geometry
@@ -99,11 +99,11 @@ vec3 render(in vec2 uv) {
     // Color Translations
     vec2 arc_info       = normalize(ro.yz+(rd*dist).yz);
     vec3 background     = vec3(0.);
-    vec3 material_color = vec3(3., .4, 9.);//cross(world_norm,cam_norm);
+    vec3 material_color = vec3(3., 5.4, 0.4)/4.;//cross(world_norm,cam_norm);
     vec3 result_color   = material_color * (min(vec3(key_exposure), material_color)/2.);
     result_color = max(result_color, material_color*pow(dot(world_norm, fill_light/100.)+.1, 2.8));
-    result_color = max(pow(result_color * dot(cam_norm, glint_light)*70000., vec3(1.9)), result_color);
-    result_color = max(pow(result_color * dot(cam_norm, -glint_light)*70000., vec3(1.9)), result_color);
+    result_color = mix(pow(result_color * dot(cam_norm, glint_light)*70000., vec3(1.9)), result_color, 0.1);
+    result_color = mix(pow(result_color * dot(cam_norm, -glint_light)*70000., vec3(1.9)), result_color, 0.4);
     
     if (dist < MAX_DIST) {
         col = mix(result_color, background, 1.0 - exp(-0.0005*dist*dist));
@@ -117,9 +117,8 @@ void main() {
     vec2 uv = (2.0 * gl_FragCoord.xy - u_resolution.xy) / u_resolution.y;
     //AA
     float delta = 0.001;
-    /*vec3 col = (render(uv-vec2(0.0,delta))+render(uv+vec2(delta,0.0))
-    +render(uv-vec2(delta,0.0))+render(uv+vec2(0.0,delta)))/4.0;*/
-    vec3 col = render(uv);
+
+    vec3 col = render(uv*mat2(cos(u_time), sin(u_time), sin(u_time), -cos(u_time)) + 0.5*uv*mat2(cos(-u_time), sin(-u_time), sin(u_time), -cos(-u_time)));
 
     // gamma correction
     col = pow(col, vec3(0.4545));
