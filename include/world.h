@@ -43,6 +43,7 @@ struct PlayerContext {
     void drawMainVAO();
     void drawShrapnelVAOs();
     void damageOldPentagon(int map_index);
+    void footPrints(int map_index);
     void elapseShrapnel(float progress);
     void elapseGrowth(float progress);
     glm::mat4 getModelMatrix(std::array<bool, 4> WASD, float mouseX, float mouseY, float dt);
@@ -52,6 +53,8 @@ struct PlayerContext {
 private:
     template<int N>
     std::array<int, N> getTargetedSurfaces();
+    template<int N>
+    std::array<int, N> getFloorSurfaces();
     template<int N, typename BoolLambdaA, typename BoolLambdaB, typename FloatLambda>
     std::array<int, N> findSurfaces(BoolLambdaA skipCell, BoolLambdaB skipSide, FloatLambda computeScore, float score_window);
     glm::mat4 shrapnel_scatter = glm::mat4(1.0f);

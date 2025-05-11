@@ -169,6 +169,13 @@ void PlayerContext::damageOldPentagon(int map_index) {
                 other->v_len*sizeof(GLfloat), (void*) &dodecaplex_buffers.v_buff[other->v_start]);        
     }
 };
+void PlayerContext::footPrints(int map_index) {
+    PentagonMemory& pentagon = map_data.pentagons[map_index];
+    normal_web.applyFootprints(dodecaplex_buffers, player_location->currentTransform(), pentagon);
+
+    dodecaplex_vao.UpdateAttribSubset(dodecaplex_vao.vbo, pentagon.v_start*sizeof(GLfloat), 
+            pentagon.v_len*sizeof(GLfloat), (void*) &dodecaplex_buffers.v_buff[pentagon.v_start]);    
+};
 void PlayerContext::spawnShrapnel(int map_index) {
     static size_t float_count;
     static size_t uint_count;
@@ -193,8 +200,10 @@ void PlayerContext::spawnShrapnel(int map_index) {
     free(shrapnel_buffer.i_buff);
     free(shrapnel_buffer.v_buff);
 };
-float projectPoint(vec4 in) {
-    return in.z*ROOT_FIVE/(ROOT_FIVE+in.w);
+vec4 projectPoint(vec4 in) {
+    in *= ROOT_FIVE/(ROOT_FIVE+in.w);
+    in.w = 1.0f;
+    return in;
 };
 template<int N, typename BoolLambdaA, typename BoolLambdaB, typename FloatLambda>
 array<int, N> PlayerContext::findSurfaces(BoolLambdaA skipCell, BoolLambdaB skipSide, FloatLambda computeScore, float score_window){
@@ -230,19 +239,33 @@ array<int, N> PlayerContext::findSurfaces(BoolLambdaA skipCell, BoolLambdaB skip
     }
     return output;
 }
-
 template<int N>
 std::array<int, N> PlayerContext::getTargetedSurfaces() {
     return findSurfaces<N>(
-        [](vec4 center){
-            return center.z > 0.1f;
+        [](vec4 p){
+            return p.z > 0.1f;
         },
-        [](vec4 center){
-            return center.x*center.x + center.y*center.y > 0.4f || projectPoint(center) > 0.0f;
+        [](vec4 p){
+            return p.x*p.x + p.y*p.y > 0.4f || projectPoint(p).z > 0.0f;
         },
-        [](vec4 center){
-            return projectPoint(center);
+        [](vec4 p){
+            return projectPoint(p).z;
         }, 0.4f
+    );
+}
+template<int N>
+std::array<int, N> PlayerContext::getFloorSurfaces() {
+    return findSurfaces<N>(
+        [](vec4 p){
+            return p.y > 0.3f;
+        },
+        [](vec4 p){
+            p = projectPoint(p);
+            return (p.z*p.z + p.x*p.x > 0.4f) || (p.y > 0.0f);
+        },
+        [](vec4 p){
+            return -length(projectPoint(p));
+        }, 0.0f
     );
 }
 void PlayerContext::elapseShrapnel(float progress) {
@@ -275,7 +298,9 @@ mat4 PlayerContext::getModelMatrix(array<bool, 4> WASD, float mouseX, float mous
     if (!player_location->overridden) {
         player_location->focusFromMouse(mouseX, mouseY, dt);
         player_location->positionFromKeys(WASD, dt);  
-
+        for (int target_index : getFloorSurfaces<1>()){
+            footPrints(target_index);
+        }
         return player_location->getModel(&map_data.load_cell[0]);
     } else {
         return player_location->elapseAnimation(dt);

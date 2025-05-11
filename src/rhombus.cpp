@@ -596,7 +596,7 @@ RhombusIndeces GoldenRhombus::getIndeces(){
     }
     return result;
 }
-vec4 GoldenRhombus::getTransformedCorner(enum Corner corner, PentagonMemory& pentagon, bool flip_norms){
+vec4 GoldenRhombus::getTransformedCorner(enum Corner corner, const PentagonMemory& pentagon, bool flip_norms){
     vec4 transformed;
     transformed = vec4(corners[corner].x, corners[corner].y, 0.0f, 0.0f);
     transformed = pentagon.rotation*transformed;
@@ -728,29 +728,43 @@ void RhombusPattern::rankVerts(mat4& player_view, PentagonMemory& pentagon) {
         }
     );
 }
-void RhombusPattern::applyDamage(CPUBufferPair& buffer_writer, mat4 player_view, PentagonMemory& pentagon) {
+template<typename BufferOperation>
+void RhombusPattern::overwriteBuffer(CPUBufferPair& buffer_writer, mat4 player_view, PentagonMemory& pentagon, BufferOperation operation) {
+    int offset;
     buffer_writer.setHead(pentagon.v_start, pentagon.i_start, pentagon.i_offset);
     rankVerts(player_view, pentagon);
-    vec4 tmp;
-    int off;
     for (VertexRankResult vert_data : ranked_verts){
-        off = pentagon.v_start+vert_data.web_index*7;
-        if (vert_data.radius > 0.3f) break;
-        if (edge_map.find(vert_data.web_index) != edge_map.end()){
-            if (!pentagon.neighbors[edge_map[vert_data.web_index].first].second ||
-                !pentagon.neighbors[edge_map[vert_data.web_index].second].second){
-                buffer_writer.v_buff[off+6] = 0.0f;
-                continue;
-            }
-        } 
-        tmp = vert_data.source->getTransformedCorner(vert_data.corner, pentagon, flipped); 
-        tmp = mix(tmp, pentagon.centroids[1]*3.0f, 0.2f);        
-        buffer_writer.v_buff[off++] = tmp.x;
-        buffer_writer.v_buff[off++] = tmp.y;
-        buffer_writer.v_buff[off++] = tmp.z;
-        buffer_writer.v_buff[off++] = tmp.w;
-        off++;
-        off++;
-        buffer_writer.v_buff[off++] = 0.0f;
+        offset = pentagon.v_start+vert_data.web_index*7;
+        operation(vert_data, offset);
     }
+}
+void RhombusPattern::applyDamage(CPUBufferPair& buffer_writer, mat4 player_view, PentagonMemory& pentagon) {
+    overwriteBuffer(buffer_writer, player_view, pentagon,
+        [this, buffer_writer, pentagon](VertexRankResult vert_data, int off){
+            if (vert_data.radius > 0.3f) return;
+            if (edge_map.find(vert_data.web_index) != edge_map.end()){
+                if (!pentagon.neighbors[edge_map[vert_data.web_index].first].second ||
+                    !pentagon.neighbors[edge_map[vert_data.web_index].second].second){
+                    buffer_writer.v_buff[off+6] = 0.0f;
+                    return;
+                }
+            } 
+            vec4 tmp = vert_data.source->getTransformedCorner(vert_data.corner, pentagon, flipped); 
+                 tmp = mix(tmp, pentagon.centroids[1]*3.0f, 0.2f);        
+            buffer_writer.v_buff[off++] = tmp.x;
+            buffer_writer.v_buff[off++] = tmp.y;
+            buffer_writer.v_buff[off++] = tmp.z;
+            buffer_writer.v_buff[off++] = tmp.w;
+            off++;
+            off++;
+            buffer_writer.v_buff[off++] = 0.0f;
+        }
+    );
+}
+void RhombusPattern::applyFootprints(CPUBufferPair& buffer_writer, mat4 player_view, PentagonMemory& pentagon) {
+    overwriteBuffer(buffer_writer, player_view, pentagon,
+        [this, buffer_writer, pentagon](VertexRankResult vert_data, int off){
+            buffer_writer.v_buff[off+6] = 3.0f;
+        }
+    );
 }

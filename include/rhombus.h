@@ -64,7 +64,7 @@ struct GoldenRhombus {
     enum SplitType split = SplitType::HORZ;
     enum SkipType skip = SkipType::NONE;
     bool uniques[4] = {true, true, true, true}; // Avoid redundant counting
-    glm::vec4 getTransformedCorner(enum Corner corner, PentagonMemory& pentagon, bool flip_norms);
+    glm::vec4 getTransformedCorner(enum Corner corner, const PentagonMemory& pentagon, bool flip_norms);
     void printUints();
     void printFloats();
 private:
@@ -100,6 +100,7 @@ struct RhombusPattern {
     std::array<glm::vec4,5> web_pentagon;
     std::array<std::pair<GoldenRhombus*, Corner>, 5> corners;
     void applyDamage(CPUBufferPair& buffer_writer, glm::mat4 player_view, PentagonMemory& pentagon);
+    void applyFootprints(CPUBufferPair& buffer_writer, glm::mat4 player_view, PentagonMemory& pentagon);
     std::map<uint,std::pair<int,int>> edge_map;
 private:
     uint num_verts = 0;
@@ -123,6 +124,9 @@ private:
     void countVerts();
     void rankVerts(glm::mat4& player_view, PentagonMemory& pentagon);
     void writeObj();
+    template<typename BufferOperation>
+    void overwriteBuffer(CPUBufferPair& buffer_writer, glm::mat4 player_view, PentagonMemory& pentagon, BufferOperation operation);
+
 };
 
 #endif
