@@ -1,3 +1,5 @@
+import os
+import glob
 import numpy as np
 import sounddevice as sd
 import soundfile as sf
@@ -7,27 +9,34 @@ import time
 import moderngl_window as mglw
 from Default import UniformImporter
 
+
 class FFTShader(UniformImporter):
     vertex_shader = 'vertex.glsl'
     fragment_shader = 'fft_shader.frag'
-    wav_path = 'audio/tts_output.wav'
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        self.sample_rate = 44100
-        self.update_rate = 1 / 60  # 60 fps
         self.band_count = 4
-        self.current_frame = 0
+        self.audio_data = None
+        self.sample_rate = None
+        self.norm_energies = None
+        self.total_frames = 0
+        self.total_duration = 0
         self.current_sample = 0
+        self.playback_start_time = None
+        self.stream = None
+        self.audio_thread = None
+        self.audio_files = sorted(glob.glob("./audio/*.mp3"))[:9]
+        self.playing = False
+        self.finished = True  # True if no file playing
 
-        self.audio_data, self.sample_rate = sf.read(self.wav_path, always_2d=True)
-        self.compute_fft_frames()
-
+    def load_audio(self, file_path):
+        print(f"Loading: {file_path}")
+        self.audio_data, self.sample_rate = sf.read(file_path, always_2d=True)
         self.total_samples = len(self.audio_data)
         self.total_duration = self.total_samples / self.sample_rate
-
-        self.audio_thread = threading.Thread(target=self.play_audio_loop, daemon=True)
-        self.audio_thread.start()
+        self.compute_fft_frames()
+        self.current_sample = 0
 
     def compute_fft_frames(self):
         f, t, Zxx = stft(self.audio_data[:, 0], fs=self.sample_rate, nperseg=1024)
@@ -49,49 +58,93 @@ class FFTShader(UniformImporter):
     def normalize_energies(self, energies):
         return np.log1p(energies / (np.max(energies, axis=1, keepdims=True) + 1e-6))
 
-    def play_audio_loop(self):
-        self.playback_start_time = time.time()
+    def stop_audio(self):
+        if self.stream:
+            try:
+                self.stream.stop()
+                self.stream.close()
+            except Exception as e:
+                print("Error stopping stream:", e)
+            self.stream = None
+        self.playing = False
+        self.finished = True
 
-        def callback(outdata, frames, time_info, status):
-            end = self.current_sample + frames
-            chunk = self.audio_data[self.current_sample:end]
-            if len(chunk) < frames:
-                # Loop the audio
-                remaining = frames - len(chunk)
-                chunk = np.concatenate((chunk, self.audio_data[:remaining]))
-                self.playback_start_time = time.time()  # reset clock
-                self.current_sample = remaining
-            else:
-                self.current_sample += frames
-            outdata[:] = chunk.reshape(-1, 1) if len(chunk.shape) == 1 else chunk
+    def play_audio_file_once(self, index):
+        if index >= len(self.audio_files):
+            print("No file for index", index)
+            return
 
-        self.stream = sd.OutputStream(
-            samplerate=self.sample_rate,
-            channels=self.audio_data.shape[1] if len(self.audio_data.shape) > 1 else 1,
-            callback=callback
-        )
-        self.stream.start()
+        self.stop_audio()
+        self.load_audio(self.audio_files[index])
+
+        def audio_thread_fn():
+            self.playing = True
+            self.finished = False
+            self.playback_start_time = time.time()
+            self.current_sample = 0
+
+            def callback(outdata, frames, time_info, status):
+                start = self.current_sample
+                end = start + frames
+                if end >= self.total_samples:
+                    chunk = self.audio_data[start:self.total_samples]
+                    pad = frames - len(chunk)
+                    outdata[:len(chunk)] = chunk
+                    outdata[len(chunk):] = np.zeros((pad, self.audio_data.shape[1]))
+                    raise sd.CallbackStop()
+                else:
+                    chunk = self.audio_data[start:end]
+                    outdata[:] = chunk
+                    self.current_sample += frames
+
+            try:
+                with sd.OutputStream(
+                    samplerate=self.sample_rate,
+                    channels=self.audio_data.shape[1],
+                    callback=callback,
+                    blocksize=1024,
+                    latency='low'
+                ) as stream:
+                    self.stream = stream
+                    stream.start()
+                    while stream.active:
+                        time.sleep(0.01)
+            except Exception as e:
+                print("Stream error:", e)
+            finally:
+                self.stop_audio()
+
+        self.audio_thread = threading.Thread(target=audio_thread_fn, daemon=True)
+        self.audio_thread.start()
 
     def get_audio_progress(self):
+        if not self.playing or not self.playback_start_time:
+            return 0.0
         elapsed = time.time() - self.playback_start_time
-        progress = (elapsed % self.total_duration) / self.total_duration
-        return progress
+        return min(elapsed / self.total_duration, 1.0)
+
+    def on_key_event(self, key, action, modifiers):
+        super().on_key_event(key, action, modifiers)
+        if action == self.wnd.keys.ACTION_PRESS:
+            index = key - self.wnd.keys.NUMBER_1  # maps key 1 to index 0
+            if 0 <= index < len(self.audio_files):
+                print(f"Playing: {self.audio_files[index]}")
+                self.play_audio_file_once(index)                
+
 
     def on_render(self, time, frame_time):
         super().on_render(time, frame_time)
 
+        if self.norm_energies is None or self.finished:
+            return  # Nothing to render if no file or playback done
+
         frame_idx = int(self.total_frames * self.get_audio_progress())
-        if frame_idx >= self.total_frames:
-            frame_idx = int(frame_idx%self.total_frames)
+        frame_idx = min(frame_idx, self.total_frames - 1)
 
         for i in range(self.band_count):
             uniform_name = f'u_band{i}'
             if uniform_name in self.program:
                 self.program[uniform_name] = float(self.norm_energies[i, frame_idx])
-            else:
-                print(f"MISSING UNIFORM: {uniform_name}")
-
-
 
 if __name__ == "__main__":
     mglw.run_window_config(FFTShader)

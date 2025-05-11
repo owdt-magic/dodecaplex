@@ -1,7 +1,7 @@
 import moderngl_window as mglw
 
 class UniformImporter(mglw.WindowConfig):
-    window_size = 1600, 900
+    window_size = 1920, 1080
     resource_dir = 'programs'
 
     def __init__(self, **kwargs):
