@@ -125,6 +125,30 @@ void accountCameraControls(Uniforms* uniforms, CameraInfo &camera_info) {
     // Projection matrix: 90° Field of View, display range: 0.1 unit <-> 100 units
 }
 
+void accountSpin(Uniforms* uniforms, CameraInfo &camera_info) {
+    static glm::mat4 rotation = glm::mat4(1.0f);
+    float ratio = float(uniforms->windWidth)/float(uniforms->windHeight);
+    float dt = std::min( float(uniforms->this_time-uniforms->last_time), 0.01f);    
+    float scroll = uniforms->scroll;
+    float dx, dy;
+    dx = dt*sin(scroll/10.0f);
+    dy = dt*cos(scroll/10.0f);
+    rotation *= glm::mat4({
+        cos(dx), 0.0f, 0.0f, sin(dx), 
+        0.0f,     1.0f, 0.0f, 0.0f, 
+        0.0f,     0.0f, 1.0f, 0.0f,     
+       -sin(dx), 0.0f, 0.0f, cos(dx)
+    });
+    rotation *= glm::mat4({
+        1.0f, 0.0f,  0.0f,     0.0f, 
+        0.0f, 1.0f,  0.0f,     0.0f, 
+        0.0f, 0.0f,  cos(dy), sin(dy), 
+        0.0f, 0.0f, -sin(dy), cos(dy)
+    });
+    camera_info.Model       = rotation;
+    camera_info.Projection  = glm::perspective(glm::radians(150.0f), ratio, 0.01f, 100.0f);
+}
+
 GLuint getSpellSubroutine(Uniforms* uniforms, Grimoire& grimoire, GLuint shader_id) {
     static GLuint subroutine_index = 0;    
     float current_time = glfwGetTime();

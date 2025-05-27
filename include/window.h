@@ -34,6 +34,7 @@ struct CameraInfo
     glm::vec3 Location;
 };
 void accountCameraControls(Uniforms* uniforms, CameraInfo& camera_mats);
+void accountSpin(Uniforms* uniforms, CameraInfo& camera_mats);
 GLuint getSpellSubroutine(Uniforms* uniforms, Grimoire& grimoire, GLuint shader_id);
 
 GLFWwindow* initializeWindow(unsigned int start_width, unsigned int start_height, const char* title);

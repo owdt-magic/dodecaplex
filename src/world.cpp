@@ -136,16 +136,19 @@ void PlayerContext::initializeMapData(){
     map_data.establishSides();
 };
 void PlayerContext::populateDodecaplexVAO() {
-    int* surface_ptr;
     normal_web.web_texture = starting_texture;
+    populateDodecaplexVAO(normal_web);
+};
+  
+void PlayerContext::populateDodecaplexVAO(RhombusPattern web_pattern){    
+    int* surface_ptr;
     dodecaplex_buffers.reset();
-
     for (SubSurface surface : map_data.adjacent_surfaces) {
         surface_ptr = surface.indeces_ptr;
         for (int f = 0; f < surface.num_faces; f++) {
             PentagonMemory& memory = map_data.pentagons[*surface_ptr++];
             memory.markStart(dodecaplex_buffers);
-            normal_web.buildArrays(dodecaplex_buffers, memory);
+            web_pattern.buildArrays(dodecaplex_buffers, memory);
             memory.markEnd(dodecaplex_buffers);
         }
     }
@@ -153,6 +156,7 @@ void PlayerContext::populateDodecaplexVAO() {
     dodecaplex_vao = VAO(dodecaplex_buffers);
     dodecaplex_vao.LinkVecs({4,3}, 7);    
 };
+
 void PlayerContext::damageOldPentagon(int map_index) {    
     PentagonMemory& pentagon = map_data.pentagons[map_index];
     PentagonMemory* other;
@@ -298,7 +302,7 @@ mat4 PlayerContext::getModelMatrix(array<bool, 4> WASD, float mouseX, float mous
     if (!player_location->overridden) {
         player_location->focusFromMouse(mouseX, mouseY, dt);
         player_location->positionFromKeys(WASD, dt);  
-        for (int target_index : getFloorSurfaces<1>()){
+        for (int target_index : getFloorSurfaces<0>()){
             footPrints(target_index);
         }
         return player_location->getModel(&map_data.load_cell[0]);

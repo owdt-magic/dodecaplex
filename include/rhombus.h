@@ -57,14 +57,14 @@ struct GoldenRhombus {
         // NOTE: There is no 4 corner version - build the RhombusPattern in an order that accounts!
     void writeUints(GLuint* start, int& head, uint i_offset);
     void writeFloats(GLfloat* start, int& head, PentagonMemory& pentagon, float texture, 
-        bool flip_norms, bool flip_text, bool write_norms);
+        bool flip_norms, bool flip_text, bool write_norms, float norm_scale);
     glm::vec3 corners[4]; // always clockwise!!
     uint indeces[4];
     std::vector<std::pair<GoldenRhombus*, Corner>> shared[4];
     enum SplitType split = SplitType::HORZ;
     enum SkipType skip = SkipType::NONE;
     bool uniques[4] = {true, true, true, true}; // Avoid redundant counting
-    glm::vec4 getTransformedCorner(enum Corner corner, const PentagonMemory& pentagon, bool flip_norms);
+    glm::vec4 getTransformedCorner(enum Corner corner, const PentagonMemory& pentagon, bool flip_norms, float norm_scale);
     void printUints();
     void printFloats();
 private:
@@ -86,6 +86,7 @@ struct VertexRankResult {
 };
 
 struct RhombusPattern {
+    float norm_scale = 1.0f;
     float pentagon_scale;
     float vertical_offset;
     uint offset;

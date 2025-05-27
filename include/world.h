@@ -40,6 +40,7 @@ struct PlayerContext {
     ~PlayerContext();
     void initializeMapData();
     void populateDodecaplexVAO();
+    void populateDodecaplexVAO(RhombusPattern web_pattern);
     void drawMainVAO();
     void drawShrapnelVAOs();
     void damageOldPentagon(int map_index);
