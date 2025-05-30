@@ -44,13 +44,13 @@ struct Grimoire {
 
     std::array<Spell, SPELL_COUNT> all_spells = {
         Spell(0.333f, 1.0f, 
-            "castMining",
-            "releaseMining",
+            (char *) "castMining",
+            (char *) "releaseMining",
             miningSpell,
             emptySpell),
         Spell(0.1f, 0.5f,
-            "releaseMining",
-            "releaseMining",
+            (char *) "releaseMining",
+            (char *) "releaseMining",
             buildingSpell,
             emptySpell)
     };
