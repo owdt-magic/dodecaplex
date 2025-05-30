@@ -5,6 +5,7 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
+set(BUILD_SHARED_LIBS ON)
 find_package(PkgConfig)
 find_package(glfw3 REQUIRED)
 find_package(OpenGL REQUIRED)
@@ -29,10 +30,9 @@ file(GLOB SOURCES "src/*.cpp" "src/glad.c")
 add_executable(game ${SOURCES}  main/game.cpp)
 add_executable(spin ${SOURCES}  main/spin.cpp)
 add_executable(vortex ${SOURCES} main/vortex.cpp)
-add_executable(select ${SOURCES} main/select.cpp)
+add_executable(select src/audio.cpp main/select.cpp)
 
 include(FetchContent)
-set(BUILD_SHARED_LIBS ON)
 FetchContent_Declare(
   raylib
   GIT_REPOSITORY https://github.com/raysan5/raylib.git
@@ -40,19 +40,16 @@ FetchContent_Declare(
 )
 FetchContent_MakeAvailable(raylib)
 
+target_link_libraries(select raylib)
 
+set(GLFW_LIBRARIES "/usr/local/Cellar/glfw/3.4/lib/libglfw.dylib")
 set(COMMON_LIBS
     ${OPENGL_LIBRARIES}
     ${GLFW_LIBRARIES}
     glm::glm
     ${ASSIMP_LIBRARIES}
-    raylib
     -ldl
 )
-
-
-set(GLFW_LIBRARIES "/usr/local/Cellar/glfw/3.4/lib/libglfw.dylib")
 target_link_libraries(game ${COMMON_LIBS})
 target_link_libraries(spin ${COMMON_LIBS})
 target_link_libraries(vortex ${COMMON_LIBS})
-target_link_libraries(select ${COMMON_LIBS})

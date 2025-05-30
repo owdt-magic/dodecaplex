@@ -86,3 +86,20 @@ void processFFT(const std::vector<float>& audioFrame, std::atomic<float>* g_band
     }
 }
 
+std::vector<std::string> GetInputDeviceNames(ma_context* context) {
+    ma_device_info* pPlaybackInfos;
+    ma_uint32 playbackCount;
+    ma_device_info* pCaptureInfos;
+    ma_uint32 captureCount;
+    std::vector<std::string> names;
+
+    if (ma_context_get_devices(context, &pPlaybackInfos, &playbackCount, &pCaptureInfos, &captureCount) != MA_SUCCESS) {
+        return names;
+    }
+
+    for (ma_uint32 i = 0; i < captureCount; ++i) {
+        names.emplace_back(pCaptureInfos[i].name);
+    }
+    return names;
+}
+

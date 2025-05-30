@@ -1,27 +1,8 @@
-// main/select.cpp
 #include <iostream>
 #include <sstream>
 #include <vector>
 #include "raylib.h"
 #include "audio.h"
-
-std::vector<std::string> GetInputDeviceNames(ma_context* context) {
-    ma_device_info* pPlaybackInfos;
-    ma_uint32 playbackCount;
-    ma_device_info* pCaptureInfos;
-    ma_uint32 captureCount;
-    std::vector<std::string> names;
-
-    if (ma_context_get_devices(context, &pPlaybackInfos, &playbackCount, &pCaptureInfos, &captureCount) != MA_SUCCESS) {
-        return names;
-    }
-
-    for (ma_uint32 i = 0; i < captureCount; ++i) {
-        names.emplace_back(pCaptureInfos[i].name);
-    }
-    return names;
-}
-
 
 void launch_instances_parallel(const std::string& command, int instanceCount) {
     for (int i = 0; i < instanceCount; ++i) {
