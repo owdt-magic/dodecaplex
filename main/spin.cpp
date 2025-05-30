@@ -24,8 +24,8 @@ void data_callback(ma_device* device, void* output, const void* input, ma_uint32
     }
 }
 
-int main() {
-    GLFWwindow* window = initializeWindow(1024, 1024, "DODECAPLEX");
+int main(int argc, char** argv) {
+    GLFWwindow* window = initializeWindow(1024, 1024, "SPINNING DODECAPLEX");
 
     //--------- vvv MiniAudio Context vvv --------
         ma_context context;
@@ -35,7 +35,41 @@ int main() {
             return -1;
         }
 
-        ma_device_id selectedInputDevice = select_input_device(&context);
+        ma_device_info* pPlaybackInfos;
+        ma_uint32 playbackCount;
+        ma_device_info* pCaptureInfos;
+        ma_uint32 captureCount;
+
+        if (ma_context_get_devices(&context, &pPlaybackInfos, &playbackCount,
+                                &pCaptureInfos, &captureCount) != MA_SUCCESS) {
+            std::cerr << "Failed to enumerate audio devices.\n";
+            return -1;
+        }
+
+        int selectedIndex = -1;
+
+        // Try to parse from command-line
+        for (int i = 1; i < argc; ++i) {
+            if (std::string(argv[i]) == "--input" && i + 1 < argc) {
+                selectedIndex = std::stoi(argv[i + 1]);
+                break;
+            }
+        }
+
+        // If no CLA, use terminal prompt
+        if (selectedIndex < 0 || static_cast<ma_uint32>(selectedIndex) >= captureCount) {
+            std::cout << "\nAvailable Input Devices:\n";
+            for (ma_uint32 i = 0; i < captureCount; ++i) {
+                std::cout << i << ": " << pCaptureInfos[i].name << "\n";
+            }
+
+            while (selectedIndex < 0 || static_cast<ma_uint32>(selectedIndex) >= captureCount) {
+                std::cout << "Select an input device by number: ";
+                std::cin >> selectedIndex;
+            }
+        }
+
+        ma_device_id selectedInputDevice = pCaptureInfos[selectedIndex].id;
 
         ma_device_config deviceConfig = ma_device_config_init(ma_device_type_capture);
         deviceConfig.capture.pDeviceID = &selectedInputDevice;
@@ -102,7 +136,7 @@ int main() {
         frameCount++;
 
         if (time - previousTime >= 1.0) {
-            std::string fpsTitle = "VORTEX - FPS: " + std::to_string(frameCount);
+            std::string fpsTitle = "SPINING DODECAPLEX - FPS: " + std::to_string(frameCount);
             glfwSetWindowTitle(window, fpsTitle.c_str());
             frameCount = 0;
             previousTime = time;

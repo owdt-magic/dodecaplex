@@ -25,12 +25,34 @@ message(STATUS "OPENGL_LIBRARIES: ${OPENGL_LIBRARIES}")
 message(STATUS "ASSIMP_LIBRARIES: ${ASSIMP_LIBRARIES}")
 message(STATUS "GLM_LIBRARIES: ${GLM_LIBRARIES}")
 
-file(GLOB SOURCES "src/*.cpp")
-add_executable(dodecaplex_game "src/glad.c" ${SOURCES} main/game.cpp)
-add_executable(dodecaplex_spin "src/glad.c" ${SOURCES} main/spin.cpp)
-add_executable(vortex "src/glad.c" ${SOURCES} main/vortex.cpp)
+file(GLOB SOURCES "src/*.cpp" "src/glad.c")
+add_executable(game ${SOURCES}  main/game.cpp)
+add_executable(spin ${SOURCES}  main/spin.cpp)
+add_executable(vortex ${SOURCES} main/vortex.cpp)
+add_executable(select ${SOURCES} main/select.cpp)
+
+include(FetchContent)
+set(BUILD_SHARED_LIBS ON)
+FetchContent_Declare(
+  raylib
+  GIT_REPOSITORY https://github.com/raysan5/raylib.git
+  GIT_TAG 5.0
+)
+FetchContent_MakeAvailable(raylib)
+
+
+set(COMMON_LIBS
+    ${OPENGL_LIBRARIES}
+    ${GLFW_LIBRARIES}
+    glm::glm
+    ${ASSIMP_LIBRARIES}
+    raylib
+    -ldl
+)
+
 
 set(GLFW_LIBRARIES "/usr/local/Cellar/glfw/3.4/lib/libglfw.dylib")
-target_link_libraries(dodecaplex_game ${OPENGL_LIBRARIES} ${GLFW_LIBRARIES} glm::glm ${ASSIMP_LIBRARIES} "-ldl")
-target_link_libraries(dodecaplex_spin ${OPENGL_LIBRARIES} ${GLFW_LIBRARIES} glm::glm ${ASSIMP_LIBRARIES} "-ldl")
-target_link_libraries(vortex ${OPENGL_LIBRARIES} ${GLFW_LIBRARIES} glm::glm ${ASSIMP_LIBRARIES} "-ldl")
+target_link_libraries(game ${COMMON_LIBS})
+target_link_libraries(spin ${COMMON_LIBS})
+target_link_libraries(vortex ${COMMON_LIBS})
+target_link_libraries(select ${COMMON_LIBS})
