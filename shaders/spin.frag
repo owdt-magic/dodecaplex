@@ -11,6 +11,7 @@ uniform vec4 u_audio_bands;
 out vec4 color;
 
 void main(){
-    color = u_audio_bands/25.0;
+    color = u_audio_bands/5.0;
+    color = vec4(color.x/4.0, color.yw, 1.0);
     color /= max(zDepth*1.5, 1.0);
 }

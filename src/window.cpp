@@ -126,7 +126,13 @@ void accountCameraControls(Uniforms* uniforms, CameraInfo &camera_info) {
 }
 
 void accountSpin(Uniforms* uniforms, CameraInfo &camera_info) {
-    static glm::mat4 rotation = glm::mat4(1.0f);
+    const float ds = rand();
+    static glm::mat4 rotation = glm::mat4({
+        1.0f,  0.0f,    0.0f, 0.0f,
+        0.0f,  cos(ds), 0.0f, sin(ds),
+        0.0f,  0.0f,    1.0f, 0.0f,
+        0.0f, -sin(ds), 0.0f, cos(ds)
+    }); // provides variance and avoids horizontal line aliasing
     float ratio = float(uniforms->windWidth)/float(uniforms->windHeight);
     float dt = std::min( float(uniforms->this_time-uniforms->last_time), 0.01f);    
     float scroll = uniforms->scroll;
