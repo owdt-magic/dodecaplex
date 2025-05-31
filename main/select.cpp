@@ -1,13 +1,38 @@
 #include <iostream>
 #include <sstream>
 #include <vector>
+#include <cstdlib>
+#include <csignal>
 #include "raylib.h"
 #include "audio.h"
 
+int monitorCount = 1;
+int primaryMonitor = 0;
+std::vector<std::string> launchedCommands;
+
 void launch_instances_parallel(const std::string& command, int instanceCount) {
+    int m = 0;
     for (int i = 0; i < instanceCount; ++i) {
-        std::string fullCommand = command + " &";
-        system(fullCommand.c_str());
+        std::stringstream ss;
+        if (m == primaryMonitor) m++;        
+        bool fullscreen = (i < monitorCount-1);
+        ss << command
+           << " --monitor " << m++
+           << (fullscreen ? " --fullscreen" : "")
+           << " &";
+        std::string finalCommand = ss.str();
+        launchedCommands.push_back(finalCommand);
+        system(finalCommand.c_str());
+    }
+}
+
+void cleanup_spawned_processes() {
+    // Attempt to kill all known launched commands by binary name
+    // Assumes commands like ./game, ./vortex, etc.
+    std::vector<std::string> processesToKill = {"game", "vortex", "spin"};
+    for (const std::string& proc : processesToKill) {
+        std::string cmd = "pkill -f " + proc;
+        system(cmd.c_str());
     }
 }
 
@@ -16,6 +41,9 @@ int main() {
     const int screenHeight = 500;
     InitWindow(screenWidth, screenHeight, "Select Ritual Mode");
     SetTargetFPS(60);
+
+    monitorCount = GetMonitorCount();
+    primaryMonitor = GetCurrentMonitor();
 
     Rectangle vortexBtn = { 100, 100, 150, 50 };
     Rectangle gameBtn   = { 100, 170, 150, 50 };
@@ -62,25 +90,19 @@ int main() {
 
         if (IsMouseButtonPressed(MOUSE_LEFT_BUTTON)) {
             if (CheckCollisionPointRec(mouse, vortexBtn)) {
-                CloseWindow();
                 std::stringstream ss;
-                ss << "./vortex --instances " << instanceCount << " --input " << selectedDevice;
+                ss << "./vortex" << " --input " << selectedDevice;
                 launch_instances_parallel(ss.str(), instanceCount);
-                break;
             }
             if (CheckCollisionPointRec(mouse, gameBtn)) {
-                CloseWindow();
                 std::stringstream ss;
-                ss << "./game --instances " << instanceCount << " --input " << selectedDevice;
+                ss << "./game" << " --input " << selectedDevice;
                 launch_instances_parallel(ss.str(), instanceCount);
-                break;
             }
             if (CheckCollisionPointRec(mouse, spinBtn)) {
-                CloseWindow();
                 std::stringstream ss;
-                ss << "./spin --instances " << instanceCount << " --input " << selectedDevice;
+                ss << "./spin" << " --input " << selectedDevice;
                 launch_instances_parallel(ss.str(), instanceCount);
-                break;
             }
 
             for (size_t i = 0; i < deviceNames.size(); ++i) {
@@ -100,6 +122,8 @@ int main() {
 
         EndDrawing();
     }
+
+    cleanup_spawned_processes();
 
     ma_context_uninit(&context);
     CloseWindow();

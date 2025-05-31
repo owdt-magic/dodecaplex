@@ -58,50 +58,75 @@ void scrollCallback(GLFWwindow* window, double xoffset, double yoffset) {
     uniforms->scroll += float(yoffset/10.0);
 }
 
-GLFWwindow* initializeWindow(unsigned int start_width, unsigned int start_height, const char* title) {
-    glfwInit();
+
+GLFWwindow* initializeWindow(unsigned int width, unsigned int height, const char* title, bool fullscreen, int monitorIndex) {
+    if (!glfwInit()) {
+        std::cerr << "Failed to initialize GLFW\n";
+        return nullptr;
+    }
+
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 0);
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 
-    GLFWwindow* window = glfwCreateWindow(start_width, start_height, title, NULL, NULL);
-    
-    if (window == NULL) { 
-        std::cout << "Failed to create GLFW window" << std::endl; 
+    // Always create windowed, and apply borderless fullscreen manually if needed
+    glfwWindowHint(GLFW_DECORATED, fullscreen ? GLFW_FALSE : GLFW_TRUE);
+
+    GLFWwindow* window = glfwCreateWindow(width, height, title, nullptr, nullptr);
+    if (!window) {
+        std::cerr << "Failed to create GLFW window\n";
         glfwTerminate();
-        return NULL;
+        return nullptr;
+    }
+
+    if (fullscreen) {
+        int monitorCount;
+        GLFWmonitor** monitors = glfwGetMonitors(&monitorCount);
+        if (monitorIndex < 0 || monitorIndex >= monitorCount) monitorIndex = 0;
+
+        GLFWmonitor* monitor = monitors[monitorIndex];
+        const GLFWvidmode* mode = glfwGetVideoMode(monitor);
+        int xpos, ypos;
+        glfwGetMonitorPos(monitor, &xpos, &ypos);
+        glfwSetWindowAttrib(window, GLFW_DECORATED, GLFW_FALSE);
+        glfwSetWindowPos(window, xpos, ypos);
+        glfwSetWindowSize(window, mode->width, mode->height);
     }
 
     glfwMakeContextCurrent(window);
-	gladLoadGL();
-	glViewport(0, 0, start_width, start_height);
-    
-    int system_width, system_height;
-    glfwGetFramebufferSize(window, &system_width,
-                                   &system_height);
-    glViewport(0, 0, system_width, system_height);
-    // Resize necessary on OSX, due to scaling nonsense...
+    gladLoadGL();
+    glViewport(0, 0, width, height);
 
+    int system_width, system_height;
+    glfwGetFramebufferSize(window, &system_width, &system_height);
+    glViewport(0, 0, system_width, system_height);
+
+    // GLAD loader check
     if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress)) {
-        std::cout << "Failed to initialize GLAD" << std::endl;
-        return NULL;
+        std::cerr << "Failed to initialize GLAD\n";
+        return nullptr;
     }
-    
-    glfwSetKeyCallback(             window, keyCallback);
-    glfwSetScrollCallback(          window, scrollCallback);
-    glfwSetCursorPosCallback(       window, mouseCallback);
-    glfwSetMouseButtonCallback(     window, mouseButtonCallback);
-    glfwSetFramebufferSizeCallback( window, resizeCallback);    
+
+    glfwSetKeyCallback(window, keyCallback);
+    glfwSetScrollCallback(window, scrollCallback);
+    glfwSetCursorPosCallback(window, mouseCallback);
+    glfwSetMouseButtonCallback(window, mouseButtonCallback);
+    glfwSetFramebufferSizeCallback(window, resizeCallback);
 
     Uniforms* uniforms = new Uniforms();
     uniforms->windWidth = system_width;
     uniforms->windHeight = system_height;
     glfwSetWindowUserPointer(window, uniforms);
+
     if (window_is_focused)
         glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 
     printGPUCapabilities();
     return window;
+}
+
+GLFWwindow* initializeWindow(unsigned int start_width, unsigned int start_height, const char* title) {
+    return initializeWindow(start_width, start_height, title, false, 999);
 }
 
 Uniforms* getUniforms(GLFWwindow* window) {

@@ -25,7 +25,19 @@ void data_callback(ma_device* device, void* output, const void* input, ma_uint32
 }
 
 int main(int argc, char** argv) {
-    GLFWwindow* window = initializeWindow(1024, 1024, "SPINNING DODECAPLEX");
+    
+    bool fullscreen = false;
+    int monitorIndex = 0;
+
+    for (int i = 1; i < argc; ++i) {
+        if (std::string(argv[i]) == "--fullscreen") {
+            fullscreen = true;
+        } else if (std::string(argv[i]) == "--monitor" && i + 1 < argc) {
+            monitorIndex = std::stoi(argv[++i]);
+        }
+    }
+
+    GLFWwindow* window = initializeWindow(1024, 1024, "SPINNING DODECAPLEX", fullscreen, monitorIndex);
 
     //--------- vvv MiniAudio Context vvv --------
         ma_context context;
