@@ -7,26 +7,14 @@
 #include <chrono>
 #include <thread>
 #include "debug.h"
+#include "cla.h"
 
 int main(int argc, char** argv) {
-    
-    bool fullscreen = false;
-    int monitorIndex = 0;
-    int audioIndex = 0;
+    CLAs clas = parse(argc, argv);
 
-    for (int i = 1; i < argc; ++i) {
-        if (std::string(argv[i]) == "--input" && i + 1 < argc) {
-            audioIndex = std::stoi(argv[i + 1]);
-        } else if (std::string(argv[i]) == "--fullscreen") {
-            fullscreen = true;
-        } else if (std::string(argv[i]) == "--monitor" && i + 1 < argc) {
-            monitorIndex = std::stoi(argv[++i]);
-        }
-    }
+    GLFWwindow* window = initializeWindow(1024, 1024, "SPINNING DODECAPLEX", clas.fullscreen, clas.monitorIndex);
 
-    GLFWwindow* window = initializeWindow(1024, 1024, "SPINNING DODECAPLEX", fullscreen, monitorIndex);
-
-    AudioNest audio_nest(audioIndex);
+    AudioNest audio_nest(clas.audioIndex);
 
     ShaderProgram world_shader(     SHADER_DIR "/world.vert", \
                                     SHADER_DIR "/prune.geom", \

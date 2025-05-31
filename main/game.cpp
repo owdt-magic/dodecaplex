@@ -6,9 +6,12 @@
 #include <chrono>
 #include <thread>
 #include "debug.h"
+#include "cla.h"
 
-int main() {
-    GLFWwindow* window = initializeWindow(1024, 1024, "DODECAPLEX");
+int main(int argc, char** argv) {
+    CLAs clas = parse(argc, argv);    
+
+    GLFWwindow* window = initializeWindow(1024, 1024, "DODECAPLEX", clas.fullscreen, clas.monitorIndex);
 
     ShaderProgram world_shader(     SHADER_DIR "/world.vert", \
                                     SHADER_DIR "/prune.geom", \

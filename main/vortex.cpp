@@ -5,9 +5,12 @@
 #include <chrono>
 #include <thread>
 #include "debug.h"
+#include "cla.h"
 
-int main() {
-    GLFWwindow* window = initializeWindow(1024, 1024, "VORTEX");
+int main(int argc, char** argv) {
+    CLAs clas = parse(argc, argv);    
+
+    GLFWwindow* window = initializeWindow(1024, 1024, "VORTEX", clas.fullscreen, clas.monitorIndex);
 
     ShaderProgram vortex_shader( ADD_SHADER_DIR "/vertex.glsl", \
                                  ADD_SHADER_DIR "/purple-vortex.glsl", false);
