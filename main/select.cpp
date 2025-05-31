@@ -8,7 +8,6 @@
 
 int monitorCount = 1;
 int primaryMonitor = 0;
-std::vector<std::string> launchedCommands;
 
 void launch_instances_parallel(const std::string& command, int instanceCount) {
     int m = 0;
@@ -21,7 +20,6 @@ void launch_instances_parallel(const std::string& command, int instanceCount) {
            << (fullscreen ? " --fullscreen" : "")
            << " &";
         std::string finalCommand = ss.str();
-        launchedCommands.push_back(finalCommand);
         system(finalCommand.c_str());
     }
 }
