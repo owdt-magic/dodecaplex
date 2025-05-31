@@ -8,29 +8,16 @@
 #include <thread>
 #include "debug.h"
 
-constexpr int BUFFER_SIZE = 2048;
-
-std::vector<float> g_audioBuffer(BUFFER_SIZE);
-std::atomic<float> g_bandAmplitudes[4] = {0.0f, 0.0f, 0.0f, 0.0f};
-
-void data_callback(ma_device* device, void* output, const void* input, ma_uint32 frameCount) {
-    static size_t g_writeHead = 0;
-    const float* in = (const float*)input;
-    for (ma_uint32 i = 0; i < frameCount && g_writeHead < BUFFER_SIZE; ++i) {
-        g_audioBuffer[g_writeHead++] = in[i]; // mono
-    }
-    if (g_writeHead >= BUFFER_SIZE) {
-        g_writeHead = 0;
-    }
-}
-
 int main(int argc, char** argv) {
     
     bool fullscreen = false;
     int monitorIndex = 0;
+    int audioIndex = 0;
 
     for (int i = 1; i < argc; ++i) {
-        if (std::string(argv[i]) == "--fullscreen") {
+        if (std::string(argv[i]) == "--input" && i + 1 < argc) {
+            audioIndex = std::stoi(argv[i + 1]);
+        } else if (std::string(argv[i]) == "--fullscreen") {
             fullscreen = true;
         } else if (std::string(argv[i]) == "--monitor" && i + 1 < argc) {
             monitorIndex = std::stoi(argv[++i]);
@@ -39,64 +26,7 @@ int main(int argc, char** argv) {
 
     GLFWwindow* window = initializeWindow(1024, 1024, "SPINNING DODECAPLEX", fullscreen, monitorIndex);
 
-    //--------- vvv MiniAudio Context vvv --------
-        ma_context context;
-        ma_result result = ma_context_init(NULL, 0, NULL, &context);
-        if (result != MA_SUCCESS) {
-            std::cerr << "Failed to initialize miniaudio context.\n";
-            return -1;
-        }
-
-        ma_device_info* pPlaybackInfos;
-        ma_uint32 playbackCount;
-        ma_device_info* pCaptureInfos;
-        ma_uint32 captureCount;
-
-        if (ma_context_get_devices(&context, &pPlaybackInfos, &playbackCount,
-                                &pCaptureInfos, &captureCount) != MA_SUCCESS) {
-            std::cerr << "Failed to enumerate audio devices.\n";
-            return -1;
-        }
-
-        int selectedIndex = -1;
-
-        // Try to parse from command-line
-        for (int i = 1; i < argc; ++i) {
-            if (std::string(argv[i]) == "--input" && i + 1 < argc) {
-                selectedIndex = std::stoi(argv[i + 1]);
-                break;
-            }
-        }
-
-        // If no CLA, use terminal prompt
-        if (selectedIndex < 0 || static_cast<ma_uint32>(selectedIndex) >= captureCount) {
-            std::cout << "\nAvailable Input Devices:\n";
-            for (ma_uint32 i = 0; i < captureCount; ++i) {
-                std::cout << i << ": " << pCaptureInfos[i].name << "\n";
-            }
-
-            while (selectedIndex < 0 || static_cast<ma_uint32>(selectedIndex) >= captureCount) {
-                std::cout << "Select an input device by number: ";
-                std::cin >> selectedIndex;
-            }
-        }
-
-        ma_device_id selectedInputDevice = pCaptureInfos[selectedIndex].id;
-
-        ma_device_config deviceConfig = ma_device_config_init(ma_device_type_capture);
-        deviceConfig.capture.pDeviceID = &selectedInputDevice;
-        deviceConfig.capture.format   = ma_format_f32;
-        deviceConfig.capture.channels = 1;
-        deviceConfig.sampleRate       = SAMPLE_RATE;
-        deviceConfig.dataCallback     = data_callback;
-
-        ma_device device;
-        if (ma_device_init(&context, &deviceConfig, &device) != MA_SUCCESS) {
-            std::cerr << "Failed to initialize audio device.\n";
-            return -1;
-        }
-        ma_device_start(&device);
-    //--------- ^^^ MiniAudio Context ^^^ --------
+    AudioNest audio_nest(audioIndex);
 
     ShaderProgram world_shader(     SHADER_DIR "/world.vert", \
                                     SHADER_DIR "/prune.geom", \
@@ -170,13 +100,13 @@ int main(int argc, char** argv) {
                                     uniforms->mouseY);
         glUniform1f(U_SCROLL,       uniforms->scroll);
         glUniform1f(U_TIME, time);
+        
+        audio_nest.processFFT();
 
-        processFFT(g_audioBuffer, g_bandAmplitudes);
-
-        glUniform4f(U_BANDS, g_bandAmplitudes[0],
-                             g_bandAmplitudes[1],
-                             g_bandAmplitudes[2],
-                             g_bandAmplitudes[3]);
+        glUniform4f(U_BANDS, audio_nest.g_bandAmplitudes[0],
+                             audio_nest.g_bandAmplitudes[1],
+                             audio_nest.g_bandAmplitudes[2],
+                             audio_nest.g_bandAmplitudes[3]);
 
         player_context.drawMainVAO();
 

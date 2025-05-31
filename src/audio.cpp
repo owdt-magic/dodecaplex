@@ -3,6 +3,8 @@
 #define MINIAUDIO_IMPLEMENTATION
 #include "audio.h"
 
+std::array<float, BUFFER_SIZE> AudioNest::g_audioBuffer = {};
+
 ma_device_id select_input_device(ma_context* context) {
     ma_device_info* pPlaybackInfos;
     ma_uint32 playbackCount;
@@ -51,11 +53,11 @@ void fft(std::vector<std::complex<float>>& data) {
 }
 
 // Main function to process FFT and extract 4 bands
-void processFFT(const std::vector<float>& audioFrame, std::atomic<float>* g_bandAmplitudes) {
-    size_t N = audioFrame.size();
+void AudioNest::processFFT() {
+    size_t N = BUFFER_SIZE;
     std::vector<std::complex<float>> data(N);
     for (size_t i = 0; i < N; ++i) {
-        data[i] = std::complex<float>(audioFrame[i], 0.0f);
+        data[i] = std::complex<float>(g_audioBuffer[i], 0.0f);
     }
 
     fft(data); // In-place
@@ -103,3 +105,36 @@ std::vector<std::string> GetInputDeviceNames(ma_context* context) {
     return names;
 }
 
+void AudioNest::startAudioDevice(){
+    ma_result result = ma_context_init(NULL, 0, NULL, &context);
+    if (result != MA_SUCCESS) {
+        std::cerr << "Failed to initialize miniaudio context.\n";
+        return;
+    }
+
+    ma_device_info* pPlaybackInfos;
+    ma_uint32 playbackCount;
+    ma_device_info* pCaptureInfos;
+    ma_uint32 captureCount;
+
+    if (ma_context_get_devices(&context, &pPlaybackInfos, &playbackCount,
+                            &pCaptureInfos, &captureCount) != MA_SUCCESS) {
+        std::cerr << "Failed to enumerate audio devices.\n";
+        return;
+    }
+
+    ma_device_id selectedInputDevice = pCaptureInfos[deviceIndex].id;
+
+    ma_device_config deviceConfig = ma_device_config_init(ma_device_type_capture);
+    deviceConfig.capture.pDeviceID = &selectedInputDevice;
+    deviceConfig.capture.format   = ma_format_f32;
+    deviceConfig.capture.channels = 1;
+    deviceConfig.sampleRate       = SAMPLE_RATE;
+    deviceConfig.dataCallback     = AudioNest::data_callback;
+
+    if (ma_device_init(&context, &deviceConfig, &device) != MA_SUCCESS) {
+        std::cerr << "Failed to initialize audio device.\n";
+        return;
+    }
+    ma_device_start(&device);    
+};
