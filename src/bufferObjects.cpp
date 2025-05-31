@@ -173,3 +173,21 @@ void VAO::UpdateAttribSubset(EBO& EBO, GLintptr offset, GLsizeiptr size, const v
 void VAO::Bind() 	{ glBindVertexArray(ID);}
 void VAO::Unbind() 	{ glBindVertexArray(0); }
 void VAO::Delete() 	{ glDeleteVertexArrays(1, &ID); }
+
+VAO rasterPipeVAO(){
+	// Simple VAO to cover the screen, good for raster only shader art.
+    GLfloat quadVertices[] = {		
+        -1.0f, -1.0f,  // bottom left
+        1.0f, -1.0f,  // bottom right
+        1.0f,  1.0f,  // top right
+        -1.0f,  1.0f   // top left
+    };
+    GLuint quadIndices[] = {
+        0, 1, 2,  // first triangle
+        2, 3, 0   // second triangle
+    };
+    VAO fullscreenQuad(quadVertices, sizeof(quadVertices), quadIndices, sizeof(quadIndices));
+    fullscreenQuad.LinkVecs({2}, 2);
+
+	return fullscreenQuad;
+};

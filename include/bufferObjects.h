@@ -93,4 +93,6 @@ public:
 	void Delete();
 };
 
+VAO rasterPipeVAO();
+
 #endif

@@ -20,18 +20,7 @@ int main(int argc, char** argv) {
     float time;
     GLuint  U_RESOLUTION, U_MOUSE, U_SCROLL, U_TIME;
 
-    GLfloat quadVertices[] = {
-        -1.0f, -1.0f,  // bottom left
-        1.0f, -1.0f,  // bottom right
-        1.0f,  1.0f,  // top right
-        -1.0f,  1.0f   // top left
-    };
-    GLuint quadIndices[] = {
-        0, 1, 2,  // first triangle
-        2, 3, 0   // second triangle
-    };
-    VAO fullscreenQuad(quadVertices, sizeof(quadVertices), quadIndices, sizeof(quadIndices));
-    fullscreenQuad.LinkVecs({2}, 2);
+    VAO fullscreenQuad = rasterPipeVAO();
 
     static double previousTime = glfwGetTime();
     static int frameCount = 0;
