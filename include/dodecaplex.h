@@ -2,6 +2,7 @@
 #define DODECAPLEX_H
 
 #include "dmath.h"
+#include <glad/glad.h>
 
 static GLfloat dodecaplex_cell_verts[600*4] = { // points*dimensions
             0.0f,             2.0f,             2.0f,             0.0f,

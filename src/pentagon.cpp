@@ -1,4 +1,5 @@
 #include "pentagon.h"
+#include "dodecaplex.h"
 #include <Eigen/Dense>
 
 using namespace glm;

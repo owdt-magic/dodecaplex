@@ -2,7 +2,6 @@
 #define PENTAGON_H
 
 #include "dmath.h"
-#include "dodecaplex.h"
 #include "bufferObjects.h"
 #include <array>
 
