@@ -30,18 +30,38 @@ file(GLOB SOURCES "src/*.cpp" "src/glad.c")
 add_executable(game ${SOURCES}  main/game.cpp)
 add_executable(spin ${SOURCES}  main/spin.cpp)
 add_executable(vortex ${SOURCES} main/vortex.cpp)
-add_executable(select src/audio.cpp main/select.cpp)
 
 include(FetchContent)
 FetchContent_Declare(
-  raylib
-  GIT_REPOSITORY https://github.com/raysan5/raylib.git
-  GIT_TAG 5.0
+  imgui
+  GIT_REPOSITORY https://github.com/ocornut/imgui.git
+  GIT_TAG        v1.90.4
 )
-FetchContent_MakeAvailable(raylib)
+FetchContent_MakeAvailable(imgui)
 
-target_link_libraries(select raylib)
+# ImGui backends manually included
+set(IMGUI_BACKENDS
+  ${imgui_SOURCE_DIR}/backends/imgui_impl_glfw.cpp
+  ${imgui_SOURCE_DIR}/backends/imgui_impl_opengl3.cpp
+)
 
+add_executable(select
+  main/select.cpp
+  src/audio.cpp
+  src/window.cpp
+  ${imgui_SOURCE_DIR}/imgui.cpp
+  ${imgui_SOURCE_DIR}/imgui_draw.cpp
+  ${imgui_SOURCE_DIR}/imgui_widgets.cpp
+  ${imgui_SOURCE_DIR}/imgui_tables.cpp
+  ${IMGUI_BACKENDS}
+)
+
+target_include_directories(select PRIVATE
+  ${imgui_SOURCE_DIR}
+  ${imgui_SOURCE_DIR}/backends
+)
+
+target_link_libraries(select glfw ${OPENGL_LIBRARIES})
 set(GLFW_LIBRARIES "/usr/local/Cellar/glfw/3.4/lib/libglfw.dylib")
 set(COMMON_LIBS
     ${OPENGL_LIBRARIES}
