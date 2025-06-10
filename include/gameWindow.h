@@ -35,6 +35,7 @@ GLFWwindow* initializeWindow(unsigned int start_width, unsigned int start_height
 
 void accountCameraControls(Uniforms* uniforms, CameraInfo& camera_mats);
 void accountSpin(Uniforms* uniforms, CameraInfo& camera_mats);
+void accountSpin(Uniforms* uniforms, CameraInfo& camera_mats, float scale, float warp);
 
 GLuint getSpellSubroutine(Uniforms* uniforms, Grimoire& grimoire, GLuint shader_id);
 void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mods);

@@ -1,20 +1,26 @@
+// POSIX and system-level
 #include <fcntl.h>
 #include <sys/mman.h>
 #include <unistd.h>
+#include <cstdlib>
+
+// C++ Standard Library
 #include <iostream>
 #include <sstream>
 #include <vector>
 #include <string>
-#include <cstdlib>
 #include <algorithm>
 
+// ImGui
 #include <imgui.h>
 #include <imgui_impl_glfw.h>
 #include <imgui_impl_opengl3.h>
 
-#include "window.h"
+// Project-local
 #include "audio.h"
 #include "sharedUniforms.h"
+#include "window.h"
+#include "config.h"
 
 int monitorCount = 1;
 int primaryMonitor = 0;
@@ -49,11 +55,23 @@ int main() {
 
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();
-    ImGuiIO& io = ImGui::GetIO();
-    (void)io;
-    
-    const char* glsl_version = "#version 410";
     ImGui::StyleColorsDark();
+    ImGuiIO& io = ImGui::GetIO();
+    ImGuiStyle& style = ImGui::GetStyle();
+    ImVec4* colors = style.Colors;
+
+    colors[ImGuiCol_WindowBg]      = ImVec4(0.04f, 0.01f, 0.06f, 1.00f);
+    colors[ImGuiCol_Text]          = ImVec4(0.85f, 0.75f, 0.95f, 1.00f);
+    colors[ImGuiCol_TitleBg]       = ImVec4(0.1f, 0.0f, 0.15f, 1.00f);
+    colors[ImGuiCol_TitleBgActive] = ImVec4(0.3f, 0.0f, 0.4f, 1.00f);
+    colors[ImGuiCol_FrameBg]       = ImVec4(0.2f, 0.1f, 0.25f, 1.00f);
+    colors[ImGuiCol_Button]        = ImVec4(0.25f, 0.10f, 0.30f, 1.00f);
+    colors[ImGuiCol_ButtonHovered] = ImVec4(0.45f, 0.25f, 0.55f, 1.00f);
+    colors[ImGuiCol_Border]        = ImVec4(0.4f, 0.0f, 0.6f, 0.4f);
+    
+    io.Fonts->AddFontFromFileTTF(GLOBAL_FONT, 30.0f);
+    
+    const char* glsl_version = "#version 410";    
     ImGui_ImplGlfw_InitForOpenGL(window, true);
     ImGui_ImplOpenGL3_Init(glsl_version);
 
@@ -116,8 +134,8 @@ int main() {
             if (ImGui::BeginTabItem("Control")) {
                 ImGui::SliderFloat("Scale", &uniforms.data->scale, 0.0f, 1.0f);
                 ImGui::SliderFloat("Brightness", &uniforms.data->brightness, 0.0f, 1.0f);
-                ImGui::SliderFloat("Speed", &uniforms.data->speed, 0.0f, 1.0f);
-                ImGui::SliderFloat("Warp", &uniforms.data->warp, 0.0f, 1.0f);
+                ImGui::SliderFloat("Speed", &uniforms.data->speed, 0.0f, 2.0f);
+                ImGui::SliderFloat("FOV", &uniforms.data->fov, 0.0f, 180.0f);
                 ImGui::EndTabItem();
             }
             ImGui::EndTabBar();

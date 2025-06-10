@@ -9,7 +9,7 @@ layout(location = 1) in vec3 model_textures;
 
 void main(){
     mat4 supplemental_rotation = mat4(1.0);
-    vec4 bands = u_audio_bands/50.0;
+    vec4 bands = u_audio_bands/200.0;
     supplemental_rotation *= mat4( 
         1.0,  0.0,    0.0, 0.0,
         0.0,  cos(bands.x), 0.0, sin(bands.x),
