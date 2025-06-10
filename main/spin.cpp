@@ -11,6 +11,7 @@
 #include <thread>
 #include "debug.h"
 #include "cla.h"
+#include "sharedUniforms.h"
 
 int main(int argc, char** argv) {
     CLAs clas = parse(argc, argv);
@@ -29,19 +30,7 @@ int main(int argc, char** argv) {
 
     Uniforms* uniforms = getUniforms(window);
     
-    const char* scaleFile = "/tmp/scale.dat";
-    float defaultScale = 1.0f;
-    float* scale = &defaultScale;
-
-    int fd = open(scaleFile, O_RDONLY);
-    if (fd != -1) {
-        void* mmap_ptr = mmap(NULL, sizeof(float), PROT_READ, MAP_SHARED, fd, 0);
-        if (mmap_ptr != MAP_FAILED) {
-            scale = (float*)mmap_ptr;
-        } else {
-            close(fd);
-        }
-    }
+    SharedUniforms shared_uniforms(false);
 
 
     float time;
@@ -118,7 +107,7 @@ int main(int argc, char** argv) {
                              audio_nest.g_bandAmplitudes[2],
                              audio_nest.g_bandAmplitudes[3]);
 
-        glUniform1f(U_SCALE, *scale);
+        glUniform1f(U_SCALE, shared_uniforms.data->scale);
 
         player_context.drawMainVAO();
 

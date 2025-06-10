@@ -57,7 +57,7 @@ int main() {
     ImGui_ImplGlfw_InitForOpenGL(window, true);
     ImGui_ImplOpenGL3_Init(glsl_version);
 
-    SharedUniforms uniforms;
+    SharedUniforms uniforms(true);
 
     GLFWmonitor** monitors = glfwGetMonitors(&monitorCount);
     primaryMonitor = 0;
