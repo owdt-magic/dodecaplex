@@ -1,6 +1,9 @@
+#include <fcntl.h>
+#include <sys/mman.h>
+#include <unistd.h>
 #include "audio.h"
 #include "config.h"
-#include "window.h"
+#include "gameWindow.h"
 #include "shaderClass.h"
 #include "bufferObjects.h"
 #include "models.h"
@@ -22,11 +25,27 @@ int main(int argc, char** argv) {
     
     PlayerContext player_context;
     player_context.initializeMapData();
+    //TextureLibrary texture_library;
 
     Uniforms* uniforms = getUniforms(window);
     
+    const char* scaleFile = "/tmp/scale.dat";
+    float defaultScale = 1.0f;
+    float* scale = &defaultScale;
+
+    int fd = open(scaleFile, O_RDONLY);
+    if (fd != -1) {
+        void* mmap_ptr = mmap(NULL, sizeof(float), PROT_READ, MAP_SHARED, fd, 0);
+        if (mmap_ptr != MAP_FAILED) {
+            scale = (float*)mmap_ptr;
+        } else {
+            close(fd);
+        }
+    }
+
+
     float time;
-    GLuint U_RESOLUTION, U_MOUSE, U_SCROLL, U_TIME, U_BANDS;
+    GLuint U_RESOLUTION, U_MOUSE, U_SCROLL, U_TIME, U_BANDS, U_SCALE;
 
     CameraInfo cam;
 
@@ -47,12 +66,15 @@ int main(int argc, char** argv) {
         if (uniforms->loading) {
             world_shader.Load();
             world_shader.Activate();
+            
+            //texture_library.linkPentagonLibrary(world_shader.ID);
 
             U_RESOLUTION  = glGetUniformLocation(world_shader.ID, "u_resolution");
             U_MOUSE       = glGetUniformLocation(world_shader.ID, "u_mouse");
             U_SCROLL      = glGetUniformLocation(world_shader.ID, "u_scroll");
             U_TIME        = glGetUniformLocation(world_shader.ID, "u_time");
             U_BANDS       = glGetUniformLocation(world_shader.ID, "u_audio_bands");
+            U_SCALE       = glGetUniformLocation(world_shader.ID, "u_scale");
             
             uniforms->last_time         = glfwGetTime();
             uniforms->loading           = false;
@@ -95,6 +117,8 @@ int main(int argc, char** argv) {
                              audio_nest.g_bandAmplitudes[1],
                              audio_nest.g_bandAmplitudes[2],
                              audio_nest.g_bandAmplitudes[3]);
+
+        glUniform1f(U_SCALE, *scale);
 
         player_context.drawMainVAO();
 

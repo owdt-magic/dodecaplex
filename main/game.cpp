@@ -1,5 +1,5 @@
 #include "config.h"
-#include "window.h"
+#include "gameWindow.h"
 #include "shaderClass.h"
 #include "bufferObjects.h"
 #include "models.h"
