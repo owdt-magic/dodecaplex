@@ -8,12 +8,16 @@
 #include "cla.h"
 
 int main(int argc, char** argv) {
-    CLAs clas = parse(argc, argv);    
+    CLAs clas = parse(argc, argv);
 
-    GLFWwindow* window = initializeWindow(1024, 1024, "VORTEX", clas.fullscreen, clas.monitorIndex);
+    GLFWwindow* window = initializeWindow(1024, 1024, "FRAGMENT", clas.fullscreen, clas.monitorIndex);
 
-    ShaderProgram vortex_shader( ADD_SHADER_DIR "/vertex.glsl", \
-                                 ADD_SHADER_DIR "/purple-vortex.glsl", false);
+    std::string fragShaderPath = clas.shaderPath.empty()
+        ? std::string(FRAG_SHADER_DIR) + "/purple-vortex.frag"
+        : clas.shaderPath;
+    std::cout << fragShaderPath << std::endl;
+
+    ShaderProgram vortex_shader( FRAG_SHADER_DIR "/rect.vert", fragShaderPath, false);
 
     Uniforms* uniforms = getUniforms(window);
     
@@ -46,7 +50,7 @@ int main(int argc, char** argv) {
         frameCount++;
 
         if (time - previousTime >= 1.0) {
-            std::string fpsTitle = "VORTEX - FPS: " + std::to_string(frameCount);
+            std::string fpsTitle = "FRAGMENT - FPS: " + std::to_string(frameCount);
             glfwSetWindowTitle(window, fpsTitle.c_str());
             frameCount = 0;
             previousTime = time;

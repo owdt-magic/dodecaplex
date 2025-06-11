@@ -30,7 +30,7 @@ message(STATUS "GLM_LIBRARIES: ${GLM_LIBRARIES}")
 file(GLOB SOURCES "src/*.cpp" "src/glad.c")
 add_executable(game ${SOURCES}  main/game.cpp)
 add_executable(spin ${SOURCES}  main/spin.cpp)
-add_executable(vortex ${SOURCES} main/vortex.cpp)
+add_executable(fragment ${SOURCES} main/fragment.cpp)
 
 include(FetchContent)
 FetchContent_Declare(
@@ -73,4 +73,4 @@ set(COMMON_LIBS
 )
 target_link_libraries(game ${COMMON_LIBS})
 target_link_libraries(spin ${COMMON_LIBS})
-target_link_libraries(vortex ${COMMON_LIBS})
+target_link_libraries(fragment ${COMMON_LIBS})

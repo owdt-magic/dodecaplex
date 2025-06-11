@@ -25,6 +25,19 @@
 int monitorCount = 1;
 int primaryMonitor = 0;
 
+#include <filesystem>
+namespace fs = std::filesystem;
+
+std::vector<std::string> ListFragmentShaders(const std::string& directory) {
+    std::vector<std::string> files;
+    for (const auto& entry : fs::directory_iterator(directory)) {
+        if (entry.is_regular_file() && entry.path().extension() == ".frag") {
+            files.push_back(entry.path().filename().string());
+        }
+    }
+    return files;
+}
+
 void launch_instances_parallel(const std::string& command, int instanceCount) {
     int m = 0;
     for (int i = 0; i < instanceCount; ++i) {
@@ -45,6 +58,23 @@ void cleanup_spawned_processes() {
         std::string cmd = "pkill -f " + proc;
         system(cmd.c_str());
     }
+}
+
+template<typename T>
+bool dropDown(const std::vector<T>& options, const char* label, int& selectedIndex) {
+    bool changed = false;
+    if (ImGui::BeginCombo(label, options[selectedIndex].c_str())) {
+        for (int i = 0; i < options.size(); ++i) {
+            bool is_selected = (selectedIndex == i);
+            if (ImGui::Selectable(options[i].c_str(), is_selected)) {
+                selectedIndex = i;
+                changed = true;
+            }
+            if (is_selected) ImGui::SetItemDefaultFocus();
+        }
+        ImGui::EndCombo();
+    }
+    return changed;
 }
 
 int main() {
@@ -81,7 +111,7 @@ int main() {
     primaryMonitor = 0;
 
     int instanceCount = 1;
-    int selectedDevice = 0;
+    int selectedDeviceIndex = 0;
 
     ma_context context;
     ma_context_config contextConfig = ma_context_config_init();
@@ -89,6 +119,9 @@ int main() {
     auto deviceNames = GetInputDeviceNames(&context);
 
     int tabIndex = 0;
+
+    std::vector<std::string> fragShaders = ListFragmentShaders(FRAG_SHADER_DIR);
+    int selectedShaderIndex = 0;
 
     while (!glfwWindowShouldClose(window)) {
         glfwPollEvents();
@@ -101,30 +134,25 @@ int main() {
 
         if (ImGui::BeginTabBar("MainTabs")) {
             if (ImGui::BeginTabItem("Launch")) {
-                ImGui::Text("Launch Visuals");
-                ImGui::InputInt("Instances", &instanceCount);
-                ImGui::Text("Audio Input:");
-                for (size_t i = 0; i < deviceNames.size(); ++i) {
-                    if (ImGui::Selectable(deviceNames[i].c_str(), selectedDevice == i)) {
-                        selectedDevice = i;
-                    }
-                }
-
-                if (ImGui::Button("Launch Vortex")) {
-                    std::stringstream ss;
-                    ss << "./vortex --input " << selectedDevice;
-                    launch_instances_parallel(ss.str(), instanceCount);
-                }
-
                 if (ImGui::Button("Launch Game")) {
-                    std::stringstream ss;
-                    ss << "./game --input " << selectedDevice;
-                    launch_instances_parallel(ss.str(), instanceCount);
+                    system("./game");
                 }
-
+                
+                ImGui::InputInt("Instances", &instanceCount);
+                dropDown(deviceNames, "Audio Input", selectedDeviceIndex);
+                
                 if (ImGui::Button("Launch Spin")) {
                     std::stringstream ss;
-                    ss << "./spin --input " << selectedDevice;
+                    ss << "./spin --input " << selectedDeviceIndex;
+                    launch_instances_parallel(ss.str(), instanceCount);
+                }
+
+                dropDown(fragShaders, "Fragment Shader", selectedShaderIndex);
+
+                if (ImGui::Button("Launch Fragment")) {
+                    std::stringstream ss;
+                    ss << "./fragment --input " << selectedDeviceIndex
+                        << " --shader " << FRAG_SHADER_DIR << "/" << fragShaders[selectedShaderIndex].c_str();
                     launch_instances_parallel(ss.str(), instanceCount);
                 }
 

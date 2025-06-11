@@ -10,6 +10,8 @@ CLAs parse(int argc, char** argv){
             out.fullscreen = true;
         } else if (std::string(argv[i]) == "--monitor" && i + 1 < argc) {
             out.monitorIndex = std::stoi(argv[++i]);
+        } else if (std::string(argv[i]) == "--shader" && i + 1 < argc) {
+            out.shaderPath = argv[++i];
         }
     }
     return out;

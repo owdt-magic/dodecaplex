@@ -4,6 +4,7 @@
 #define SHADER_DIR "@SHADER_DIR@"
 #define TEXTURE_DIR "@TEXTURE_DIR@"
 #define ADD_SHADER_DIR "@ADD_SHADER_DIR@"
+#define FRAG_SHADER_DIR "@SHADER_DIR@/simple_fragment"
 #define GLOBAL_FONT "@GLOBAL_FONT@"
 #define MOUSE_SCALE 5000.0f
 

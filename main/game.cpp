@@ -11,7 +11,7 @@
 int main(int argc, char** argv) {
     CLAs clas = parse(argc, argv);    
 
-    GLFWwindow* window = initializeWindow(1024, 1024, "DODECAPLEX", clas.fullscreen, clas.monitorIndex);
+    GLFWwindow* window = initializeWindow(1024, 1024, "DODECAPLEX");
 
     ShaderProgram world_shader(     SHADER_DIR "/world.vert", \
                                     SHADER_DIR "/prune.geom", \
