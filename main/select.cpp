@@ -1,10 +1,4 @@
-// POSIX and system-level
-#include <fcntl.h>
-#include <sys/mman.h>
-#include <unistd.h>
 #include <cstdlib>
-
-// C++ Standard Library
 #include <iostream>
 #include <sstream>
 #include <vector>
@@ -161,7 +155,7 @@ int main() {
 
             if (ImGui::BeginTabItem("Control")) {
                 ImGui::SliderFloat("Scale", &uniforms.data->scale, 0.0f, 1.0f);
-                ImGui::SliderFloat("Brightness", &uniforms.data->brightness, 0.0f, 1.0f);
+                ImGui::SliderFloat("Brightness", &uniforms.data->brightness, 0.0f, 2.0f);
                 ImGui::SliderFloat("Speed", &uniforms.data->speed, 0.0f, 2.0f);
                 ImGui::SliderFloat("FOV", &uniforms.data->fov, 0.0f, 180.0f);
                 ImGui::EndTabItem();

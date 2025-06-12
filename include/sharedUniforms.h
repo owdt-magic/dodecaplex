@@ -1,5 +1,7 @@
-
 #pragma once
+#include <fcntl.h>
+#include <sys/mman.h>
+#include <unistd.h>
 
 struct UniformStructure {
     float scale;
@@ -7,7 +9,7 @@ struct UniformStructure {
     float speed;
     float fov;
     UniformStructure() :    scale(0.0f),
-                            brightness(0.5f),
+                            brightness(1.0f),
                             speed(1.0f),
                             fov(150.0f) {};
 };

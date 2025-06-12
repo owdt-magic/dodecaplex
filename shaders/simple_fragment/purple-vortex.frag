@@ -6,6 +6,7 @@ uniform vec2 u_resolution;
 uniform vec2 u_mouse;
 uniform float u_time;
 uniform float u_scroll;
+#include sharedUniforms.glsl
 
 const float FOV = 0.8;
 const int MAX_STEPS = 32;
@@ -23,6 +24,7 @@ vec2 radial_mod(in vec2 source, in float radius, in float arc_len){
 
 
 float map(in vec3 from){
+    float time = u_time*u_speed;
     float orig_x = from.x;
     float rot = from.z/4.0 + from.y/2.0;
     float offset = cross(from.xyz, vec3(0., 0., 1.)).x;
@@ -31,15 +33,15 @@ float map(in vec3 from){
     pR(from.zy, rot); 
     pR(from.zx, -rot/10.); 
     
-    pR(from.yz, (u_time/5.0));//+from.x);
-    from.x = mod(from.x-u_time, spacing)-spacing/2.;
-    from.yz = radial_mod(from.yz, VIEW_HEIGHT*(1.25+cos(u_time)/4.0), PI/5.);
+    pR(from.yz, (time/5.0));//+from.x);
+    from.x = mod(from.x-time, spacing)-spacing/2.;
+    from.yz = radial_mod(from.yz, VIEW_HEIGHT*(1.25+cos(time)/4.0), PI/5.);
 
     float angle = atan(from.y, from.x);
     
-    pR(from.zy, 1.45*u_time+angle);
+    pR(from.zy, 1.45*time+angle);
     pR(from.yx, angle);
-    return max(fDodecahedron(from, (cos(u_time)+2.0, 10.)/1.5),fIcosahedron(from, .9));
+    return max(fDodecahedron(from, (cos(time)+2.0, 10.)/1.5),fIcosahedron(from, .9));
 }
 
 
@@ -114,13 +116,18 @@ vec3 render(in vec2 uv) {
 
 void main() {
     vec2 uv = (2.0 * gl_FragCoord.xy - u_resolution.xy) / u_resolution.y;
-    //AA
-    float delta = 0.001;
-    /*vec3 col = (render(uv-vec2(0.0,delta))+render(uv+vec2(delta,0.0))
+    
+    // AA
+    /*float delta = 0.001;
+    vec3 col = (render(uv-vec2(0.0,delta))+render(uv+vec2(delta,0.0))
     +render(uv-vec2(delta,0.0))+render(uv+vec2(0.0,delta)))/4.0;*/
     vec3 col = render(uv);
-
+    uv *= u_resolution.yy/u_resolution;
+    
     // gamma correction
-    col = pow(col, vec3(0.4545));
+    col = pow(atan(col*u_brightness), vec3(u_scale));
+    
+    // vignette
+    col = col*(1.0-pow(length(uv)/1.2, u_fov/100.));
     fragColor = vec4(col, 1.0);
 }

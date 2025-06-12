@@ -2,6 +2,7 @@
 #include "gameWindow.h"
 #include "shaderClass.h"
 #include "bufferObjects.h"
+#include "sharedUniforms.h"
 #include <chrono>
 #include <thread>
 #include "debug.h"
@@ -20,9 +21,11 @@ int main(int argc, char** argv) {
     ShaderProgram vortex_shader( FRAG_SHADER_DIR "/rect.vert", fragShaderPath, false);
 
     Uniforms* uniforms = getUniforms(window);
-    
+    SharedUniforms shared_uniforms(false);
+
     float time;
-    GLuint  U_RESOLUTION, U_MOUSE, U_SCROLL, U_TIME;
+    GLuint  U_RESOLUTION, U_MOUSE, U_SCROLL, U_TIME,
+        U_SCALE, U_BRIGHTNESS, U_SPEED, U_FOV;
 
     VAO fullscreenQuad = rasterPipeVAO();
 
@@ -38,6 +41,11 @@ int main(int argc, char** argv) {
             U_MOUSE       = glGetUniformLocation(vortex_shader.ID, "u_mouse");
             U_SCROLL      = glGetUniformLocation(vortex_shader.ID, "u_scroll");
             U_TIME        = glGetUniformLocation(vortex_shader.ID, "u_time");
+
+            U_SCALE       = glGetUniformLocation(vortex_shader.ID, "u_scale");
+            U_BRIGHTNESS  = glGetUniformLocation(vortex_shader.ID, "u_brightness");
+            U_SPEED       = glGetUniformLocation(vortex_shader.ID, "u_speed");
+            U_FOV         = glGetUniformLocation(vortex_shader.ID, "u_fov");
 
             uniforms->last_time         = glfwGetTime();
             uniforms->loading           = false;
@@ -66,6 +74,11 @@ int main(int argc, char** argv) {
                                     uniforms->mouseY);
         glUniform1f(U_SCROLL,       uniforms->scroll);
         glUniform1f(U_TIME, time);
+
+        glUniform1f(U_SCALE,      shared_uniforms.data->scale);
+        glUniform1f(U_BRIGHTNESS, shared_uniforms.data->brightness);
+        glUniform1f(U_SPEED,      shared_uniforms.data->speed);
+        glUniform1f(U_FOV,        shared_uniforms.data->fov);
 
         fullscreenQuad.DrawElements(GL_TRIANGLES);
         
