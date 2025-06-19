@@ -4,6 +4,11 @@
 #include <vector>
 #include <string>
 #include <algorithm>
+#include <filesystem>
+#include <spawn.h>
+#include <signal.h>
+#include <sys/wait.h>
+extern char **environ;
 
 // ImGui
 #include <imgui.h>
@@ -19,12 +24,11 @@
 int monitorCount = 1;
 int primaryMonitor = 0;
 
-#include <filesystem>
-namespace fs = std::filesystem;
+std::vector<pid_t> fragment_pids;
 
 std::vector<std::string> ListFragmentShaders(const std::string& directory) {
     std::vector<std::string> files;
-    for (const auto& entry : fs::directory_iterator(directory)) {
+    for (const auto& entry : std::filesystem::directory_iterator(directory)) {
         if (entry.is_regular_file() && entry.path().extension() == ".frag") {
             files.push_back(entry.path().filename().string());
         }
@@ -32,22 +36,33 @@ std::vector<std::string> ListFragmentShaders(const std::string& directory) {
     return files;
 }
 
-void launch_instances_parallel(const std::string& command, int instanceCount) {
-    int m = 0;
+void launch_fragment(const std::string& cmd, int instanceCount) {
     for (int i = 0; i < instanceCount; ++i) {
-        std::stringstream ss;
-        if (m == primaryMonitor) m++;
-        bool fullscreen = (i < monitorCount - 1);
-        ss << command
-           << " --monitor " << m++
-           << (fullscreen ? " --fullscreen" : "")
-           << " &";
-        system(ss.str().c_str());
+        pid_t pid;
+        std::vector<std::string> args = {"/bin/sh", "-c", cmd};
+        std::vector<char*> argv;
+        for (auto& arg : args) argv.push_back(&arg[0]);
+        argv.push_back(nullptr);
+
+        int status = posix_spawn(&pid, "/bin/sh", nullptr, nullptr, argv.data(), environ);
+        if (status == 0) {
+            fragment_pids.push_back(pid);
+        } else {
+            std::cerr << "Failed to spawn: " << status << std::endl;
+        }
     }
 }
 
+void kill_fragments() {
+    for (pid_t pid : fragment_pids) {
+        kill(pid, SIGTERM);
+        waitpid(pid, nullptr, 0); // Reap the process
+    }
+    fragment_pids.clear();
+}
+
 void cleanup_spawned_processes() {
-    std::vector<std::string> processesToKill = {"game", "vortex", "spin"};
+    std::vector<std::string> processesToKill = {"game", "fragment", "spin"};
     for (const std::string& proc : processesToKill) {
         std::string cmd = "pkill -f " + proc;
         system(cmd.c_str());
@@ -138,7 +153,7 @@ int main() {
                 if (ImGui::Button("Launch Spin")) {
                     std::stringstream ss;
                     ss << "./spin --input " << selectedDeviceIndex;
-                    launch_instances_parallel(ss.str(), instanceCount);
+                    launch_fragment(ss.str(), instanceCount);
                 }
 
                 dropDown(fragShaders, "Fragment Shader", selectedShaderIndex);
@@ -147,7 +162,7 @@ int main() {
                     std::stringstream ss;
                     ss << "./fragment --input " << selectedDeviceIndex
                         << " --shader " << FRAG_SHADER_DIR << "/" << fragShaders[selectedShaderIndex].c_str();
-                    launch_instances_parallel(ss.str(), instanceCount);
+                    launch_fragment(ss.str(), instanceCount);
                 }
 
                 ImGui::EndTabItem();
@@ -175,7 +190,7 @@ int main() {
         glfwSwapBuffers(window);
     }
 
-    cleanup_spawned_processes();
+    kill_fragments();
     ma_context_uninit(&context);
 
     ImGui_ImplOpenGL3_Shutdown();

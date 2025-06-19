@@ -18,7 +18,10 @@ struct SharedUniforms {
     UniformStructure* data;
     const char* loc = "/tmp/uniforms.dat";
     int fd;
-    SharedUniforms(bool writeable){
+    bool should_unlink;
+    SharedUniforms(bool writeable)
+        : should_unlink(writeable)
+    {
         writeable ? openRW() : openR();
     };
 private:
@@ -48,7 +51,9 @@ public:
     ~SharedUniforms(){
         munmap(data, sizeof(UniformStructure));
         close(fd);
-        unlink(loc);
+        if (should_unlink) {
+            unlink(loc);
+        }
     };
 };
 
