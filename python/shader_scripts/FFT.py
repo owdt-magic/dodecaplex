@@ -8,6 +8,7 @@ import threading
 import time
 import moderngl_window as mglw
 from Default import UniformImporter
+import random
 
 
 class FFTShader(UniformImporter):
@@ -146,5 +147,54 @@ class FFTShader(UniformImporter):
             if uniform_name in self.program:
                 self.program[uniform_name] = float(self.norm_energies[i, frame_idx])
 
+
+class FFTShaderAuto(FFTShader):
+    def __init__(self, interval=30, **kwargs):
+        super().__init__(**kwargs)
+        self.interval = interval
+        self.auto_thread = None
+        self.auto_stop = False
+        print(f"[FFTShaderAuto] Initialized with {len(self.audio_files)} audio files.")
+        self.start_auto_play()
+
+    def start_auto_play(self):
+        if not self.audio_files:
+            print("[FFTShaderAuto] No audio files found. Auto-play will not start.")
+            return
+        self.auto_stop = False
+        self.schedule_next_play()
+        print("[FFTShaderAuto] Auto-play started.")
+
+    def stop_auto_play(self):
+        self.auto_stop = True
+        if self.auto_thread:
+            self.auto_thread.cancel()
+            self.auto_thread = None
+        print("[FFTShaderAuto] Auto-play stopped.")
+
+    def schedule_next_play(self):
+        if self.auto_stop:
+            return
+        self.auto_thread = threading.Timer(self.interval, self.auto_play)
+        self.auto_thread.start()
+        print(f"[FFTShaderAuto] Next audio will play in {self.interval} seconds.")
+
+    def auto_play(self):
+        if self.auto_stop or not self.audio_files:
+            return
+        index = random.randint(0, len(self.audio_files) - 1)
+        print(f"[FFTShaderAuto] [AUTO] Playing: {self.audio_files[index]}")
+        self.play_audio_file_once(index)
+        self.schedule_next_play()
+
+    def on_key_event(self, key, action, modifiers):
+        # Ignore all key input
+        pass
+
+    def on_close(self):
+        self.stop_auto_play()
+        if hasattr(super(), 'on_close'):
+            super().on_close()
+
 if __name__ == "__main__":
-    mglw.run_window_config(FFTShader)
+    mglw.run_window_config(FFTShaderAuto)
