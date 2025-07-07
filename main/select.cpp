@@ -180,191 +180,184 @@ int main() {
         ImGui_ImplGlfw_NewFrame();
         ImGui::NewFrame();
 
-        ImGui::Begin("Ritual Control");
+        //ImGui::Begin("Ritual Control");
 
-        if (ImGui::BeginTabBar("MainTabs")) {
-            if (ImGui::BeginTabItem("Launch")) {
-                if (ImGui::Button("Launch Game")) {
-                    system("./game");
-                }
-                
-                ImGui::InputInt("Instances", &instanceCount);
-                dropDown(deviceNames, "Audio Input", selectedDeviceIndex);
-                
-                if (ImGui::Button("Launch Spin")) {
-                    std::stringstream ss;
-                    ss << "./spin --input " << selectedDeviceIndex;
-                    launch_fragment(ss.str(), instanceCount);
-                }
-
-                dropDown(fragShaders, "Fragment Shader", selectedShaderIndex);
-
-                if (ImGui::Button("Launch Fragment")) {
-                    std::stringstream ss;
-                    ss << "./fragment --input " << selectedDeviceIndex
-                        << " --shader " << FRAG_SHADER_DIR << "/" << fragShaders[selectedShaderIndex].c_str();
-                    launch_fragment(ss.str(), instanceCount);
-                }
-
-                ImGui::EndTabItem();
+        if (ImGui::Begin("Launch")) {
+            if (ImGui::Button("Launch Game")) {
+                system("./game");
+            }
+            
+            ImGui::InputInt("Instances", &instanceCount);
+            dropDown(deviceNames, "Audio Input", selectedDeviceIndex);
+            
+            if (ImGui::Button("Launch Spin")) {
+                std::stringstream ss;
+                ss << "./spin --input " << selectedDeviceIndex;
+                launch_fragment(ss.str(), instanceCount);
             }
 
-            if (ImGui::BeginTabItem("Control")) {
-                // Check if any audio routing is active for each parameter
-                bool scale_routed = false, brightness_routed = false, speed_routed = false;
-                bool fov_routed = false, hue_routed = false;
-                
-                for(int i = 0; i < 4; i++) {
-                    switch(uniforms.data->audio_routing[i]) {
-                        case 1: scale_routed = true; break;
-                        case 2: brightness_routed = true; break;
-                        case 3: speed_routed = true; break;
-                        case 4: fov_routed = true; break;
-                        case 5: hue_routed = true; break;
-                    }
-                }
-                
-                // Scale
-                if (scale_routed) ImGui::PushStyleColor(ImGuiCol_SliderGrab, ImVec4(1.0f, 0.5f, 0.0f, 1.0f));
-                bool scale_changed = ImGui::SliderFloat("Scale", &uniforms.data->scale, 0.0f, 1.0f);
-                if (scale_routed) ImGui::PopStyleColor();
-                if (scale_changed) {
-                    for (int band = 0; band < 4; ++band) {
-                        if (band_to_param[band] == 1) {
-                            band_to_param[band] = 0;
-                            uniforms.data->audio_routing[band] = 0;
-                            links.erase(std::remove_if(links.begin(), links.end(),
-                                [band](const std::pair<int, int>& l){ return l.first == band * 10 + 1; }), links.end());
-                        }
-                    }
-                }
-                // Brightness
-                if (brightness_routed) ImGui::PushStyleColor(ImGuiCol_SliderGrab, ImVec4(1.0f, 0.5f, 0.0f, 1.0f));
-                bool brightness_changed = ImGui::SliderFloat("Brightness", &uniforms.data->brightness, 0.0f, 2.0f);
-                if (brightness_routed) ImGui::PopStyleColor();
-                if (brightness_changed) {
-                    for (int band = 0; band < 4; ++band) {
-                        if (band_to_param[band] == 2) {
-                            band_to_param[band] = 0;
-                            uniforms.data->audio_routing[band] = 0;
-                            links.erase(std::remove_if(links.begin(), links.end(),
-                                [band](const std::pair<int, int>& l){ return l.first == band * 10 + 1; }), links.end());
-                        }
-                    }
-                }
-                // Speed
-                if (speed_routed) ImGui::PushStyleColor(ImGuiCol_SliderGrab, ImVec4(1.0f, 0.5f, 0.0f, 1.0f));
-                bool speed_changed = ImGui::SliderFloat("Speed", &uniforms.data->speed, 0.0f, 2.0f);
-                if (speed_routed) ImGui::PopStyleColor();
-                if (speed_changed) {
-                    for (int band = 0; band < 4; ++band) {
-                        if (band_to_param[band] == 3) {
-                            band_to_param[band] = 0;
-                            uniforms.data->audio_routing[band] = 0;
-                            links.erase(std::remove_if(links.begin(), links.end(),
-                                [band](const std::pair<int, int>& l){ return l.first == band * 10 + 1; }), links.end());
-                        }
-                    }
-                }
-                // FOV
-                if (fov_routed) ImGui::PushStyleColor(ImGuiCol_SliderGrab, ImVec4(1.0f, 0.5f, 0.0f, 1.0f));
-                bool fov_changed = ImGui::SliderFloat("FOV", &uniforms.data->fov, 0.0f, 180.0f);
-                if (fov_routed) ImGui::PopStyleColor();
-                if (fov_changed) {
-                    for (int band = 0; band < 4; ++band) {
-                        if (band_to_param[band] == 4) {
-                            band_to_param[band] = 0;
-                            uniforms.data->audio_routing[band] = 0;
-                            links.erase(std::remove_if(links.begin(), links.end(),
-                                [band](const std::pair<int, int>& l){ return l.first == band * 10 + 1; }), links.end());
-                        }
-                    }
-                }
-                // Hue Shift
-                if (hue_routed) ImGui::PushStyleColor(ImGuiCol_SliderGrab, ImVec4(1.0f, 0.5f, 0.0f, 1.0f));
-                bool hue_changed = ImGui::SliderFloat("Hue Shift", &uniforms.data->hueShift, 0.0f, 360.0f);
-                if (hue_routed) ImGui::PopStyleColor();
-                if (hue_changed) {
-                    for (int band = 0; band < 4; ++band) {
-                        if (band_to_param[band] == 5) {
-                            band_to_param[band] = 0;
-                            uniforms.data->audio_routing[band] = 0;
-                            links.erase(std::remove_if(links.begin(), links.end(),
-                                [band](const std::pair<int, int>& l){ return l.first == band * 10 + 1; }), links.end());
-                        }
-                    }
-                }
-                ImGui::Separator();
-                ImGui::Text("Audio Routing now in Audio tab →");
-                ImGui::EndTabItem();
+            dropDown(fragShaders, "Fragment Shader", selectedShaderIndex);
+
+            if (ImGui::Button("Launch Fragment")) {
+                std::stringstream ss;
+                ss << "./fragment --input " << selectedDeviceIndex
+                    << " --shader " << FRAG_SHADER_DIR << "/" << fragShaders[selectedShaderIndex].c_str();
+                launch_fragment(ss.str(), instanceCount);
             }
 
-            if (ImGui::BeginTabItem("Audio")) {
-                ImGui::Text("Patch FFT Bands to Parameters");
-                ImNodes::BeginNodeEditor();
-                // Output nodes (bands)
-                for (int i = 0; i < 4; ++i) {
-                    ImNodes::BeginNode(i);
-                    ImGui::Text("Band %d", i);
-                    ImNodes::BeginOutputAttribute(i * 10 + 1);
-                    ImGui::Text("Out");
-                    ImNodes::EndOutputAttribute();
-                    ImNodes::EndNode();
-                }
-                // Input nodes (parameters)
-                for (int j = 0; j < 5; ++j) {
-                    ImNodes::BeginNode(100 + j);
-                    ImGui::Text("%s", param_names[j]);
-                    ImNodes::BeginInputAttribute(1000 + j);
-                    ImGui::Text("In");
-                    ImNodes::EndInputAttribute();
-                    ImNodes::EndNode();
-                }
-                // Draw all links
-                for (const auto& link : links) {
-                    ImNodes::Link(link.first * 10000 + link.second, link.first, link.second);
-                }
-                ImNodes::EndNodeEditor();
-
-                // Now handle new links
-                int start_attr, end_attr;
-                if (ImNodes::IsLinkCreated(&start_attr, &end_attr)) {
-                    if (start_attr < 1000 && end_attr >= 1000) {
-                        // Remove any previous link from this band
-                        links.erase(std::remove_if(links.begin(), links.end(),
-                            [start_attr](const std::pair<int, int>& l){ return l.first == start_attr; }), links.end());
-                        links.emplace_back(start_attr, end_attr);
-                        int band = start_attr / 10;
-                        int param = end_attr - 1000 + 1; // 1=Scale, 2=Brightness, etc.
-                        band_to_param[band] = param;
-                    }
-                }
-                // Sync with sharedUniforms
-                for (int i = 0; i < 4; ++i) {
-                    uniforms.data->audio_routing[i] = band_to_param[i];
-                }
-                ImGui::Separator();
-                ImGui::Text("Live FFT:");
-                float max_amplitude = 0.1f;
-                ImVec4 bar_colors[] = {
-                    ImVec4(1.0f, 0.2f, 0.2f, 1.0f),
-                    ImVec4(1.0f, 0.6f, 0.2f, 1.0f),
-                    ImVec4(0.2f, 1.0f, 0.2f, 1.0f),
-                    ImVec4(0.2f, 0.2f, 1.0f, 1.0f)
-                };
-                for(int i = 0; i < 4; i++) {
-                    float amplitude = uniforms.data->audio_bands[i];
-                    float normalized = amplitude / max_amplitude;
-                    ImGui::PushStyleColor(ImGuiCol_PlotHistogram, bar_colors[i]);
-                    ImGui::ProgressBar(normalized, ImVec2(-1, 20), "");
-                    ImGui::PopStyleColor();
-                }
-                ImGui::EndTabItem();
-            }
-            ImGui::EndTabBar();
+            ImGui::End();
         }
 
-        ImGui::End();
+        if (ImGui::Begin("Control")) {
+            // Check if any audio routing is active for each parameter
+            bool scale_routed = false, brightness_routed = false, speed_routed = false;
+            bool fov_routed = false, hue_routed = false;
+            
+            for(int i = 0; i < 4; i++) {
+                switch(uniforms.data->audio_routing[i]) {
+                    case 1: scale_routed = true; break;
+                    case 2: brightness_routed = true; break;
+                    case 3: speed_routed = true; break;
+                    case 4: fov_routed = true; break;
+                    case 5: hue_routed = true; break;
+                }
+            }
+            
+            // Scale
+            if (scale_routed) ImGui::PushStyleColor(ImGuiCol_SliderGrab, ImVec4(1.0f, 0.5f, 0.0f, 1.0f));
+            bool scale_changed = ImGui::SliderFloat("Scale", &uniforms.data->scale, 0.0f, 1.0f);
+            if (scale_routed) ImGui::PopStyleColor();
+            if (scale_changed) {
+                for (int band = 0; band < 4; ++band) {
+                    if (band_to_param[band] == 1) {
+                        band_to_param[band] = 0;
+                        uniforms.data->audio_routing[band] = 0;
+                        links.erase(std::remove_if(links.begin(), links.end(),
+                            [band](const std::pair<int, int>& l){ return l.first == band * 10 + 1; }), links.end());
+                    }
+                }
+            }
+            // Brightness
+            if (brightness_routed) ImGui::PushStyleColor(ImGuiCol_SliderGrab, ImVec4(1.0f, 0.5f, 0.0f, 1.0f));
+            bool brightness_changed = ImGui::SliderFloat("Brightness", &uniforms.data->brightness, 0.0f, 2.0f);
+            if (brightness_routed) ImGui::PopStyleColor();
+            if (brightness_changed) {
+                for (int band = 0; band < 4; ++band) {
+                    if (band_to_param[band] == 2) {
+                        band_to_param[band] = 0;
+                        uniforms.data->audio_routing[band] = 0;
+                        links.erase(std::remove_if(links.begin(), links.end(),
+                            [band](const std::pair<int, int>& l){ return l.first == band * 10 + 1; }), links.end());
+                    }
+                }
+            }
+            // Speed
+            if (speed_routed) ImGui::PushStyleColor(ImGuiCol_SliderGrab, ImVec4(1.0f, 0.5f, 0.0f, 1.0f));
+            bool speed_changed = ImGui::SliderFloat("Speed", &uniforms.data->speed, 0.0f, 2.0f);
+            if (speed_routed) ImGui::PopStyleColor();
+            if (speed_changed) {
+                for (int band = 0; band < 4; ++band) {
+                    if (band_to_param[band] == 3) {
+                        band_to_param[band] = 0;
+                        uniforms.data->audio_routing[band] = 0;
+                        links.erase(std::remove_if(links.begin(), links.end(),
+                            [band](const std::pair<int, int>& l){ return l.first == band * 10 + 1; }), links.end());
+                    }
+                }
+            }
+            // FOV
+            if (fov_routed) ImGui::PushStyleColor(ImGuiCol_SliderGrab, ImVec4(1.0f, 0.5f, 0.0f, 1.0f));
+            bool fov_changed = ImGui::SliderFloat("FOV", &uniforms.data->fov, 0.0f, 180.0f);
+            if (fov_routed) ImGui::PopStyleColor();
+            if (fov_changed) {
+                for (int band = 0; band < 4; ++band) {
+                    if (band_to_param[band] == 4) {
+                        band_to_param[band] = 0;
+                        uniforms.data->audio_routing[band] = 0;
+                        links.erase(std::remove_if(links.begin(), links.end(),
+                            [band](const std::pair<int, int>& l){ return l.first == band * 10 + 1; }), links.end());
+                    }
+                }
+            }
+            // Hue Shift
+            if (hue_routed) ImGui::PushStyleColor(ImGuiCol_SliderGrab, ImVec4(1.0f, 0.5f, 0.0f, 1.0f));
+            bool hue_changed = ImGui::SliderFloat("Hue Shift", &uniforms.data->hueShift, 0.0f, 360.0f);
+            if (hue_routed) ImGui::PopStyleColor();
+            if (hue_changed) {
+                for (int band = 0; band < 4; ++band) {
+                    if (band_to_param[band] == 5) {
+                        band_to_param[band] = 0;
+                        uniforms.data->audio_routing[band] = 0;
+                        links.erase(std::remove_if(links.begin(), links.end(),
+                            [band](const std::pair<int, int>& l){ return l.first == band * 10 + 1; }), links.end());
+                    }
+                }
+            }
+                        // Sync with sharedUniforms
+            for (int i = 0; i < 4; ++i) {
+                uniforms.data->audio_routing[i] = band_to_param[i];
+            }
+            ImGui::Separator();
+            ImGui::Text("Live FFT:");
+            float max_amplitude = 0.1f;
+            ImVec4 bar_colors[] = {
+                ImVec4(1.0f, 0.2f, 0.2f, 1.0f),
+                ImVec4(1.0f, 0.6f, 0.2f, 1.0f),
+                ImVec4(0.2f, 1.0f, 0.2f, 1.0f),
+                ImVec4(0.2f, 0.2f, 1.0f, 1.0f)
+            };
+            for(int i = 0; i < 4; i++) {
+                float amplitude = uniforms.data->audio_bands[i];
+                float normalized = amplitude / max_amplitude;
+                ImGui::PushStyleColor(ImGuiCol_PlotHistogram, bar_colors[i]);
+                ImGui::ProgressBar(normalized, ImVec2(-1, 20), "");
+                ImGui::PopStyleColor();
+            }
+            ImGui::End();
+        }
+
+        if (ImGui::Begin("Audio")) {
+            ImGui::Text("Patch FFT Bands to Parameters");
+            ImNodes::BeginNodeEditor();
+            // Output nodes (bands)
+            for (int i = 0; i < 4; ++i) {
+                ImNodes::BeginNode(i);
+                ImGui::Text("Band %d", i);
+                ImNodes::BeginOutputAttribute(i * 10 + 1);
+                ImGui::Text("Out");
+                ImNodes::EndOutputAttribute();
+                ImNodes::EndNode();
+            }
+            // Input nodes (parameters)
+            for (int j = 0; j < 5; ++j) {
+                ImNodes::BeginNode(100 + j);
+                ImGui::Text("%s", param_names[j]);
+                ImNodes::BeginInputAttribute(1000 + j);
+                ImGui::Text("In");
+                ImNodes::EndInputAttribute();
+                ImNodes::EndNode();
+            }
+            // Draw all links
+            for (const auto& link : links) {
+                ImNodes::Link(link.first * 10000 + link.second, link.first, link.second);
+            }
+            ImNodes::EndNodeEditor();
+
+            // Now handle new links
+            int start_attr, end_attr;
+            if (ImNodes::IsLinkCreated(&start_attr, &end_attr)) {
+                if (start_attr < 1000 && end_attr >= 1000) {
+                    // Remove any previous link from this band
+                    links.erase(std::remove_if(links.begin(), links.end(),
+                        [start_attr](const std::pair<int, int>& l){ return l.first == start_attr; }), links.end());
+                    links.emplace_back(start_attr, end_attr);
+                    int band = start_attr / 10;
+                    int param = end_attr - 1000 + 1; // 1=Scale, 2=Brightness, etc.
+                    band_to_param[band] = param;
+                }
+            }
+            ImGui::End();
+        }
 
         ImGui::Render();
         int display_w, display_h;
