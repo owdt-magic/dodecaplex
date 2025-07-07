@@ -9,11 +9,18 @@ struct UniformStructure {
     float speed;
     float fov;
     float hueShift;
+    float audio_bands[4];  // FFT band amplitudes
+    int audio_routing[4];  // Which parameter each band routes to (0=none, 1=scale, 2=brightness, etc.)
     UniformStructure() :    scale(0.0f),
                             brightness(1.0f),
                             speed(1.0f),
                             fov(150.0f),
-                            hueShift(0.0f) {};
+                            hueShift(0.0f) {
+        for(int i = 0; i < 4; i++) {
+            audio_bands[i] = 0.0f;
+            audio_routing[i] = 0;  // No routing by default
+        }
+    };
 };
 
 struct SharedUniforms {

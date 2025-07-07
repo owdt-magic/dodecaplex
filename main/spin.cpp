@@ -15,8 +15,6 @@ int main(int argc, char** argv) {
 
     GLFWwindow* window = initializeWindow(1024, 1024, "SPINNING DODECAPLEX", clas.fullscreen, clas.monitorIndex);
 
-    AudioNest audio_nest(clas.audioIndex);
-
     ShaderProgram world_shader(     SHADER_DIR "/world.vert", \
                                     SHADER_DIR "/prune.geom", \
                                     SHADER_DIR "/spin.frag", false);
@@ -99,12 +97,11 @@ int main(int argc, char** argv) {
         glUniform1f(U_SCROLL,       uniforms->scroll);
         glUniform1f(U_TIME, time);
         
-        audio_nest.processFFT();
-
-        glUniform4f(U_BANDS, audio_nest.g_bandAmplitudes[0],
-                             audio_nest.g_bandAmplitudes[1],
-                             audio_nest.g_bandAmplitudes[2],
-                             audio_nest.g_bandAmplitudes[3]);
+        // Use shared audio bands from select.cpp
+        glUniform4f(U_BANDS, shared_uniforms.data->audio_bands[0],
+                             shared_uniforms.data->audio_bands[1],
+                             shared_uniforms.data->audio_bands[2],
+                             shared_uniforms.data->audio_bands[3]);
 
         glUniform1f(U_BRIGHTNESS, shared_uniforms.data->brightness);
         glUniform1f(U_SCALE,      shared_uniforms.data->scale);

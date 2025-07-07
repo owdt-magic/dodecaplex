@@ -121,6 +121,9 @@ int main() {
 
     int instanceCount = 1;
     int selectedDeviceIndex = 0;
+    
+    // Audio processing
+    AudioNest audio_nest(selectedDeviceIndex);
 
     ma_context context;
     ma_context_config contextConfig = ma_context_config_init();
@@ -134,6 +137,36 @@ int main() {
 
     while (!glfwWindowShouldClose(window)) {
         glfwPollEvents();
+
+        // Process audio FFT and update shared uniforms
+        audio_nest.processFFT();
+        for(int i = 0; i < 4; i++) {
+            uniforms.data->audio_bands[i] = audio_nest.g_bandAmplitudes[i];
+        }
+        
+        // Apply audio routing to control parameters
+        for(int i = 0; i < 4; i++) {
+            int routing = uniforms.data->audio_routing[i];
+            float audio_value = uniforms.data->audio_bands[i];
+            
+            switch(routing) {
+                case 1: // Scale
+                    uniforms.data->scale = audio_value;
+                    break;
+                case 2: // Brightness
+                    uniforms.data->brightness = audio_value * 2.0f; // Scale to 0-2 range
+                    break;
+                case 3: // Speed
+                    uniforms.data->speed = audio_value * 2.0f; // Scale to 0-2 range
+                    break;
+                case 4: // FOV
+                    uniforms.data->fov = audio_value * 180.0f; // Scale to 0-180 range
+                    break;
+                case 5: // Hue Shift
+                    uniforms.data->hueShift = audio_value * 360.0f; // Scale to 0-360 range
+                    break;
+            }
+        }
 
         ImGui_ImplOpenGL3_NewFrame();
         ImGui_ImplGlfw_NewFrame();
@@ -169,11 +202,88 @@ int main() {
             }
 
             if (ImGui::BeginTabItem("Control")) {
+                // Check if any audio routing is active for each parameter
+                bool scale_routed = false, brightness_routed = false, speed_routed = false;
+                bool fov_routed = false, hue_routed = false;
+                
+                for(int i = 0; i < 4; i++) {
+                    switch(uniforms.data->audio_routing[i]) {
+                        case 1: scale_routed = true; break;
+                        case 2: brightness_routed = true; break;
+                        case 3: speed_routed = true; break;
+                        case 4: fov_routed = true; break;
+                        case 5: hue_routed = true; break;
+                    }
+                }
+                
+                if (scale_routed) ImGui::PushStyleColor(ImGuiCol_SliderGrab, ImVec4(1.0f, 0.5f, 0.0f, 1.0f));
                 ImGui::SliderFloat("Scale", &uniforms.data->scale, 0.0f, 1.0f);
+                if (scale_routed) ImGui::PopStyleColor();
+                
+                if (brightness_routed) ImGui::PushStyleColor(ImGuiCol_SliderGrab, ImVec4(1.0f, 0.5f, 0.0f, 1.0f));
                 ImGui::SliderFloat("Brightness", &uniforms.data->brightness, 0.0f, 2.0f);
+                if (brightness_routed) ImGui::PopStyleColor();
+                
+                if (speed_routed) ImGui::PushStyleColor(ImGuiCol_SliderGrab, ImVec4(1.0f, 0.5f, 0.0f, 1.0f));
                 ImGui::SliderFloat("Speed", &uniforms.data->speed, 0.0f, 2.0f);
+                if (speed_routed) ImGui::PopStyleColor();
+                
+                if (fov_routed) ImGui::PushStyleColor(ImGuiCol_SliderGrab, ImVec4(1.0f, 0.5f, 0.0f, 1.0f));
                 ImGui::SliderFloat("FOV", &uniforms.data->fov, 0.0f, 180.0f);
+                if (fov_routed) ImGui::PopStyleColor();
+                
+                if (hue_routed) ImGui::PushStyleColor(ImGuiCol_SliderGrab, ImVec4(1.0f, 0.5f, 0.0f, 1.0f));
                 ImGui::SliderFloat("Hue Shift", &uniforms.data->hueShift, 0.0f, 360.0f);
+                if (hue_routed) ImGui::PopStyleColor();
+                
+                ImGui::Separator();
+                ImGui::Text("Audio Routing");
+                ImGui::Text("Route FFT bands to control parameters");
+                
+                const char* routing_options[] = {"None", "Scale", "Brightness", "Speed", "FOV", "Hue Shift"};
+                const char* band_names[] = {"Low", "Mid-Low", "Mid-High", "High"};
+                
+                for(int i = 0; i < 4; i++) {
+                    ImGui::Text("%s Band:", band_names[i]);
+                    ImGui::SameLine();
+                    if (ImGui::BeginCombo(("##routing" + std::to_string(i)).c_str(), 
+                                         routing_options[uniforms.data->audio_routing[i]])) {
+                        for (int j = 0; j < 6; ++j) {
+                            bool is_selected = (uniforms.data->audio_routing[i] == j);
+                            if (ImGui::Selectable(routing_options[j], is_selected)) {
+                                uniforms.data->audio_routing[i] = j;
+                            }
+                            if (is_selected) ImGui::SetItemDefaultFocus();
+                        }
+                        ImGui::EndCombo();
+                    }
+                }
+                ImGui::EndTabItem();
+            }
+
+            if (ImGui::BeginTabItem("Audio")) {
+                ImGui::Text("FFT Frequency Bands");
+                
+                // Display FFT bars
+                float max_amplitude = 0.1f; // Adjust this for sensitivity
+                const char* band_names[] = {"Low", "Mid-Low", "Mid-High", "High"};
+                ImVec4 bar_colors[] = {
+                    ImVec4(1.0f, 0.2f, 0.2f, 1.0f),  // Red
+                    ImVec4(1.0f, 0.6f, 0.2f, 1.0f),  // Orange
+                    ImVec4(0.2f, 1.0f, 0.2f, 1.0f),  // Green
+                    ImVec4(0.2f, 0.2f, 1.0f, 1.0f)   // Blue
+                };
+                
+                for(int i = 0; i < 4; i++) {
+                    float amplitude = uniforms.data->audio_bands[i];
+                    float normalized = amplitude / max_amplitude;
+                    
+                    ImGui::Text("%s: %.3f", band_names[i], amplitude);
+                    ImGui::PushStyleColor(ImGuiCol_PlotHistogram, bar_colors[i]);
+                    ImGui::ProgressBar(normalized, ImVec2(-1, 20), "");
+                    ImGui::PopStyleColor();
+                }
+                
                 ImGui::EndTabItem();
             }
             ImGui::EndTabBar();

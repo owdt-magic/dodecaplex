@@ -25,7 +25,7 @@ int main(int argc, char** argv) {
 
     float time;
     GLuint  U_RESOLUTION, U_MOUSE, U_SCROLL, U_TIME,
-        U_SCALE, U_BRIGHTNESS, U_SPEED, U_FOV, U_HUESHIFT;
+        U_SCALE, U_BRIGHTNESS, U_SPEED, U_FOV, U_HUESHIFT, U_AUDIO_BANDS;
 
     VAO fullscreenQuad = rasterPipeVAO();
 
@@ -47,6 +47,7 @@ int main(int argc, char** argv) {
             U_SPEED       = glGetUniformLocation(vortex_shader.ID, "u_speed");
             U_FOV         = glGetUniformLocation(vortex_shader.ID, "u_fov");
             U_HUESHIFT    = glGetUniformLocation(vortex_shader.ID, "u_hueShift");
+            U_AUDIO_BANDS = glGetUniformLocation(vortex_shader.ID, "u_audio_bands");
 
             uniforms->last_time         = glfwGetTime();
             uniforms->loading           = false;
@@ -81,6 +82,10 @@ int main(int argc, char** argv) {
         glUniform1f(U_SPEED,      shared_uniforms.data->speed);
         glUniform1f(U_FOV,        shared_uniforms.data->fov);
         glUniform1f(U_HUESHIFT,   shared_uniforms.data->hueShift);
+        glUniform4f(U_AUDIO_BANDS, shared_uniforms.data->audio_bands[0],
+                                     shared_uniforms.data->audio_bands[1],
+                                     shared_uniforms.data->audio_bands[2],
+                                     shared_uniforms.data->audio_bands[3]);
 
         fullscreenQuad.DrawElements(GL_TRIANGLES);
         
