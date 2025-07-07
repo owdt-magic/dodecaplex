@@ -7,6 +7,7 @@ uniform vec2 u_mouse;
 uniform float u_time;
 uniform float u_scroll;
 #include sharedUniforms.glsl
+#include hueRotation.glsl
 
 const float FOV = 0.8;
 const int MAX_STEPS = 32;
@@ -125,9 +126,9 @@ void main() {
     uv *= u_resolution.yy/u_resolution;
     
     // gamma correction
-    col = pow(atan(col*u_brightness), vec3(u_scale));
+    col = pow(atan(col*u_brightness), vec3(u_scale+0.1));
     
     // vignette
     col = col*(1.0-pow(length(uv)/1.2, u_fov/100.));
-    fragColor = vec4(col, 1.0);
+    fragColor = vec4(hueShift(col, u_hueShift), 1.0);
 }
