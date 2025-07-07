@@ -173,6 +173,7 @@ int main() {
                 ImGui::SliderFloat("Brightness", &uniforms.data->brightness, 0.0f, 2.0f);
                 ImGui::SliderFloat("Speed", &uniforms.data->speed, 0.0f, 2.0f);
                 ImGui::SliderFloat("FOV", &uniforms.data->fov, 0.0f, 180.0f);
+                ImGui::SliderFloat("Hue Shift", &uniforms.data->hueShift, 0.0f, 360.0f);
                 ImGui::EndTabItem();
             }
             ImGui::EndTabBar();

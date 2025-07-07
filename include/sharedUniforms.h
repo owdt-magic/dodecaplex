@@ -8,10 +8,12 @@ struct UniformStructure {
     float brightness;
     float speed;
     float fov;
+    float hueShift;
     UniformStructure() :    scale(0.0f),
                             brightness(1.0f),
                             speed(1.0f),
-                            fov(150.0f) {};
+                            fov(150.0f),
+                            hueShift(0.0f) {};
 };
 
 struct SharedUniforms {

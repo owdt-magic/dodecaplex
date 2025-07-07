@@ -31,7 +31,7 @@ int main(int argc, char** argv) {
 
 
     float time;
-    GLuint U_RESOLUTION, U_MOUSE, U_SCROLL, U_TIME, U_BANDS, U_BRIGHTNESS;
+    GLuint U_RESOLUTION, U_MOUSE, U_SCROLL, U_TIME, U_BANDS, U_SCALE,U_BRIGHTNESS, U_HUESHIFT;
 
     CameraInfo cam;
 
@@ -61,6 +61,8 @@ int main(int argc, char** argv) {
             U_TIME        = glGetUniformLocation(world_shader.ID, "u_time");
             U_BANDS       = glGetUniformLocation(world_shader.ID, "u_audio_bands");
             U_BRIGHTNESS  = glGetUniformLocation(world_shader.ID, "u_brightness");
+            U_SCALE       = glGetUniformLocation(world_shader.ID, "u_scale");
+            U_HUESHIFT    = glGetUniformLocation(world_shader.ID, "u_hueShift");
             
             uniforms->last_time         = glfwGetTime();
             uniforms->loading           = false;
@@ -105,6 +107,8 @@ int main(int argc, char** argv) {
                              audio_nest.g_bandAmplitudes[3]);
 
         glUniform1f(U_BRIGHTNESS, shared_uniforms.data->brightness);
+        glUniform1f(U_SCALE,      shared_uniforms.data->scale);
+        glUniform1f(U_HUESHIFT,   shared_uniforms.data->hueShift);
 
         player_context.drawMainVAO();
 
