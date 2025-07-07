@@ -50,6 +50,8 @@ add_executable(select
   main/select.cpp
   src/audio.cpp
   src/window.cpp
+  ./include/imnodes.cpp
+  ${imgui_SOURCE_DIR}/imgui.h
   ${imgui_SOURCE_DIR}/imgui.cpp
   ${imgui_SOURCE_DIR}/imgui_draw.cpp
   ${imgui_SOURCE_DIR}/imgui_widgets.cpp
@@ -60,6 +62,7 @@ add_executable(select
 target_include_directories(select PRIVATE
   ${imgui_SOURCE_DIR}
   ${imgui_SOURCE_DIR}/backends
+  ${CMAKE_SOURCE_DIR}/include
 )
 
 target_link_libraries(select glfw ${OPENGL_LIBRARIES})
