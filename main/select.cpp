@@ -128,10 +128,10 @@ int main() {
     primaryMonitor = 0;
 
     int instanceCount = 1;
-    int selectedDeviceIndex = 0;
-    
+    int selectedDeviceIndex = 0;    
     // Audio processing
     AudioNest audio_nest(selectedDeviceIndex);
+    int previousDeviceIndex = selectedDeviceIndex;
 
     ma_context context;
     ma_context_config contextConfig = ma_context_config_init();
@@ -146,6 +146,10 @@ int main() {
     while (!glfwWindowShouldClose(window)) {
         glfwPollEvents();
 
+        if (previousDeviceIndex != selectedDeviceIndex) {
+            audio_nest.changeAudioDevice(selectedDeviceIndex);
+            previousDeviceIndex = selectedDeviceIndex;
+        }
         // Process audio FFT and update shared uniforms
         audio_nest.processFFT();
         for(int i = 0; i < 4; i++) {
@@ -299,7 +303,7 @@ int main() {
             }
             ImGui::Separator();
             ImGui::Text("Live FFT:");
-            float max_amplitude = 0.1f;
+            float max_amplitude = 2.0f;
             ImVec4 bar_colors[] = {
                 ImVec4(1.0f, 0.2f, 0.2f, 1.0f),
                 ImVec4(1.0f, 0.6f, 0.2f, 1.0f),
@@ -346,14 +350,49 @@ int main() {
                 }
             }
             
+            // Define FFT colors once (matching the FFT display)
+            ImVec4 bar_colors[] = {
+                ImVec4(1.0f, 0.2f, 0.2f, 1.0f),  // Red
+                ImVec4(1.0f, 0.6f, 0.2f, 1.0f),  // Orange
+                ImVec4(0.2f, 1.0f, 0.2f, 1.0f),  // Green
+                ImVec4(0.2f, 0.2f, 1.0f, 1.0f)   // Blue
+            };
+            
             // Output nodes (bands) - left justified
             for (int i = 0; i < 4; ++i) {
+                // Set node colors to match FFT display colors BEFORE BeginNode
+                ImVec4 color = bar_colors[i];
+                
+                // Calculate opacity based on FFT amplitude
+                float amplitude = uniforms.data->audio_bands[i];
+                float max_amplitude = 2.0f; // Same as FFT display
+                float normalized_amplitude = std::min(amplitude / max_amplitude, 1.0f);
+                int base_alpha = 50; // Minimum opacity
+                int amplitude_alpha = (int)(normalized_amplitude * 200); // Additional opacity from amplitude
+                int total_alpha = base_alpha + amplitude_alpha;
+                
+                ImU32 bg_color = IM_COL32((int)(color.x * 255), (int)(color.y * 255), (int)(color.z * 255), total_alpha);
+                ImU32 hover_color = IM_COL32((int)(color.x * 255), (int)(color.y * 255), (int)(color.z * 255), total_alpha + 50);
+                ImU32 selected_color = IM_COL32((int)(color.x * 255), (int)(color.y * 255), (int)(color.z * 255), total_alpha + 100);
+                ImU32 outline_color = IM_COL32((int)(color.x * 255), (int)(color.y * 255), (int)(color.z * 255), 255);
+                
+                ImNodes::PushColorStyle(ImNodesCol_NodeBackground, bg_color);
+                ImNodes::PushColorStyle(ImNodesCol_NodeBackgroundHovered, hover_color);
+                ImNodes::PushColorStyle(ImNodesCol_NodeBackgroundSelected, selected_color);
+                ImNodes::PushColorStyle(ImNodesCol_NodeOutline, outline_color);
+                
                 ImNodes::BeginNode(i);
                 if (!nodes_initialized) ImNodes::SetNodeScreenSpacePos(i, node_positions[i]);
+                
                 ImNodes::BeginOutputAttribute(i * 10 + 1);
                 ImGui::Text("Band %d", i);
                 ImNodes::EndOutputAttribute();
                 ImNodes::EndNode();
+                
+                ImNodes::PopColorStyle();
+                ImNodes::PopColorStyle();
+                ImNodes::PopColorStyle();
+                ImNodes::PopColorStyle();
             }
             
             // Input nodes (parameters) - right justified
@@ -365,9 +404,40 @@ int main() {
                 ImNodes::EndInputAttribute();
                 ImNodes::EndNode();
             }
-            // Draw all links
+            // Draw all links with colored splines
             for (const auto& link : links) {
-                ImNodes::Link(link.first * 10000 + link.second, link.first, link.second);
+                // Determine which band this link comes from
+                int band_index = link.first / 10; // Extract band index from attribute ID
+                
+                if (band_index >= 0 && band_index < 4) {
+                    // Get the color for this band
+                    ImVec4 color = bar_colors[band_index];
+                    
+                    // Calculate opacity based on FFT amplitude
+                    float amplitude = uniforms.data->audio_bands[band_index];
+                    float max_amplitude = 2.0f;
+                    float normalized_amplitude = std::min(amplitude / max_amplitude, 1.0f);
+                    int base_alpha = 100; // Minimum opacity for links
+                    int amplitude_alpha = (int)(normalized_amplitude * 155); // Additional opacity from amplitude
+                    int total_alpha = base_alpha + amplitude_alpha;
+                    
+                    ImU32 link_color = IM_COL32((int)(color.x * 255), (int)(color.y * 255), (int)(color.z * 255), total_alpha);
+                    
+                    // Push link color style
+                    ImNodes::PushColorStyle(ImNodesCol_Link, link_color);
+                    ImNodes::PushColorStyle(ImNodesCol_LinkHovered, IM_COL32((int)(color.x * 255), (int)(color.y * 255), (int)(color.z * 255), 255));
+                    ImNodes::PushColorStyle(ImNodesCol_LinkSelected, IM_COL32((int)(color.x * 255), (int)(color.y * 255), (int)(color.z * 255), 255));
+                    
+                    ImNodes::Link(link.first * 10000 + link.second, link.first, link.second);
+                    
+                    // Pop link color styles
+                    ImNodes::PopColorStyle();
+                    ImNodes::PopColorStyle();
+                    ImNodes::PopColorStyle();
+                } else {
+                    // Fallback for any unexpected links
+                    ImNodes::Link(link.first * 10000 + link.second, link.first, link.second);
+                }
             }
             nodes_initialized = true;
             ImNodes::EndNodeEditor();

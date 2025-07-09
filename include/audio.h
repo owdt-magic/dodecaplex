@@ -32,5 +32,6 @@ struct AudioNest {
         
     }
     void startAudioDevice();
+    void changeAudioDevice(int index);
     void processFFT();
 };

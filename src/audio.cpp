@@ -138,3 +138,15 @@ void AudioNest::startAudioDevice(){
     }
     ma_device_start(&device);    
 };
+
+void AudioNest::changeAudioDevice(int index) {
+    // Stop the current device
+    ma_device_stop(&device);
+    ma_device_uninit(&device);
+    
+    // Update the device index
+    deviceIndex = index;
+    
+    // Restart with the new device
+    startAudioDevice();
+}
