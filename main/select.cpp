@@ -321,6 +321,7 @@ int main() {
         }
         ImGui::End();
         
+        ImGui::SetNextWindowSize(ImVec2(600, 500), ImGuiCond_FirstUseEver);
         if (ImGui::Begin("Audio")) {
             ImGui::Text("Patch FFT Bands to Parameters");
             ImNodes::BeginNodeEditor();
@@ -332,22 +333,23 @@ int main() {
             // Initialize node positions only once
             if (!nodes_initialized) {
                 std::cout << "Initializing nodes" << std::endl;
-                ImVec2 window_pos = ImGui::GetWindowPos();
-                ImVec2 window_size = ImGui::GetWindowSize();
-                float left_margin = 15.0f;
-                float right_margin = 40.0f;
-                float node_spacing = 60.0f;
                 
-                // Set initial positions for output nodes (bands) - left justified
+                // Use better coordinates for ImNodes editor
+                float left_x = 100.0f;
+                float right_x = 400.0f;
+                float start_y = 180.0f;
+                float node_spacing = 75.0f;
+                
+                // Set initial positions for output nodes (bands) - left side
                 for (int i = 0; i < 4; ++i) {
-                    node_positions[i] = ImVec2(window_pos.x + left_margin, window_pos.y + 50.0f + i * node_spacing);
+                    node_positions[i] = ImVec2(left_x, start_y + i * node_spacing);
                 }
                 
-                // Set initial positions for input nodes (parameters) - right justified
+                // Set initial positions for input nodes (parameters) - right side
                 for (int j = 0; j < 5; ++j) {
-                    node_positions[4 + j] = ImVec2(window_pos.x + window_size.x - right_margin - 100.0f, 
-                                                   window_pos.y + 50.0f + j * node_spacing);
+                    node_positions[4 + j] = ImVec2(right_x, start_y + j * node_spacing);
                 }
+                
             }
             
             // Define FFT colors once (matching the FFT display)
