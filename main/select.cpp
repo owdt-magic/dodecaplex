@@ -204,9 +204,9 @@ int main() {
                     << " --shader " << FRAG_SHADER_DIR << "/" << fragShaders[selectedShaderIndex].c_str();
                 launch_fragment(ss.str(), instanceCount);
             }
-
-            ImGui::End();
+            
         }
+        ImGui::End();
 
         if (ImGui::Begin("Control")) {
             // Check if any audio routing is active for each parameter
@@ -313,27 +313,55 @@ int main() {
                 ImGui::ProgressBar(normalized, ImVec2(-1, 20), "");
                 ImGui::PopStyleColor();
             }
-            ImGui::End();
+            
         }
-
+        ImGui::End();
+        
         if (ImGui::Begin("Audio")) {
             ImGui::Text("Patch FFT Bands to Parameters");
             ImNodes::BeginNodeEditor();
-            // Output nodes (bands)
+            
+            // Static variables to track if nodes have been initialized
+            static bool nodes_initialized = false;
+            static ImVec2 node_positions[9]; // 4 bands + 5 parameters
+            
+            // Initialize node positions only once
+            if (!nodes_initialized) {
+                std::cout << "Initializing nodes" << std::endl;
+                ImVec2 window_pos = ImGui::GetWindowPos();
+                ImVec2 window_size = ImGui::GetWindowSize();
+                float left_margin = 15.0f;
+                float right_margin = 40.0f;
+                float node_spacing = 60.0f;
+                
+                // Set initial positions for output nodes (bands) - left justified
+                for (int i = 0; i < 4; ++i) {
+                    node_positions[i] = ImVec2(window_pos.x + left_margin, window_pos.y + 50.0f + i * node_spacing);
+                }
+                
+                // Set initial positions for input nodes (parameters) - right justified
+                for (int j = 0; j < 5; ++j) {
+                    node_positions[4 + j] = ImVec2(window_pos.x + window_size.x - right_margin - 100.0f, 
+                                                   window_pos.y + 50.0f + j * node_spacing);
+                }
+            }
+            
+            // Output nodes (bands) - left justified
             for (int i = 0; i < 4; ++i) {
                 ImNodes::BeginNode(i);
-                ImGui::Text("Band %d", i);
+                if (!nodes_initialized) ImNodes::SetNodeScreenSpacePos(i, node_positions[i]);
                 ImNodes::BeginOutputAttribute(i * 10 + 1);
-                ImGui::Text("Out");
+                ImGui::Text("Band %d", i);
                 ImNodes::EndOutputAttribute();
                 ImNodes::EndNode();
             }
-            // Input nodes (parameters)
+            
+            // Input nodes (parameters) - right justified
             for (int j = 0; j < 5; ++j) {
                 ImNodes::BeginNode(100 + j);
-                ImGui::Text("%s", param_names[j]);
+                if (!nodes_initialized) ImNodes::SetNodeScreenSpacePos(100 + j, node_positions[4 + j]);
                 ImNodes::BeginInputAttribute(1000 + j);
-                ImGui::Text("In");
+                ImGui::Text("%s", param_names[j]);                
                 ImNodes::EndInputAttribute();
                 ImNodes::EndNode();
             }
@@ -341,6 +369,7 @@ int main() {
             for (const auto& link : links) {
                 ImNodes::Link(link.first * 10000 + link.second, link.first, link.second);
             }
+            nodes_initialized = true;
             ImNodes::EndNodeEditor();
 
             // Now handle new links
@@ -356,8 +385,9 @@ int main() {
                     band_to_param[band] = param;
                 }
             }
-            ImGui::End();
+            
         }
+        ImGui::End();
 
         ImGui::Render();
         int display_w, display_h;
