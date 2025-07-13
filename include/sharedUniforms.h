@@ -15,6 +15,7 @@ struct UniformStructure {
     float scroll;
     
     float volume; 
+    float band_volumes[BAND_COUNT];  // Individual band volume controls
     float audio_bands[BAND_COUNT];  // FFT band amplitudes
     int audio_routing[BAND_COUNT];  // Bit flags for parameter routing (bit 0=scale, 1=brightness, 2=speed, 3=fov, 4=hueShift)
     UniformStructure() :    scale(0.0f),
@@ -26,6 +27,7 @@ struct UniformStructure {
                             scroll(0.0f) {
         for(int i = 0; i < BAND_COUNT; i++) {
             audio_bands[i] = 0.0f;
+            band_volumes[i] = 1.0f;  // Default to full volume for each band
             audio_routing[i] = 0;  // No routing by default
         }
     };
@@ -101,12 +103,12 @@ public:
     };
     void ApplyRouting(std::atomic<float>* g_bandAmplitudes){
         for(int i = 0; i < BAND_COUNT; i++) {
-            data->audio_bands[i] = (g_bandAmplitudes[i])*data->volume;
+            data->audio_bands[i] = (g_bandAmplitudes[i])*data->volume*data->band_volumes[i];
             
             int routing       = data->audio_routing[i];
             float audio_value = data->audio_bands[i];
-            for (int i = 0; i < PARAM_COUNT; i++){
-                if (routing & (1 << i)) *metadata[i].value = audio_value*metadata[i].max + metadata[i].min;
+            for (int j = 0; j < PARAM_COUNT; j++){
+                if (routing & (1 << j)) *metadata[j].value = audio_value*metadata[j].max + metadata[j].min;
             }
         }
     }

@@ -180,7 +180,7 @@ int main() {
         }
         ImGui::End();
 
-        if (ImGui::Begin("Control")) {
+        if (ImGui::Begin("Sliders")) {
             // Lambda function to handle parameter sliders with audio routing
             auto AddNodeDrivenInput = [&](bool routed, const char* label, float* value, float min_val, float max_val, int param_bit) {
                 if (routed) ImGui::PushStyleColor(ImGuiCol_SliderGrab, ImVec4(1.0f, 0.5f, 0.0f, 1.0f));
@@ -220,9 +220,22 @@ int main() {
             for(int i = 0; i < BAND_COUNT; i++) {
                 float amplitude = uniforms.data->audio_bands[i];
                 float normalized = amplitude / max_amplitude;
+
+                ImGui::BeginGroup();
                 ImGui::PushStyleColor(ImGuiCol_PlotHistogram, bar_colors[i]);
-                ImGui::ProgressBar(normalized, ImVec2(-1, 20), "");
+                ImGui::ProgressBar(normalized, ImVec2(-1, 19), "");
                 ImGui::PopStyleColor();
+                // Overlay the volume slider on top of the histogram
+                ImGui::SetCursorPosY(ImGui::GetCursorPosY() - 23); // Move back up to overlay on the ProgressBar
+                
+                // Make slider background transparent
+                ImGui::PushStyleColor(ImGuiCol_FrameBg, ImVec4(0.0f, 0.0f, 0.0f, 0.0f));
+                
+                ImGui::SetNextItemWidth(-1); // Make the slider take full width
+                ImGui::SliderFloat(("##BandVol" + std::to_string(i)).c_str(), &uniforms.data->band_volumes[i], 0.0f, 2.0f, " x %.2f");
+                
+                ImGui::PopStyleColor();
+                ImGui::EndGroup();
             }
             
             ImGui::Separator();
@@ -232,7 +245,7 @@ int main() {
         ImGui::End();
         
         ImGui::SetNextWindowSize(ImVec2(600, 500), ImGuiCond_FirstUseEver);
-        if (ImGui::Begin("Audio")) {
+        if (ImGui::Begin("Nodes")) {
             ImGui::Text("Patch FFT Bands to Parameters");
             ImNodes::BeginNodeEditor();
             
