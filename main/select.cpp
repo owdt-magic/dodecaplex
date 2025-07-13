@@ -27,8 +27,6 @@ extern char **environ;
 
 using namespace AttributeHelpers;
 
-std::vector<std::pair<int, int>> links;
-
 ImVec4 bar_colors[BAND_COUNT] = {
     ImVec4(1.0f, 0.2f, 0.2f, 1.0f),
     ImVec4(1.0f, 0.6f, 0.2f, 1.0f),
@@ -39,10 +37,11 @@ ImVec4 bar_colors[BAND_COUNT] = {
 // Value generator node color
 ImVec4 value_generator_color = ImVec4(0.8f, 0.2f, 0.8f, 1.0f); // Purple/magenta
 
-// Value generator node (currently using sinusoid, but can be changed)
-// To change the node type, simply change the NodeType enum value:
-// NodeFactory::NodeType::Square, NodeFactory::NodeType::Triangle, etc.
-ValueGeneratorNode* value_generator_node = NodeFactory::createNode(NodeFactory::NodeType::Sinusoid);
+// Unified value source manager
+ValueSourceManager valueManager;
+
+// Deferred removal system
+std::vector<int> sourcesToRemove;
 
 // Helper function for color conversion
 auto toImU32 = [](const ImVec4& color, int alpha) {
@@ -152,7 +151,17 @@ int main() {
     std::vector<std::string> fragShaders = ListFragmentShaders(FRAG_SHADER_DIR);
     int selectedShaderIndex = 0;
 
-    // Time tracking for sinusoid
+    // Initialize unified value source system
+    // Add audio band sources
+    for (int i = 0; i < BAND_COUNT; ++i) {
+        valueManager.addSource(std::make_unique<AudioBandSource>(i, &uniforms.data->audio_bands[i]));
+    }
+    
+    // Add initial value generators
+    valueManager.addSource(std::make_unique<MultiModeValueGenerator>());
+    valueManager.addSource(std::make_unique<MultiModeValueGenerator>());
+
+    // Time tracking
     static float lastTime = 0.0f;
     float currentTime = glfwGetTime();
     float deltaTime = currentTime - lastTime;
@@ -161,8 +170,8 @@ int main() {
     while (!glfwWindowShouldClose(window)) {
         glfwPollEvents();
         
-        // Update value generator node
-        value_generator_node->update(deltaTime);
+        // Update unified value source system
+        valueManager.updateAll(deltaTime);
 
         if (previousDeviceIndex != selectedDeviceIndex) {
             audio_nest.changeAudioDevice(selectedDeviceIndex);
@@ -171,6 +180,9 @@ int main() {
         // Process audio FFT and update shared uniforms
         audio_nest.processFFT();
         uniforms.ApplyRouting(audio_nest.g_bandAmplitudes);
+        
+        // Apply unified value sources to parameters
+        valueManager.applyToParameters(uniforms.metadata, PARAM_COUNT);
 
         ImGui_ImplOpenGL3_NewFrame();
         ImGui_ImplGlfw_NewFrame();
@@ -203,54 +215,22 @@ int main() {
         ImGui::End();
 
         if (ImGui::Begin("Sliders")) {
-            // Lambda function to handle parameter sliders with audio routing
+            // Lambda function to handle parameter sliders with unified routing
             auto AddNodeDrivenInput = [&](bool routed, const char* label, float* value, float min_val, float max_val, int param_bit) {
                 if (routed) ImGui::PushStyleColor(ImGuiCol_SliderGrab, ImVec4(1.0f, 0.5f, 0.0f, 1.0f));
                 bool changed = ImGui::SliderFloat(label, value, min_val, max_val);
                 if (routed) ImGui::PopStyleColor();
                 if (changed) {
-                    // Override any node linking with the value selected.
-                    for (int band = 0; band < BAND_COUNT; ++band) {
-                        if (uniforms.data->audio_routing[band] & (1 << param_bit)) {
-                            uniforms.data->audio_routing[band] &= ~(1 << param_bit);
-                            links.erase(std::remove_if(links.begin(), links.end(),
-                                AttributePredicates::isAudioBandToParameterLink(band, param_bit)), links.end());
-                        }
-                    }
-                    links.erase(std::remove_if(links.begin(), links.end(),
-                        AttributePredicates::isValueGeneratorToParameterLink(param_bit)), links.end());
+                    // Override any node linking with the value selected
+                    valueManager.removeLink(-1, param_bit); // Remove all links to this parameter
                 }
             };
-
-            // Check if any audio routing is active for each parameter
-            bool routed[PARAM_COUNT] = {false};
-            for(int i = 0; i < BAND_COUNT; i++) {
-                int routing = uniforms.data->audio_routing[i];
-                for(int j = 0; j < PARAM_COUNT; j++) {
-                    if (routing & (1 << j)) routed[j] = true;
-                }
-            }
             
-            // Check for value generator routing and apply values
-            for(const auto& link : links) {
-                if (isValueGeneratorAttribute(link.first)) { // Value generator output
-                    int param_bit = getParameterIndexFromAttributeId(link.second);
-                    if (param_bit >= 0 && param_bit < PARAM_COUNT) {
-                        routed[param_bit] = true;
-                        // Apply value generator value to the parameter
-                        UniformMeta& um = uniforms.metadata[param_bit];
-                        // Map value generator value to parameter range
-                        float range_center = (um.max + um.min) * 0.5f;
-                        float range_half = (um.max - um.min) * 0.5f;
-                        float value_scale = 0.5f; // Scale factor for the value
-                        *um.value = range_center + (value_generator_node->getValue() / 2.0f) * range_half * value_scale;
-                    }
-                }
-            }
-            
+            // Use unified system to check if parameters are driven
             for(int j = 0; j < PARAM_COUNT; j++) {
                 UniformMeta& um = uniforms.metadata[j];
-                AddNodeDrivenInput(routed[j], um.name, um.value, um.min, um.max, j);
+                bool isDriven = valueManager.isParameterDriven(j);
+                AddNodeDrivenInput(isDriven, um.name, um.value, um.min, um.max, j);
             }
 
             ImGui::Separator();
@@ -287,98 +267,86 @@ int main() {
         ImGui::SetNextWindowSize(ImVec2(600, 500), ImGuiCond_FirstUseEver);
         if (ImGui::Begin("Nodes")) {
             ImGui::Text("Patch FFT Bands to Parameters");
+            
+            // Add Generator button
+            if (ImGui::Button("Add Generator")) {
+                valueManager.addSource(std::make_unique<MultiModeValueGenerator>());
+            }
+            
             ImNodes::BeginNodeEditor();
             
             // Static variables to track if nodes have been initialized
             static bool nodes_initialized = false;
-            static ImVec2 node_positions[BAND_COUNT+PARAM_COUNT+1]; // +1 for sinusoid node
+            static ImVec2 node_positions[100]; // Large enough for all sources + parameters
             if (!nodes_initialized) {
                 float left_x = 300.0f;
-                float center_x = 350.0f; // Sinusoid node in center
                 float right_x = 400.0f;
                 float start_y = 100.0f;
                 float node_spacing = 75.0f;
-                for (int i = 0; i < BAND_COUNT; ++i) {
+                
+                // Position all value sources on the left
+                for (int i = 0; i < valueManager.getSourceCount(); ++i) {
                     node_positions[i] = ImVec2(left_x, start_y + i * node_spacing);
                 }
-                // Sinusoid node position (after bands, before parameters)
-                node_positions[BAND_COUNT] = ImVec2(center_x, start_y + BAND_COUNT * node_spacing);
+                
+                // Position parameters on the right
                 for (int j = 0; j < PARAM_COUNT; ++j) {
-                    node_positions[BAND_COUNT + 1 + j] = ImVec2(right_x, start_y + j * node_spacing);
+                    node_positions[valueManager.getSourceCount() + j] = ImVec2(right_x, start_y + j * node_spacing);
                 }                
             }
-            // Output nodes (bands) - left justified
-            for (int i = 0; i < BAND_COUNT; ++i) {
-                int color_alpha = 50 + (int)(std::min(uniforms.data->audio_bands[i] / 2.0f, 1.0f) * 200);
+            // Output nodes (value sources) - left justified
+            for (int i = 0; i < valueManager.getSourceCount(); ++i) {
+                ValueSource* source = valueManager.getSourceByIndex(i);
+                if (!source) continue;
                 
-                ImU32 bg_color       = toImU32(bar_colors[i], color_alpha);
-                ImU32 hover_color    = toImU32(bar_colors[i], color_alpha + 50);
-                ImU32 selected_color = toImU32(bar_colors[i], color_alpha + 100);
-                ImU32 outline_color  = toImU32(bar_colors[i], 255);
-                
-                ImNodes::PushColorStyle(ImNodesCol_NodeBackground, bg_color);
-                ImNodes::PushColorStyle(ImNodesCol_NodeBackgroundHovered, hover_color);
-                ImNodes::PushColorStyle(ImNodesCol_NodeBackgroundSelected, selected_color);
-                ImNodes::PushColorStyle(ImNodesCol_NodeOutline, outline_color);
-                
-                ImNodes::BeginNode(i);
-                if (!nodes_initialized) ImNodes::SetNodeScreenSpacePos(i, node_positions[i]);
-                
-                ImNodes::BeginOutputAttribute(getAudioBandAttributeId(i));
-                ImGui::Text("Band %d", i);
-                ImNodes::EndOutputAttribute();
-                ImNodes::EndNode();
-                
-                ImNodes::PopColorStyle();
-                ImNodes::PopColorStyle();
-                ImNodes::PopColorStyle();
-                ImNodes::PopColorStyle();
-            }
-            
-            // Value generator node - center
-            {
-                int color_alpha = 50 + (int)(std::min(std::abs(value_generator_node->getValue()) / 2.0f, 1.0f) * 200);
-                
-                ImU32 bg_color       = toImU32(value_generator_color, color_alpha);
-                ImU32 hover_color    = toImU32(value_generator_color, color_alpha + 50);
-                ImU32 selected_color = toImU32(value_generator_color, color_alpha + 100);
-                ImU32 outline_color  = toImU32(value_generator_color, 255);
-                
-                ImNodes::PushColorStyle(ImNodesCol_NodeBackground, bg_color);
-                ImNodes::PushColorStyle(ImNodesCol_NodeBackgroundHovered, hover_color);
-                ImNodes::PushColorStyle(ImNodesCol_NodeBackgroundSelected, selected_color);
-                ImNodes::PushColorStyle(ImNodesCol_NodeOutline, outline_color);
-                
-                ImNodes::BeginNode(VALUE_GENERATOR_NODE_ID); // Value generator node ID
-                if (!nodes_initialized) ImNodes::SetNodeScreenSpacePos(VALUE_GENERATOR_NODE_ID, node_positions[BAND_COUNT]);
-                ImGui::Text("%s", value_generator_node->getName().c_str());
-                
-                static int selectedNodeType = 0;
-                const char* nodeTypes[] = {"Sinusoid", "Square", "Triangle", "Sawtooth", "Noise", "Constant"};
-                ImGui::SetNextItemWidth(120.0f);
-                if (ImGui::BeginCombo("Type", nodeTypes[selectedNodeType])) {
-                    for (int i = 0; i < 6; ++i) {
-                        bool is_selected = (selectedNodeType == i);
-                        if (ImGui::Selectable(nodeTypes[i], is_selected)) {
-                            if (selectedNodeType != i) {
-                                selectedNodeType = i;
-                                // Create new node of selected type
-                                delete value_generator_node;
-                                value_generator_node = NodeFactory::createNode(static_cast<NodeFactory::NodeType>(i));
-                            }
-                        }
-                        if (is_selected) ImGui::SetItemDefaultFocus();
-                    }
-                    ImGui::EndCombo();
+                // Determine color based on source type
+                ImVec4 sourceColor;
+                if (source->getSourceId() < BAND_COUNT) {
+                    // Audio band
+                    sourceColor = bar_colors[source->getSourceId()];
+                } else {
+                    // Value generator
+                    sourceColor = value_generator_color;
                 }
                 
-                value_generator_node->renderUI();
+                int color_alpha = 50 + (int)(std::min(std::abs(source->getValue()) / 2.0f, 1.0f) * 200);
                 
-                ImGui::Text("Value: %.3f", value_generator_node->getValue());
+                ImU32 bg_color       = toImU32(sourceColor, color_alpha);
+                ImU32 hover_color    = toImU32(sourceColor, color_alpha + 50);
+                ImU32 selected_color = toImU32(sourceColor, color_alpha + 100);
+                ImU32 outline_color  = toImU32(sourceColor, 255);
                 
-                ImNodes::BeginOutputAttribute(VALUE_GENERATOR_OUTPUT_ATTRIBUTE_ID);
-                ImGui::Text("Output");
-                ImNodes::EndOutputAttribute();
+                ImNodes::PushColorStyle(ImNodesCol_NodeBackground, bg_color);
+                ImNodes::PushColorStyle(ImNodesCol_NodeBackgroundHovered, hover_color);
+                ImNodes::PushColorStyle(ImNodesCol_NodeBackgroundSelected, selected_color);
+                ImNodes::PushColorStyle(ImNodesCol_NodeOutline, outline_color);
+                
+                ImNodes::BeginNode(source->getSourceId());
+                if (!nodes_initialized) ImNodes::SetNodeScreenSpacePos(source->getSourceId(), node_positions[i]);
+                
+                // Add X button for value generators (not audio bands)
+                if (source->getSourceId() >= BAND_COUNT) {                    
+                    if (ImGui::Button(("X##" + std::to_string(source->getSourceId())).c_str())) {
+                        sourcesToRemove.push_back(source->getSourceId());
+                    }
+                    ImGui::SameLine();
+                }
+                // Render source-specific UI                
+                source->renderUI();
+
+                // Create output attribute
+                if (source->getSourceId() < BAND_COUNT) {
+                    // Audio band
+                    ImNodes::BeginOutputAttribute(getAudioBandAttributeId(source->getSourceId()));
+                    ImGui::Text("Band %d", source->getSourceId());
+                    ImNodes::EndOutputAttribute();
+                } else {
+                    // Value generator - use unique output attribute ID
+                    int outputAttrId = 2000 + source->getSourceId(); // 2000 + sourceId for unique output
+                    ImNodes::BeginOutputAttribute(outputAttrId);
+                    ImGui::Text("Output");
+                    ImNodes::EndOutputAttribute();
+                }
                 
                 ImNodes::EndNode();
                 
@@ -391,7 +359,7 @@ int main() {
             // Input nodes (parameters) - right justified
             for (int j = 0; j < PARAM_COUNT; ++j) {
                 ImNodes::BeginNode(getParameterNodeId(j));
-                if (!nodes_initialized) ImNodes::SetNodeScreenSpacePos(getParameterNodeId(j), node_positions[BAND_COUNT + j]);
+                if (!nodes_initialized) ImNodes::SetNodeScreenSpacePos(getParameterNodeId(j), node_positions[valueManager.getSourceCount() + j]);
                 ImNodes::BeginInputAttribute(getParameterAttributeId(j));
                 ImGui::Text("%s", uniforms.metadata[j].name);                
                 ImNodes::EndInputAttribute();
@@ -400,20 +368,35 @@ int main() {
             // Draw all links with colored splines
             int color_alpha = 100;
             ImVec4 link_color = ImVec4(0.5, 0.5, 0.5, 1.0);
-            for (const auto& link : links) {
-                int band_index = getBandIndexFromAttributeId(link.first); 
-                if (isValueGeneratorAttribute(link.first)) {
-                    link_color = value_generator_color;
-                    color_alpha = 100 + (int)(std::min(std::abs(value_generator_node->getValue()) / 2.0f, 1.0f) * 155);
-                } else if (band_index >= 0 && band_index < BAND_COUNT) {
-                    link_color = bar_colors[band_index];
-                    color_alpha = 100 + (int)(std::min(uniforms.data->audio_bands[band_index] / 2.0f, 1.0f) * 155);                    
+            for (const auto& link : valueManager.getAllLinks()) {
+                int sourceId = link.first;
+                ValueSource* source = valueManager.getSource(sourceId);
+                if (source) {
+                    if (sourceId < BAND_COUNT) {
+                        // Audio band
+                        link_color = bar_colors[sourceId];
+                        color_alpha = 100 + (int)(std::min(std::abs(source->getValue()) / 2.0f, 1.0f) * 155);
+                    } else {
+                        // Value generator
+                        link_color = value_generator_color;
+                        color_alpha = 100 + (int)(std::min(std::abs(source->getValue()) / 2.0f, 1.0f) * 155);
+                    }
                 }
+                
+                // Convert sourceId/paramIndex to attribute IDs for ImNodes
+                int startAttr, endAttr;
+                if (sourceId < BAND_COUNT) {
+                    startAttr = getAudioBandAttributeId(sourceId);
+                } else {
+                    startAttr = 2000 + sourceId; // Unique output attribute ID for value generators
+                }
+                endAttr = getParameterAttributeId(link.second);
+                
                 ImNodes::PushColorStyle(ImNodesCol_Link, toImU32(link_color, color_alpha));
                 ImNodes::PushColorStyle(ImNodesCol_LinkHovered, toImU32(link_color, 255));
                 ImNodes::PushColorStyle(ImNodesCol_LinkSelected, toImU32(link_color, 255));
                 
-                ImNodes::Link(generateLinkId(link.first, link.second), link.first, link.second);
+                ImNodes::Link(generateLinkId(startAttr, endAttr), startAttr, endAttr);
                 
                 ImNodes::PopColorStyle();
                 ImNodes::PopColorStyle();
@@ -422,25 +405,20 @@ int main() {
             nodes_initialized = true;
             ImNodes::EndNodeEditor();
 
+            // Handle deferred removals
+            for (int sourceId : sourcesToRemove) {
+                valueManager.removeSource(sourceId);
+            }
+            sourcesToRemove.clear();
+
             // Now handle new links
             int start_attr, end_attr;
             if (ImNodes::IsLinkCreated(&start_attr, &end_attr)) {
                 if (isValidOutputAttribute(start_attr) && isValidInputAttribute(end_attr)) {
-                    // Remove any previous link from this source to this parameter
-                    links.erase(std::remove_if(links.begin(), links.end(),
-                        AttributePredicates::isLinkBetweenAttributes(start_attr, end_attr)), links.end());
-                    links.emplace_back(start_attr, end_attr);
-                    
-                    if (isValueGeneratorAttribute(start_attr)) {
-                        // Value generator connection - we'll need to handle this differently
-                        // For now, just store the connection
-                        int param_bit = getParameterIndexFromAttributeId(end_attr);
-                        // TODO: Add value generator routing to uniforms
-                    } else {
-                        // Audio band connection
-                        int band = getBandIndexFromAttributeId(start_attr);
-                        int param_bit = getParameterIndexFromAttributeId(end_attr); // 0=Scale, 1=Brightness, etc.
-                        uniforms.data->audio_routing[band] |= (1 << param_bit); // Set this bit
+                    int sourceId = valueManager.getSourceIdFromAttribute(start_attr);
+                    int paramIndex = getParameterIndexFromAttributeId(end_attr);
+                    if (sourceId >= 0 && paramIndex >= 0) {
+                        valueManager.addLink(sourceId, paramIndex);
                     }
                 }
             }
@@ -460,7 +438,6 @@ int main() {
 
     kill_fragments();
     ma_context_uninit(&context);
-    delete value_generator_node;
 
     ImGui_ImplOpenGL3_Shutdown();
     ImGui_ImplGlfw_Shutdown();

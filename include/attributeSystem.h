@@ -57,7 +57,7 @@ namespace AttributeHelpers {
     
     // Check if attribute ID is the value generator output
     inline bool isValueGeneratorAttribute(int attributeId) {
-        return attributeId == VALUE_GENERATOR_OUTPUT_ATTRIBUTE_ID;
+        return attributeId >= 2000; // All value generator outputs are >= 2000
     }
     
     // Check if attribute ID is a valid output (audio band or value generator)
