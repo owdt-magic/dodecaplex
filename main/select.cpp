@@ -23,9 +23,8 @@ extern char **environ;
 #include "config.h"
 
 std::vector<std::pair<int, int>> links;
-const char* param_names[] = {"Scale", "Brightness", "Speed", "FOV", "Hue Shift"};
 
-ImVec4 bar_colors[] = {
+ImVec4 bar_colors[BAND_COUNT] = {
     ImVec4(1.0f, 0.2f, 0.2f, 1.0f),
     ImVec4(1.0f, 0.6f, 0.2f, 1.0f),
     ImVec4(0.2f, 1.0f, 0.2f, 1.0f),
@@ -149,21 +148,7 @@ int main() {
         }
         // Process audio FFT and update shared uniforms
         audio_nest.processFFT();
-        for(int i = 0; i < 4; i++) {
-            uniforms.data->audio_bands[i] = audio_nest.g_bandAmplitudes[i];
-        }        
-        // Apply audio routing to control parameters
-        for(int i = 0; i < 4; i++) {
-            int routing       = uniforms.data->audio_routing[i];
-            float audio_value = uniforms.data->audio_bands[i];            
-            
-            // Check each bit flag for parameter routing
-            if (routing & (1 << 0)) uniforms.data->scale      = audio_value;
-            if (routing & (1 << 1)) uniforms.data->brightness = audio_value * 2.0f;
-            if (routing & (1 << 2)) uniforms.data->speed      = audio_value * 2.0f;
-            if (routing & (1 << 3)) uniforms.data->fov        = audio_value * 180.0f;
-            if (routing & (1 << 4)) uniforms.data->hueShift   = audio_value * 360.0f;
-        }
+        uniforms.ApplyRouting(audio_nest.g_bandAmplitudes);
 
         ImGui_ImplOpenGL3_NewFrame();
         ImGui_ImplGlfw_NewFrame();
@@ -202,7 +187,7 @@ int main() {
                 bool changed = ImGui::SliderFloat(label, value, min_val, max_val);
                 if (routed) ImGui::PopStyleColor();
                 if (changed) {
-                    for (int band = 0; band < 4; ++band) {
+                    for (int band = 0; band < BAND_COUNT; ++band) {
                         if (uniforms.data->audio_routing[band] & (1 << param_bit)) {
                             uniforms.data->audio_routing[band] &= ~(1 << param_bit); // Clear this bit
                             links.erase(std::remove_if(links.begin(), links.end(),
@@ -215,37 +200,33 @@ int main() {
             };
 
             // Check if any audio routing is active for each parameter
-            bool scale_routed = false, brightness_routed = false, speed_routed = false;
-            bool fov_routed = false, hue_routed = false;
-            
-            for(int i = 0; i < 4; i++) {
+            bool routed[PARAM_COUNT] = {false};
+            for(int i = 0; i < BAND_COUNT; i++) {
                 int routing = uniforms.data->audio_routing[i];
-                if (routing & (1 << 0)) scale_routed = true;
-                if (routing & (1 << 1)) brightness_routed = true;
-                if (routing & (1 << 2)) speed_routed = true;
-                if (routing & (1 << 3)) fov_routed = true;
-                if (routing & (1 << 4)) hue_routed = true;
+                for(int j = 0; j < PARAM_COUNT; j++) {
+                    if (routing & (1 << j)) routed[j] = true;
+                }
             }
             
-            // Use the lambda for each parameter (param_bit: 0=scale, 1=brightness, 2=speed, 3=fov, 4=hueShift)
-            AddNodeDrivenInput(scale_routed, "Scale", &uniforms.data->scale, 0.0f, 1.0f, 0);
-            AddNodeDrivenInput(brightness_routed, "Brightness", &uniforms.data->brightness, 0.0f, 2.0f, 1);
-            AddNodeDrivenInput(speed_routed, "Speed", &uniforms.data->speed, 0.0f, 2.0f, 2);
-            AddNodeDrivenInput(fov_routed, "FOV", &uniforms.data->fov, 0.0f, 180.0f, 3);
-            AddNodeDrivenInput(hue_routed, "Hue Shift", &uniforms.data->hueShift, 0.0f, 360.0f, 4);
+            for(int j = 0; j < PARAM_COUNT; j++) {
+                UniformMeta& um = uniforms.metadata[j];
+                AddNodeDrivenInput(routed[j], um.name, um.value, um.min, um.max, j);
+            }
 
-            // No need to sync - audio_routing is updated directly in the link creation logic
             ImGui::Separator();
             ImGui::Text("Live FFT:");
             float max_amplitude = 2.0f;
 
-            for(int i = 0; i < 4; i++) {
+            for(int i = 0; i < BAND_COUNT; i++) {
                 float amplitude = uniforms.data->audio_bands[i];
                 float normalized = amplitude / max_amplitude;
                 ImGui::PushStyleColor(ImGuiCol_PlotHistogram, bar_colors[i]);
                 ImGui::ProgressBar(normalized, ImVec2(-1, 20), "");
                 ImGui::PopStyleColor();
             }
+            
+            ImGui::Separator();
+            ImGui::SliderFloat("Volume", &uniforms.data->volume, 0.0f, 2.0f);
             
         }
         ImGui::End();
@@ -257,21 +238,21 @@ int main() {
             
             // Static variables to track if nodes have been initialized
             static bool nodes_initialized = false;
-            static ImVec2 node_positions[9]; // 4 bands + 5 parameters
+            static ImVec2 node_positions[BAND_COUNT+PARAM_COUNT];
             if (!nodes_initialized) {
                 float left_x = 300.0f;
                 float right_x = 400.0f;
                 float start_y = 100.0f;
                 float node_spacing = 75.0f;
-                for (int i = 0; i < 4; ++i) {
+                for (int i = 0; i < BAND_COUNT; ++i) {
                     node_positions[i] = ImVec2(left_x, start_y + i * node_spacing);
                 }
-                for (int j = 0; j < 5; ++j) {
-                    node_positions[4 + j] = ImVec2(right_x, start_y + j * node_spacing);
+                for (int j = 0; j < PARAM_COUNT; ++j) {
+                    node_positions[BAND_COUNT + j] = ImVec2(right_x, start_y + j * node_spacing);
                 }                
             }
             // Output nodes (bands) - left justified
-            for (int i = 0; i < 4; ++i) {
+            for (int i = 0; i < BAND_COUNT; ++i) {
                 int color_alpha = 50 + (int)(std::min(uniforms.data->audio_bands[i] / 2.0f, 1.0f) * 200);
                 
                 ImU32 bg_color       = toImU32(bar_colors[i], color_alpha);
@@ -299,18 +280,18 @@ int main() {
             }
             
             // Input nodes (parameters) - right justified
-            for (int j = 0; j < 5; ++j) {
+            for (int j = 0; j < PARAM_COUNT; ++j) {
                 ImNodes::BeginNode(100 + j);
-                if (!nodes_initialized) ImNodes::SetNodeScreenSpacePos(100 + j, node_positions[4 + j]);                
+                if (!nodes_initialized) ImNodes::SetNodeScreenSpacePos(100 + j, node_positions[BAND_COUNT + j]);
                 ImNodes::BeginInputAttribute(1000 + j);
-                ImGui::Text("%s", param_names[j]);                
+                ImGui::Text("%s", uniforms.metadata[j].name);                
                 ImNodes::EndInputAttribute();
                 ImNodes::EndNode();
             }
             // Draw all links with colored splines
             for (const auto& link : links) {
                 int band_index = link.first / 10;
-                bool valid_band = (band_index >= 0 && band_index < 4);
+                bool valid_band = (band_index >= 0 && band_index < BAND_COUNT);
                 
                 if (valid_band) {
                     int color_alpha = 100 + (int)(std::min(uniforms.data->audio_bands[band_index] / 2.0f, 1.0f) * 155);

@@ -83,7 +83,7 @@ int main(int argc, char** argv) {
         glClearColor(0.f, 0.f, 0.f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-        accountSpin(uniforms, cam, shared_uniforms.data->speed, shared_uniforms.data->fov);
+        accountSpin(uniforms, cam, shared_uniforms.data->speed, shared_uniforms.data->fov, shared_uniforms.data->scroll);
 
         glBufferSubData(GL_UNIFORM_BUFFER, 0,                 sizeof(glm::mat4), &(cam.Projection)[0][0]);
         glBufferSubData(GL_UNIFORM_BUFFER, sizeof(glm::mat4), sizeof(glm::mat4), &(cam.Model)[0][0]);

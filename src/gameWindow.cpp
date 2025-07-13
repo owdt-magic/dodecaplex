@@ -127,9 +127,9 @@ void accountCameraControls(Uniforms* uniforms, CameraInfo &camera_info) {
     // Projection matrix: 90° Field of View, display range: 0.1 unit <-> 100 units
 }
 void accountSpin(Uniforms* uniforms, CameraInfo &camera_info) {
-    accountSpin(uniforms, camera_info, 1.0f, 150.0f);
+    accountSpin(uniforms, camera_info, 1.0f, 150.0f, 0.0f);
 }
-void accountSpin(Uniforms* uniforms, CameraInfo &camera_info, float scale, float fov) {
+void accountSpin(Uniforms* uniforms, CameraInfo &camera_info, float scale, float fov, float scroll) {
     const float ds = rand();
     static glm::mat4 rotation = glm::mat4({
         1.0f,  0.0f,    0.0f, 0.0f,
@@ -139,7 +139,7 @@ void accountSpin(Uniforms* uniforms, CameraInfo &camera_info, float scale, float
     }); // provides variance and avoids horizontal line aliasing
     float ratio = float(uniforms->windWidth)/float(uniforms->windHeight);
     float dt = std::min( float(uniforms->this_time-uniforms->last_time), 0.01f);    
-    float scroll = uniforms->scroll;
+    scroll+=uniforms->scroll;
     float dx, dy;
     dx = dt*sin(scroll/10.0f)*scale;
     dy = dt*cos(scroll/10.0f)*scale;
