@@ -10,7 +10,7 @@ struct UniformStructure {
     float fov;
     float hueShift;
     float audio_bands[4];  // FFT band amplitudes
-    int audio_routing[4];  // Which parameter each band routes to (0=none, 1=scale, 2=brightness, etc.)
+    int audio_routing[4];  // Bit flags for parameter routing (bit 0=scale, 1=brightness, 2=speed, 3=fov, 4=hueShift)
     UniformStructure() :    scale(0.0f),
                             brightness(1.0f),
                             speed(1.0f),
