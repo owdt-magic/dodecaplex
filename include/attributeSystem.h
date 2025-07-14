@@ -12,6 +12,7 @@
 #define AUDIO_BAND_ATTRIBUTE_MULTIPLIER 10
 #define AUDIO_BAND_ATTRIBUTE_OFFSET 1
 #define LINK_ID_MULTIPLIER 10000
+#define VALUE_GENERATOR_ATTRIBUTE_MULTIPLIER 2000
 
 #include "sharedUniforms.h"
 
@@ -37,6 +38,11 @@ namespace AttributeHelpers {
         return bandIndex * AUDIO_BAND_ATTRIBUTE_MULTIPLIER + AUDIO_BAND_ATTRIBUTE_OFFSET;
     }
     
+    // Convert value generator sourceId to output attribute ID
+    inline int getValueGeneratorAttributeId(int sourceId) {
+        return VALUE_GENERATOR_ATTRIBUTE_MULTIPLIER + sourceId;
+    }
+    
     // Convert audio band attribute ID back to band index
     inline int getBandIndexFromAttributeId(int attributeId) {
         return attributeId / AUDIO_BAND_ATTRIBUTE_MULTIPLIER;
@@ -57,7 +63,7 @@ namespace AttributeHelpers {
     
     // Check if attribute ID is the value generator output
     inline bool isValueGeneratorAttribute(int attributeId) {
-        return attributeId >= 2000; // All value generator outputs are >= 2000
+        return attributeId >= VALUE_GENERATOR_ATTRIBUTE_MULTIPLIER; // All value generator outputs are >= 2000
     }
     
     // Check if attribute ID is a valid output (audio band or value generator)

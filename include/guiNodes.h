@@ -33,6 +33,35 @@ public:
     // Optional interface for sources that can be configured
     virtual bool hasConfigurableParameters() const { return false; }
     virtual void setValue(float newValue) { value = newValue; }
+    
+    // Get processed value that would be applied to parameters (with centering/scaling)
+    virtual float getProcessedValue(const UniformMeta& um) const { 
+        if (sourceId < BAND_COUNT) {
+            // Audio band: positive values, map directly to parameter range
+            return um.min + std::min(value / 2.0f, 1.0f) * (um.max - um.min);
+        } else {
+            // Value generator: zero-mean values, center the mapping
+            float range_center = (um.max + um.min) * 0.5f;
+            float range_half = (um.max - um.min) * 0.5f;
+            float value_scale = 0.5f; // Scale factor for the value
+            return range_center + (value / 2.0f) * range_half * value_scale;
+        }
+    }
+    
+    // Get normalized value for visual feedback (0-1 range)
+    virtual float getNormalizedValue() const {
+        if (sourceId < BAND_COUNT) {
+            return std::min(value, 1.0f);
+        } else {
+            // Value generator: normalize to 0-1 (simple approach)
+            return std::max(0.0f, std::min((value + 1.0f) / 2.0f, 1.0f));
+        }
+    }
+
+    // Get the attribute ID for the output of this value source
+    virtual int getOutputAttributeId() const {
+        return -1; // Default to -1 if not overridden
+    }
 };
 
 // Audio band as a value source
@@ -69,214 +98,10 @@ public:
             // This is not ideal but maintains compatibility
         }
     }
-};
 
-class ValueGeneratorNode : public ValueSource {
-protected:
-    float time = 0.0f;
-    
-public:
-    ValueGeneratorNode(const std::string& nodeName, int nodeId) 
-        : ValueSource(nodeName, nodeId) {} // Use unique ID for each value generator
-    virtual ~ValueGeneratorNode() = default;
-    
-    // Pure virtual function that derived classes must implement
-    virtual void update(float deltaTime) override = 0;
-    
-    // Virtual function for rendering UI controls - derived classes should override
-    virtual void renderUI() override = 0;
-    
-    // Common getters/setters
-    float getTime() const { return time; }
-    void setTime(float t) { time = t; }
-    bool hasConfigurableParameters() const override { return true; }
-};
-
-// Sinusoid wave generator node
-class SinusoidNode : public ValueGeneratorNode {
-private:
-    float frequency = 1.0f;
-    float amplitude = 1.0f;
-    float phase = 0.0f;
-    
-public:
-    SinusoidNode() : ValueGeneratorNode("Sinusoid", 200) {}
-    
-    void update(float deltaTime) override {
-        time += deltaTime;
-        value = amplitude * sin(2.0f * M_PI * frequency * time + phase);
+    int getOutputAttributeId() const override {
+        return AttributeHelpers::getAudioBandAttributeId(bandIndex);
     }
-    
-    void renderUI() override {
-        ImGui::SetNextItemWidth(100.0f);
-        ImGui::SliderFloat("Freq", &frequency, 0.1f, 10.0f, "%.1f");
-        ImGui::SetNextItemWidth(100.0f);
-        ImGui::SliderFloat("Amp", &amplitude, 0.1f, 5.0f, "%.1f");
-        ImGui::SetNextItemWidth(100.0f);
-        ImGui::SliderFloat("Phase", &phase, -M_PI, M_PI, "%.2f");
-    }
-    
-    // Getters and setters for sinusoid-specific parameters
-    float getFrequency() const { return frequency; }
-    void setFrequency(float freq) { frequency = freq; }
-    
-    float getAmplitude() const { return amplitude; }
-    void setAmplitude(float amp) { amplitude = amp; }
-    
-    float getPhase() const { return phase; }
-    void setPhase(float p) { phase = p; }
-};
-
-// Square wave generator node
-class SquareNode : public ValueGeneratorNode {
-private:
-    float frequency = 1.0f;
-    float amplitude = 1.0f;
-    float dutyCycle = 0.5f; // 0.0 to 1.0
-    
-public:
-    SquareNode() : ValueGeneratorNode("Square", 201) {}
-    
-    void update(float deltaTime) override {
-        time += deltaTime;
-        float cycle = fmod(frequency * time, 1.0f);
-        value = (cycle < dutyCycle) ? amplitude : -amplitude;
-    }
-    
-    void renderUI() override {
-        ImGui::SetNextItemWidth(100.0f);
-        ImGui::SliderFloat("Freq", &frequency, 0.1f, 10.0f, "%.1f");
-        ImGui::SetNextItemWidth(100.0f);
-        ImGui::SliderFloat("Amp", &amplitude, 0.1f, 5.0f, "%.1f");
-        ImGui::SetNextItemWidth(100.0f);
-        ImGui::SliderFloat("Duty", &dutyCycle, 0.0f, 1.0f, "%.2f");
-    }
-    
-    float getFrequency() const { return frequency; }
-    void setFrequency(float freq) { frequency = freq; }
-    
-    float getAmplitude() const { return amplitude; }
-    void setAmplitude(float amp) { amplitude = amp; }
-    
-    float getDutyCycle() const { return dutyCycle; }
-    void setDutyCycle(float duty) { dutyCycle = std::max(0.0f, std::min(1.0f, duty)); }
-};
-
-// Triangle wave generator node
-class TriangleNode : public ValueGeneratorNode {
-private:
-    float frequency = 1.0f;
-    float amplitude = 1.0f;
-    
-public:
-    TriangleNode() : ValueGeneratorNode("Triangle", 202) {}
-    
-    void update(float deltaTime) override {
-        time += deltaTime;
-        float cycle = fmod(frequency * time, 1.0f);
-        if (cycle < 0.5f) {
-            value = amplitude * (4.0f * cycle - 1.0f);
-        } else {
-            value = amplitude * (3.0f - 4.0f * cycle);
-        }
-    }
-    
-    void renderUI() override {
-        ImGui::SetNextItemWidth(100.0f);
-        ImGui::SliderFloat("Freq", &frequency, 0.1f, 10.0f, "%.1f");
-        ImGui::SetNextItemWidth(100.0f);
-        ImGui::SliderFloat("Amp", &amplitude, 0.1f, 5.0f, "%.1f");
-    }
-    
-    float getFrequency() const { return frequency; }
-    void setFrequency(float freq) { frequency = freq; }
-    
-    float getAmplitude() const { return amplitude; }
-    void setAmplitude(float amp) { amplitude = amp; }
-};
-
-// Sawtooth wave generator node
-class SawtoothNode : public ValueGeneratorNode {
-private:
-    float frequency = 1.0f;
-    float amplitude = 1.0f;
-    
-public:
-    SawtoothNode() : ValueGeneratorNode("Sawtooth", 203) {}
-    
-    void update(float deltaTime) override {
-        time += deltaTime;
-        float cycle = fmod(frequency * time, 1.0f);
-        value = amplitude * (2.0f * cycle - 1.0f);
-    }
-    
-    void renderUI() override {
-        ImGui::SetNextItemWidth(100.0f);
-        ImGui::SliderFloat("Freq", &frequency, 0.1f, 10.0f, "%.1f");
-        ImGui::SetNextItemWidth(100.0f);
-        ImGui::SliderFloat("Amp", &amplitude, 0.1f, 5.0f, "%.1f");
-    }
-    
-    float getFrequency() const { return frequency; }
-    void setFrequency(float freq) { frequency = freq; }
-    
-    float getAmplitude() const { return amplitude; }
-    void setAmplitude(float amp) { amplitude = amp; }
-};
-
-// Noise generator node (simple random walk)
-class NoiseNode : public ValueGeneratorNode {
-private:
-    float amplitude = 1.0f;
-    float speed = 1.0f;
-    float lastValue = 0.0f;
-    
-public:
-    NoiseNode() : ValueGeneratorNode("Noise", 204) {}
-    
-    void update(float deltaTime) override {
-        time += deltaTime;
-        // Simple random walk implementation
-        float change = (static_cast<float>(rand()) / RAND_MAX - 0.5f) * 2.0f * speed * deltaTime;
-        lastValue += change;
-        lastValue = std::max(-amplitude, std::min(amplitude, lastValue));
-        value = lastValue;
-    }
-    
-    void renderUI() override {
-        ImGui::SetNextItemWidth(100.0f);
-        ImGui::SliderFloat("Amp", &amplitude, 0.1f, 5.0f, "%.1f");
-        ImGui::SetNextItemWidth(100.0f);
-        ImGui::SliderFloat("Speed", &speed, 0.1f, 10.0f, "%.1f");
-    }
-    
-    float getAmplitude() const { return amplitude; }
-    void setAmplitude(float amp) { amplitude = amp; }
-    
-    float getSpeed() const { return speed; }
-    void setSpeed(float s) { speed = s; }
-};
-
-// Constant value generator node
-class ConstantNode : public ValueGeneratorNode {
-private:
-    float constantValue = 0.5f;
-    
-public:
-    ConstantNode() : ValueGeneratorNode("Constant", 205) {}
-    
-    void update(float deltaTime) override {
-        // Constant value doesn't change over time
-        value = constantValue;
-    }
-    
-    void renderUI() override {
-        ImGui::SetNextItemWidth(100.0f);
-        ImGui::SliderFloat("Value", &constantValue, -2.0f, 2.0f, "%.2f");
-    }
-    
-    float getConstantValue() const { return constantValue; }
-    void setConstantValue(float val) { constantValue = val; }
 };
 
 // Node factory for creating different types of value generators
@@ -290,25 +115,6 @@ public:
         Noise,
         Constant
     };
-    
-    static ValueGeneratorNode* createNode(NodeType type) {
-        switch (type) {
-            case NodeType::Sinusoid:
-                return new SinusoidNode();
-            case NodeType::Square:
-                return new SquareNode();
-            case NodeType::Triangle:
-                return new TriangleNode();
-            case NodeType::Sawtooth:
-                return new SawtoothNode();
-            case NodeType::Noise:
-                return new NoiseNode();
-            case NodeType::Constant:
-                return new ConstantNode();
-            default:
-                return new SinusoidNode(); // Default fallback
-        }
-    }
     
     static std::string getNodeTypeName(NodeType type) {
         switch (type) {
@@ -327,7 +133,7 @@ public:
 class MultiModeValueGenerator : public ValueSource {
 private:
     float time = 0.0f;
-    float frequency = 1.0f;
+    float frequency = 0.1f;
     float amplitude = 1.0f;
     float phase = 0.0f;
     float dutyCycle = 0.5f;
@@ -336,6 +142,7 @@ private:
     float constantValue = 0.5f;
     
     NodeFactory::NodeType currentMode = NodeFactory::NodeType::Sinusoid;
+    int selectedMode = 0; // Instance-specific mode selection for UI
     
 public:
     MultiModeValueGenerator() : ValueSource("Value Generator", 0) {} // ID will be set by manager
@@ -391,8 +198,10 @@ public:
     
     void renderUI() override {
         // Mode selection dropdown
-        static int selectedMode = 0;
         const char* modes[] = {"Sinusoid", "Square", "Triangle", "Sawtooth", "Noise", "Constant"};
+        
+        // Update selectedMode to match currentMode
+        selectedMode = static_cast<int>(currentMode);
         
         ImGui::SetNextItemWidth(120.0f);
         if (ImGui::BeginCombo("Mode", modes[selectedMode])) {
@@ -411,9 +220,9 @@ public:
         
         // Common parameters
         ImGui::SetNextItemWidth(100.0f);
-        ImGui::SliderFloat("Freq", &frequency, 0.1f, 10.0f, "%.1f");
+        ImGui::SliderFloat("Freq", &frequency, 0.01f, 0.1f, "%.2f");
         ImGui::SetNextItemWidth(100.0f);
-        ImGui::SliderFloat("Amp", &amplitude, 0.1f, 5.0f, "%.1f");
+        ImGui::SliderFloat("Amp", &amplitude, 0.1f, 5.0f, "%.2f");
         
         // Mode-specific parameters
         switch (currentMode) {
@@ -446,7 +255,10 @@ public:
     
     // Getters and setters
     NodeFactory::NodeType getCurrentMode() const { return currentMode; }
-    void setMode(NodeFactory::NodeType mode) { currentMode = mode; }
+    void setMode(NodeFactory::NodeType mode) { 
+        currentMode = mode; 
+        selectedMode = static_cast<int>(mode);
+    }
     
     float getFrequency() const { return frequency; }
     void setFrequency(float freq) { frequency = freq; }
@@ -465,6 +277,10 @@ public:
     
     float getConstantValue() const { return constantValue; }
     void setConstantValue(float val) { constantValue = val; }
+
+    int getOutputAttributeId() const override {
+        return AttributeHelpers::getValueGeneratorAttributeId(sourceId);
+    }
 };
 
 // Unified manager for all value sources
@@ -533,20 +349,7 @@ public:
                 ValueSource* source = getSource(sourceId);
                 if (source) {
                     UniformMeta& um = metadata[paramIndex];
-                    float sourceValue = source->getValue();
-                    
-                    if (sourceId < BAND_COUNT) {
-                        // Audio band: positive values, map directly to parameter range
-                        // Audio bands typically range from 0 to ~2.0, map to parameter range
-                        float normalizedValue = std::min(sourceValue / 2.0f, 1.0f); // Normalize to 0-1
-                        *um.value = um.min + normalizedValue * (um.max - um.min);
-                    } else {
-                        // Value generator: zero-mean values, center the mapping
-                        float range_center = (um.max + um.min) * 0.5f;
-                        float range_half = (um.max - um.min) * 0.5f;
-                        float value_scale = 0.5f; // Scale factor for the value
-                        *um.value = range_center + (sourceValue / 2.0f) * range_half * value_scale;
-                    }
+                    *um.value = source->getProcessedValue(um);
                 }
             }
         }

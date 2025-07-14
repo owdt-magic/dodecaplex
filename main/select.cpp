@@ -157,8 +157,7 @@ int main() {
         valueManager.addSource(std::make_unique<AudioBandSource>(i, &uniforms.data->audio_bands[i]));
     }
     
-    // Add initial value generators
-    valueManager.addSource(std::make_unique<MultiModeValueGenerator>());
+    // Add initial value generator
     valueManager.addSource(std::make_unique<MultiModeValueGenerator>());
 
     // Time tracking
@@ -299,17 +298,9 @@ int main() {
                 ValueSource* source = valueManager.getSourceByIndex(i);
                 if (!source) continue;
                 
-                // Determine color based on source type
-                ImVec4 sourceColor;
-                if (source->getSourceId() < BAND_COUNT) {
-                    // Audio band
-                    sourceColor = bar_colors[source->getSourceId()];
-                } else {
-                    // Value generator
-                    sourceColor = value_generator_color;
-                }
-                
-                int color_alpha = 50 + (int)(std::min(std::abs(source->getValue()) / 2.0f, 1.0f) * 200);
+                int s_id = source->getSourceId();
+                ImVec4 sourceColor = (s_id < BAND_COUNT) ? bar_colors[s_id] : value_generator_color;                
+                int color_alpha = 50 + (int)(source->getNormalizedValue() * 200);
                 
                 ImU32 bg_color       = toImU32(sourceColor, color_alpha);
                 ImU32 hover_color    = toImU32(sourceColor, color_alpha + 50);
@@ -372,24 +363,12 @@ int main() {
                 int sourceId = link.first;
                 ValueSource* source = valueManager.getSource(sourceId);
                 if (source) {
-                    if (sourceId < BAND_COUNT) {
-                        // Audio band
-                        link_color = bar_colors[sourceId];
-                        color_alpha = 100 + (int)(std::min(std::abs(source->getValue()) / 2.0f, 1.0f) * 155);
-                    } else {
-                        // Value generator
-                        link_color = value_generator_color;
-                        color_alpha = 100 + (int)(std::min(std::abs(source->getValue()) / 2.0f, 1.0f) * 155);
-                    }
+                    color_alpha = 100 + (int)(source->getNormalizedValue() * 155);
+                    link_color = (sourceId < BAND_COUNT) ? bar_colors[sourceId] : value_generator_color;
                 }
                 
-                // Convert sourceId/paramIndex to attribute IDs for ImNodes
                 int startAttr, endAttr;
-                if (sourceId < BAND_COUNT) {
-                    startAttr = getAudioBandAttributeId(sourceId);
-                } else {
-                    startAttr = 2000 + sourceId; // Unique output attribute ID for value generators
-                }
+                startAttr = source->getOutputAttributeId();                
                 endAttr = getParameterAttributeId(link.second);
                 
                 ImNodes::PushColorStyle(ImNodesCol_Link, toImU32(link_color, color_alpha));
