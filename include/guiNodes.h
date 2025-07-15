@@ -7,6 +7,7 @@
 #include <imgui.h>
 #include <vector>
 #include <memory>
+#include <nlohmann/json.hpp>
 
 // Forward declaration
 struct UniformMeta;
@@ -62,6 +63,9 @@ public:
     virtual int getOutputAttributeId() const {
         return -1; // Default to -1 if not overridden
     }
+
+    virtual nlohmann::json to_json() const { return {}; }
+    virtual void from_json(const nlohmann::json& j) {}
 };
 
 // Audio band as a value source
@@ -101,6 +105,19 @@ public:
 
     int getOutputAttributeId() const override {
         return AttributeHelpers::getAudioBandAttributeId(bandIndex);
+    }
+
+    nlohmann::json to_json() const override {
+        return {
+            {"type", "audio_band"},
+            {"sourceId", sourceId},
+            {"bandIndex", bandIndex},
+            {"volume", volume}
+        };
+    }
+    void from_json(const nlohmann::json& j) override {
+        // audioData pointer must be set externally after construction
+        if (j.contains("volume")) volume = j["volume"].get<float>();
     }
 };
 
@@ -281,6 +298,29 @@ public:
     int getOutputAttributeId() const override {
         return AttributeHelpers::getValueGeneratorAttributeId(sourceId);
     }
+
+    nlohmann::json to_json() const override {
+        return {
+            {"type", "generator"},
+            {"sourceId", sourceId},
+            {"mode", (int)currentMode},
+            {"frequency", frequency},
+            {"amplitude", amplitude},
+            {"phase", phase},
+            {"dutyCycle", dutyCycle},
+            {"speed", speed},
+            {"constantValue", constantValue}
+        };
+    }
+    void from_json(const nlohmann::json& j) override {
+        if (j.contains("mode")) setMode((NodeFactory::NodeType)j["mode"].get<int>());
+        if (j.contains("frequency")) frequency = j["frequency"].get<float>();
+        if (j.contains("amplitude")) amplitude = j["amplitude"].get<float>();
+        if (j.contains("phase")) phase = j["phase"].get<float>();
+        if (j.contains("dutyCycle")) dutyCycle = j["dutyCycle"].get<float>();
+        if (j.contains("speed")) speed = j["speed"].get<float>();
+        if (j.contains("constantValue")) constantValue = j["constantValue"].get<float>();
+    }
 };
 
 // Unified manager for all value sources
@@ -438,6 +478,51 @@ public:
             }
         }
         return -1;
+    }
+
+    nlohmann::json to_json() const {
+        nlohmann::json j;
+        j["sources"] = nlohmann::json::array();
+        for (const auto& src : sources) {
+            j["sources"].push_back(src->to_json());
+        }
+        j["links"] = nlohmann::json::array();
+        for (const auto& link : links) {
+            j["links"].push_back({{"sourceId", link.first}, {"paramIndex", link.second}});
+        }
+        return j;
+    }
+
+    void from_json(const nlohmann::json& j, float* audio_bands) {
+        sources.clear();
+        links.clear();
+        nextSourceId = 0;
+        if (j.contains("sources")) {
+            for (const auto& srcj : j["sources"]) {
+                std::string type = srcj["type"].get<std::string>();
+                std::unique_ptr<ValueSource> src;
+                if (type == "audio_band") {
+                    int bandIdx = srcj["bandIndex"].get<int>();
+                    src = std::make_unique<AudioBandSource>(bandIdx, &audio_bands[bandIdx]);
+                    src->from_json(srcj);
+                } else if (type == "generator") {
+                    auto gen = std::make_unique<MultiModeValueGenerator>();
+                    gen->from_json(srcj);
+                    src = std::move(gen);
+                }
+                if (src) {
+                    int sid = srcj["sourceId"].get<int>();
+                    src->setSourceId(sid);
+                    if (sid >= nextSourceId) nextSourceId = sid + 1;
+                    sources.push_back(std::move(src));
+                }
+            }
+        }
+        if (j.contains("links")) {
+            for (const auto& l : j["links"]) {
+                links.emplace_back(l["sourceId"].get<int>(), l["paramIndex"].get<int>());
+            }
+        }
     }
 };
 

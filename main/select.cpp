@@ -9,6 +9,8 @@
 #include <signal.h>
 #include <sys/wait.h>
 #include <cmath>
+#include <fstream>
+#include <nlohmann/json.hpp>
 extern char **environ;
 
 // ImGui
@@ -111,6 +113,50 @@ bool dropDown(const std::vector<T>& options, const char* label, int& selectedInd
         ImGui::EndCombo();
     }
     return changed;
+}
+
+// Helper functions for saving/loading ImNodes layout
+void SaveNodeLayoutSlot(int slot) {
+    std::filesystem::create_directories("tmp"); // Ensure tmp/ exists
+    size_t data_size = 0;
+    const char* ini_str = ImNodes::SaveCurrentEditorStateToIniString(&data_size);
+    if (!ini_str || data_size == 0) return;
+    std::string ini_filename = "tmp/nodes_config_slot" + std::to_string(slot) + ".ini";
+    std::ofstream ofs(ini_filename, std::ios::binary);
+    if (ofs) {
+        ofs.write(ini_str, data_size);
+        ofs.close();
+    }
+    // Save node graph as JSON
+    std::string json_filename = "tmp/nodes_config_slot" + std::to_string(slot) + ".json";
+    nlohmann::json j = valueManager.to_json();
+    std::ofstream jfs(json_filename);
+    if (jfs) {
+        jfs << j.dump(2);
+        jfs.close();
+    }
+}
+
+void LoadNodeLayoutSlot(int slot, SharedUniforms& uniforms) {
+    // Load node graph from JSON
+    std::string json_filename = "tmp/nodes_config_slot" + std::to_string(slot) + ".json";
+    std::ifstream jfs(json_filename);
+    if (jfs) {
+        nlohmann::json j;
+        jfs >> j;
+        valueManager.from_json(j, uniforms.data->audio_bands);
+        jfs.close();
+    }
+    // Load ImNodes layout
+    std::string ini_filename = "tmp/nodes_config_slot" + std::to_string(slot) + ".ini";
+    std::ifstream ifs(ini_filename, std::ios::binary);
+    if (ifs) {
+        std::string data((std::istreambuf_iterator<char>(ifs)), std::istreambuf_iterator<char>());
+        if (!data.empty()) {
+            ImNodes::LoadCurrentEditorStateFromIniString(data.c_str(), data.size());
+        }
+        ifs.close();
+    }
 }
 
 int main() {
@@ -265,8 +311,7 @@ int main() {
         
         ImGui::SetNextWindowSize(ImVec2(600, 500), ImGuiCond_FirstUseEver);
         if (ImGui::Begin("Nodes")) {
-            ImGui::Text("Patch FFT Bands to Parameters");
-            
+            ImGui::Text("Patch FFT Bands to Parameters");            
             // Add Generator button
             if (ImGui::Button("Add Generator")) {
                 valueManager.addSource(std::make_unique<MultiModeValueGenerator>());
@@ -402,6 +447,22 @@ int main() {
                 }
             }
             
+        }
+        ImGui::End();
+        
+        if (ImGui::Begin("Save/Load Layout")) {
+            ImGui::Text("Save/Load Layout Slots:");
+            for (int slot = 1; slot <= 3; ++slot) {
+                ImGui::PushID(slot);
+                if (ImGui::Button((std::string("Save ") + std::to_string(slot)).c_str())) {
+                    SaveNodeLayoutSlot(slot);
+                }
+                ImGui::SameLine();
+                if (ImGui::Button((std::string("Load ") + std::to_string(slot)).c_str())) {
+                    LoadNodeLayoutSlot(slot, uniforms);
+                }
+                ImGui::PopID();
+            }
         }
         ImGui::End();
 
