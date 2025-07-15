@@ -4,7 +4,7 @@
 #include <unistd.h>
 
 #define BAND_COUNT 4
-#define PARAM_COUNT 6
+#define PARAM_COUNT 7
 
 struct UniformStructure {
     float scale;
@@ -13,6 +13,7 @@ struct UniformStructure {
     float fov;
     float hueShift;    
     float scroll;
+    float vignette;
     
     float volume; 
     float band_volumes[BAND_COUNT];  // Individual band volume controls
@@ -24,7 +25,8 @@ struct UniformStructure {
                             fov(150.0f),
                             hueShift(0.0f),
                             volume(1.0f),
-                            scroll(0.0f) {
+                            scroll(0.0f),
+                            vignette(0.5f) {
         for(int i = 0; i < BAND_COUNT; i++) {
             audio_bands[i] = 0.0f;
             band_volumes[i] = 1.0f;  // Default to full volume for each band
@@ -57,7 +59,8 @@ struct SharedUniforms {
               UniformMeta(nullptr, 0.0f, 2.0f, "Speed"),
               UniformMeta(nullptr, 0.0f, 180.0f, "FOV"),
               UniformMeta(nullptr, 0.0f, 360.0f, "Hue Shift"),
-              UniformMeta(nullptr, -100.0f, 100.0f, "Scroll")
+              UniformMeta(nullptr, -100.0f, 100.0f, "Scroll"),
+              UniformMeta(nullptr, 0.0f, 1.0f, "Vignette")
           }
     {
         writeable ? openRW() : openR();
@@ -68,6 +71,7 @@ struct SharedUniforms {
         metadata[3].value = &data->fov;
         metadata[4].value = &data->hueShift;
         metadata[5].value = &data->scroll;
+        metadata[6].value = &data->vignette;
     };
 
 private:

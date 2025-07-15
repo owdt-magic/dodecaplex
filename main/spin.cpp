@@ -29,7 +29,7 @@ int main(int argc, char** argv) {
 
 
     float time;
-    GLuint U_RESOLUTION, U_MOUSE, U_SCROLL, U_TIME, U_BANDS, U_SCALE,U_BRIGHTNESS, U_HUESHIFT;
+    GLuint U_RESOLUTION, U_MOUSE, U_SCROLL, U_TIME, U_BANDS, U_SCALE, U_BRIGHTNESS, U_HUESHIFT, U_VIGNETTE;
 
     CameraInfo cam;
 
@@ -61,6 +61,7 @@ int main(int argc, char** argv) {
             U_BRIGHTNESS  = glGetUniformLocation(world_shader.ID, "u_brightness");
             U_SCALE       = glGetUniformLocation(world_shader.ID, "u_scale");
             U_HUESHIFT    = glGetUniformLocation(world_shader.ID, "u_hueShift");
+            U_VIGNETTE    = glGetUniformLocation(world_shader.ID, "u_vignette");
             
             uniforms->last_time         = glfwGetTime();
             uniforms->loading           = false;
@@ -83,7 +84,9 @@ int main(int argc, char** argv) {
         glClearColor(0.f, 0.f, 0.f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-        accountSpin(uniforms, cam, shared_uniforms.data->speed, shared_uniforms.data->fov, shared_uniforms.data->scroll);
+        accountSpin(uniforms, cam,  shared_uniforms.data->speed, 
+                                    shared_uniforms.data->fov, 
+                                    shared_uniforms.data->scroll);
 
         glBufferSubData(GL_UNIFORM_BUFFER, 0,                 sizeof(glm::mat4), &(cam.Projection)[0][0]);
         glBufferSubData(GL_UNIFORM_BUFFER, sizeof(glm::mat4), sizeof(glm::mat4), &(cam.Model)[0][0]);
@@ -106,6 +109,7 @@ int main(int argc, char** argv) {
         glUniform1f(U_BRIGHTNESS, shared_uniforms.data->brightness);
         glUniform1f(U_SCALE,      shared_uniforms.data->scale);
         glUniform1f(U_HUESHIFT,   shared_uniforms.data->hueShift);
+        glUniform1f(U_VIGNETTE,   shared_uniforms.data->vignette);
 
         player_context.drawMainVAO();
 
