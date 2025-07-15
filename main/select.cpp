@@ -449,8 +449,8 @@ int main() {
             
         }
         ImGui::End();
-        
-        if (ImGui::Begin("Save/Load Layout")) {
+        // Floating Save/Load panel in bottom right
+        if (ImGui::Begin("Save/Load Layout")){
             ImGui::Text("Save/Load Layout Slots:");
             for (int slot = 1; slot <= 3; ++slot) {
                 ImGui::PushID(slot);
