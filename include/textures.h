@@ -1,3 +1,6 @@
+#ifndef TEXTURES_H
+#define TEXTURES_H
+
 #include "config.h"
 #include <glad/glad.h>
 #include <stb/stb_image.h>
@@ -32,3 +35,5 @@ struct TextureLibrary {
     
     void readRGBATextureArray(const char* paths[], int num_imgs, int prog_index);
 };
+
+#endif // TEXTURES_H
