@@ -89,7 +89,6 @@ private:
         if (fd != -1) {
         void* mmap_ptr = mmap(NULL, sizeof(float), PROT_READ, MAP_SHARED, fd, 0);
         if (mmap_ptr != MAP_FAILED) {
-            std::cout << "Default shared uniforms" << std::endl;
             data = (UniformStructure*) mmap_ptr;
         } else {            
             close(fd);
