@@ -28,9 +28,9 @@ message(STATUS "ASSIMP_LIBRARIES: ${ASSIMP_LIBRARIES}")
 message(STATUS "GLM_LIBRARIES: ${GLM_LIBRARIES}")
 
 file(GLOB SOURCES "src/*.cpp" "src/glad.c")
-add_executable(game ${SOURCES}  main/game.cpp)
-add_executable(spin ${SOURCES}  main/spin.cpp)
-add_executable(fragment ${SOURCES} main/fragment.cpp)
+add_executable(game ${SOURCES}  main/game.cpp main/graphicsPipe.cpp)
+add_executable(spin ${SOURCES}  main/spin.cpp main/graphicsPipe.cpp)
+add_executable(fragment ${SOURCES} main/fragment.cpp main/graphicsPipe.cpp)
 
 include(FetchContent)
 FetchContent_Declare(

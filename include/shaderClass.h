@@ -14,6 +14,7 @@ std::string get_file_contents(const std::string& filename, const std::string& pa
 class ShaderProgram {
 public:
 	GLuint ID;
+	ShaderProgram() : ID(0) {};
 	std::string vertex_path, geometry_path, fragment_path;	
 	ShaderProgram(	const std::string& vertexFile,\
 					const std::string& fragmentFile, bool load);
