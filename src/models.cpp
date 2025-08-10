@@ -4,7 +4,7 @@
 Reference tutorial:
 https://sibras.github.io/OpenGL4-Tutorials/docs/Tutorials/05-Tutorial5/
 */
-
+/* WIP - bone animation...
 std::vector<VAO> load_model(const char * objFile) {
 
     std::vector<VAO> all_vaos;
@@ -65,7 +65,7 @@ std::vector<VAO> load_model(const char * objFile) {
     return all_vaos;
 }
 
-/* WIP - bone animation...
+
    // Retrieve bone transformations
     std::vector<aiMatrix4x4> boneTransforms;
     if (p_Scene->mRootNode) {

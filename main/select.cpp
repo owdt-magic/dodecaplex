@@ -256,7 +256,7 @@ int main() {
             
             if (ImGui::Button("Launch Spin")) {
                  CLAs clas;
-
+                int instancesLeft = instanceCount;
                 if (graphicsPipe == nullptr) {
                     clas.fullscreen = false;
                     clas.monitorIndex = 0;
@@ -264,10 +264,11 @@ int main() {
                     graphicsPipe = new GraphicsPipe(PipeType::SPIN, clas);
                     graphicsPipe->initHere(window);
                     graphicsPipe->establishShaders();
-                } 
+                    instancesLeft -= 1;
+                }
                 std::stringstream ss;
                 ss << "./spin --input " << selectedDeviceIndex;
-                launch_fragment(ss.str(), instanceCount);
+                launch_fragment(ss.str(), instancesLeft);
             }
 
             dropDown(fragShaders, "Fragment Shader", selectedShaderIndex);
