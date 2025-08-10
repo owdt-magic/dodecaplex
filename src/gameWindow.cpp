@@ -98,11 +98,6 @@ GLFWwindow* initializeWindow(unsigned int width, unsigned int height, const char
     glfwSetMouseButtonCallback(window, mouseButtonCallback);
     glfwSetFramebufferSizeCallback(window, resizeCallback);
 
-    Uniforms* uniforms = new Uniforms();
-    uniforms->windWidth = system_width;
-    uniforms->windHeight = system_height;
-    glfwSetWindowUserPointer(window, uniforms);
-
     if (window_is_focused)
         glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 

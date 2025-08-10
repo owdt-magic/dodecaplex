@@ -48,8 +48,8 @@ set(IMGUI_BACKENDS
 
 add_executable(select
   main/select.cpp
-  src/audio.cpp
-  src/window.cpp
+  ${SOURCES}
+  main/graphicsPipe.cpp
   ./include/imnodes.cpp
   ${imgui_SOURCE_DIR}/imgui.h
   ${imgui_SOURCE_DIR}/imgui.cpp

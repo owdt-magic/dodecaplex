@@ -1,4 +1,3 @@
-#include "audio.h"
 #include "config.h"
 #include "gameWindow.h"
 #include "shaderClass.h"
@@ -87,5 +86,5 @@ struct GraphicsPipe {
     void initHere(GLFWwindow* w);
     void initWindowed();
     void establishShaders();
-    void renderNextFrame();
+    void renderNextFrame(bool swapBuffers = true);
 };

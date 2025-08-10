@@ -277,7 +277,7 @@ void GraphicsPipe::establishShaders() {
     glDepthFunc(GL_LESS);
 }
 
-void GraphicsPipe::renderNextFrame() {
+void GraphicsPipe::renderNextFrame(bool swapBuffers) {
     time = glfwGetTime();
     window_uniforms->this_time = time;
     frameCount++;
@@ -294,8 +294,10 @@ void GraphicsPipe::renderNextFrame() {
     
     shader_interface->render();
 
-    glfwSwapInterval(1);
-    glfwSwapBuffers(window);
+    if (swapBuffers) {
+        glfwSwapInterval(1);
+        glfwSwapBuffers(window);        
+    }
     glfwPollEvents();
     window_uniforms->last_time = time;
 }

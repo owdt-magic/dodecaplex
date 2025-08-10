@@ -19,6 +19,11 @@ GLFWwindow* simplestWindow(unsigned int width, unsigned int height, const char* 
         glfwTerminate();
         return nullptr;
     }
+
+    Uniforms* uniforms = new Uniforms();
+    uniforms->windWidth = width;
+    uniforms->windHeight = height;
+    glfwSetWindowUserPointer(window, uniforms);
     
     return window;
 }

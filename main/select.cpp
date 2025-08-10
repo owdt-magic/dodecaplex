@@ -13,16 +13,16 @@
 #include <nlohmann/json.hpp>
 extern char **environ;
 
+
 // ImGui
 #include <imgui.h>
 #include <imgui_impl_glfw.h>
 #include <imgui_impl_opengl3.h>
 #include "imnodes.h"
-
+#include "graphicsPipe.h"
 // Project-local
 #include "audio.h"
 #include "sharedUniforms.h"
-#include "window.h"
 #include "config.h"
 #include "attributeSystem.h"
 #include "guiNodes.h"
@@ -160,10 +160,16 @@ void LoadNodeLayoutSlot(int slot, SharedUniforms& uniforms) {
 }
 
 int main() {
-    GLFWwindow* window = simplestWindow(800, 600, "Select Ritual Mode");
+    GLFWwindow* window = initializeWindow(800, 600, "Select Ritual Mode", false, 0);
 
     glfwMakeContextCurrent(window);
     glfwSwapInterval(1);
+
+    // Initialize GLAD
+    if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress)) {
+        std::cerr << "Failed to initialize GLAD" << std::endl;
+        return -1;
+    }
 
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();
@@ -211,8 +217,15 @@ int main() {
     float currentTime = glfwGetTime();
     float deltaTime = currentTime - lastTime;
     lastTime = currentTime;
+    
+   GraphicsPipe* graphicsPipe = nullptr;
 
     while (!glfwWindowShouldClose(window)) {
+        if (graphicsPipe != nullptr) {            
+            graphicsPipe->renderNextFrame(false);
+        }
+
+        // Update time
         glfwPollEvents();
         
         // Update unified value source system
@@ -242,6 +255,16 @@ int main() {
             dropDown(deviceNames, "Audio Input", selectedDeviceIndex);
             
             if (ImGui::Button("Launch Spin")) {
+                 CLAs clas;
+
+                if (graphicsPipe == nullptr) {
+                    clas.fullscreen = false;
+                    clas.monitorIndex = 0;
+                    clas.audioIndex = selectedDeviceIndex;
+                    graphicsPipe = new GraphicsPipe(PipeType::SPIN, clas);
+                    graphicsPipe->initHere(window);
+                    graphicsPipe->establishShaders();
+                } 
                 std::stringstream ss;
                 ss << "./spin --input " << selectedDeviceIndex;
                 launch_fragment(ss.str(), instanceCount);
@@ -470,8 +493,11 @@ int main() {
         int display_w, display_h;
         glfwGetFramebufferSize(window, &display_w, &display_h);
         glViewport(0, 0, display_w, display_h);
-        glClearColor(0, 0, 0, 1);
-        glClear(GL_COLOR_BUFFER_BIT);
+        
+        if (graphicsPipe == nullptr) {
+            glClearColor(0, 0, 0, 1);
+            glClear(GL_COLOR_BUFFER_BIT);
+        }
         ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
         glfwSwapBuffers(window);
     }
