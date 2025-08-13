@@ -122,8 +122,6 @@ SpinPatterns::SpinPatterns(CLAs c, Uniforms* w) : ShaderInterface(c, w) {
     glBindBuffer(GL_UNIFORM_BUFFER, U_GLOBAL);
     glBufferData(GL_UNIFORM_BUFFER, 2 * sizeof(glm::mat4), NULL, GL_DYNAMIC_DRAW);
     glBindBufferBase(GL_UNIFORM_BUFFER, 0, U_GLOBAL);
-    
-    glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 }
 
 void SpinPatterns::compile() {
@@ -139,6 +137,8 @@ void SpinPatterns::compile() {
     U_SCALE       = glGetUniformLocation(spin_shader.ID, "u_scale");
     U_HUESHIFT    = glGetUniformLocation(spin_shader.ID, "u_hueShift");
     U_VIGNETTE    = glGetUniformLocation(spin_shader.ID, "u_vignette");
+    U_LINE_PX     = glGetUniformLocation(spin_shader.ID, "u_linePx");
+    U_LINE_FADE   = glGetUniformLocation(spin_shader.ID, "u_lineFade");
 
     window_uniforms->player_context = &player_context;
 }
@@ -172,6 +172,8 @@ void SpinPatterns::render() {
     glUniform1f(U_SCALE,      shared_uniforms.data->scale);
     glUniform1f(U_HUESHIFT,   shared_uniforms.data->hueShift);
     glUniform1f(U_VIGNETTE,   shared_uniforms.data->vignette);
+    glUniform1f(U_LINE_PX,    shared_uniforms.data->linePx);
+    glUniform1f(U_LINE_FADE,  shared_uniforms.data->lineFade);
 
     player_context.drawMainVAO();
 }
@@ -278,6 +280,8 @@ void GraphicsPipe::establishShaders() {
 }
 
 void GraphicsPipe::renderNextFrame(bool swapBuffers) {
+    if (window_uniforms->loading) establishShaders();
+
     time = glfwGetTime();
     window_uniforms->this_time = time;
     frameCount++;

@@ -45,10 +45,11 @@ struct GamePatterns : public ShaderInterface {
 };
 
 struct SpinPatterns : public ShaderInterface {
-    ShaderProgram spin_shader;
+    ShaderProgram spin_shader, depth_only_shader;
     PlayerContext player_context;
     
-    GLuint U_RESOLUTION, U_MOUSE, U_SCROLL, U_TIME, U_BANDS, U_SCALE, U_BRIGHTNESS, U_HUESHIFT, U_VIGNETTE;
+    GLuint U_RESOLUTION, U_MOUSE, U_SCROLL, U_TIME, U_BANDS, U_SCALE, 
+        U_BRIGHTNESS, U_HUESHIFT, U_VIGNETTE, U_LINE_PX, U_LINE_FADE;
     GLuint U_GLOBAL;
     SharedUniforms shared_uniforms = SharedUniforms(false);
 
