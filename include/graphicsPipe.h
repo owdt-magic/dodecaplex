@@ -45,7 +45,7 @@ struct GamePatterns : public ShaderInterface {
 };
 
 struct SpinPatterns : public ShaderInterface {
-    ShaderProgram spin_shader, depth_only_shader;
+    ShaderProgram spin_shader;
     PlayerContext player_context;
     
     GLuint U_RESOLUTION, U_MOUSE, U_SCROLL, U_TIME, U_BANDS, U_SCALE, 
@@ -81,8 +81,8 @@ struct GraphicsPipe {
     PipeType type;
     const char* window_name;
     GLFWwindow* window;
-    
-    GraphicsPipe(PipeType t, CLAs c);
+
+    GraphicsPipe(PipeType t, CLAs c) : type(t), clas(c) {};
     ~GraphicsPipe();
     void initHere(GLFWwindow* w);
     void initWindowed();

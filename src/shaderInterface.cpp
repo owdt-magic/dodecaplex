@@ -1,11 +1,5 @@
 #include "graphicsPipe.h"
 
-// Static member initialization
-float GraphicsPipe::time = 0.0f;
-float GraphicsPipe::previousTime = 0.0f;
-int GraphicsPipe::frameCount = 0;
-
-// ShaderInterface virtual function implementations
 void ShaderInterface::compile() {
     // Base implementation - should be overridden
 }
@@ -14,7 +8,6 @@ void ShaderInterface::render() {
     // Base implementation - should be overridden
 }
 
-// GamePatterns implementation
 GamePatterns::GamePatterns(CLAs c, Uniforms* w) : ShaderInterface(c, w) {
     world_shader = ShaderProgram(
         SHADER_DIR "/world.vert",
@@ -73,6 +66,7 @@ void GamePatterns::render() {
 
     accountCameraControls(window_uniforms, cam);
 
+    glBindBuffer(GL_UNIFORM_BUFFER, U_GLOBAL);
     glBufferSubData(GL_UNIFORM_BUFFER, 0,                 sizeof(glm::mat4), &(cam.Projection)[0][0]);
     glBufferSubData(GL_UNIFORM_BUFFER, sizeof(glm::mat4), sizeof(glm::mat4), &(cam.Model)[0][0]);
 
@@ -108,11 +102,10 @@ void GamePatterns::render() {
     grimoire.drawGrimoireVAOs(U_FLIP_PROGRESS);
 }
 
-// SpinPatterns implementation
 SpinPatterns::SpinPatterns(CLAs c, Uniforms* w) : ShaderInterface(c, w) {
     spin_shader = ShaderProgram(
-        SHADER_DIR "/world.vert",
-        SHADER_DIR "/prune.geom",
+        SHADER_DIR "/spin.vert",
+        SHADER_DIR "/spin.geom",
         SHADER_DIR "/spin.frag", false);
     
     player_context.initializeMapData();
@@ -150,6 +143,7 @@ void SpinPatterns::render() {
                                         shared_uniforms.data->fov, 
                                         shared_uniforms.data->scroll);
 
+    glBindBuffer(GL_UNIFORM_BUFFER, U_GLOBAL);
     glBufferSubData(GL_UNIFORM_BUFFER, 0,                 sizeof(glm::mat4), &(cam.Projection)[0][0]);
     glBufferSubData(GL_UNIFORM_BUFFER, sizeof(glm::mat4), sizeof(glm::mat4), &(cam.Model)[0][0]);
 
@@ -162,7 +156,6 @@ void SpinPatterns::render() {
     glUniform1f(U_SCROLL,       window_uniforms->scroll);
     glUniform1f(U_TIME, time);
 
-    // Use shared audio bands from select.cpp
     glUniform4f(U_BANDS,    shared_uniforms.data->audio_bands[0],
                             shared_uniforms.data->audio_bands[1],
                             shared_uniforms.data->audio_bands[2],
@@ -209,106 +202,22 @@ void FragPatterns::render() {
     frag_shader.Activate();
     
     glUniform2f(U_RESOLUTION,   window_uniforms->windWidth,
-                                    window_uniforms->windHeight);
+                                window_uniforms->windHeight);
     glUniform2f(U_MOUSE,        window_uniforms->mouseX,
-                                    window_uniforms->mouseY);
+                                window_uniforms->mouseY);
     glUniform1f(U_SCROLL,       window_uniforms->scroll);
     glUniform1f(U_TIME, time);
+
+    glUniform4f(U_AUDIO_BANDS,  shared_uniforms.data->audio_bands[0],
+                                shared_uniforms.data->audio_bands[1],
+                                shared_uniforms.data->audio_bands[2],
+                                shared_uniforms.data->audio_bands[3]);
 
     glUniform1f(U_SCALE,      shared_uniforms.data->scale);
     glUniform1f(U_BRIGHTNESS, shared_uniforms.data->brightness);
     glUniform1f(U_SPEED,      shared_uniforms.data->speed);
     glUniform1f(U_FOV,        shared_uniforms.data->fov);
     glUniform1f(U_HUESHIFT,   shared_uniforms.data->hueShift);
-    glUniform4f(U_AUDIO_BANDS,  shared_uniforms.data->audio_bands[0],
-                                    shared_uniforms.data->audio_bands[1],
-                                    shared_uniforms.data->audio_bands[2],
-                                    shared_uniforms.data->audio_bands[3]);
 
     fullscreenQuad.DrawElements(GL_TRIANGLES);
 }
-
-// GraphicsPipe implementation
-GraphicsPipe::GraphicsPipe(PipeType t, CLAs c) : type(t), clas(c) {
-    switch (type) {
-        case PipeType::GAME:
-            window_name = "DODECAPLEX";
-            break;
-        case PipeType::SPIN:
-            window_name = "SPINNING DODECAPLEX";
-            break;
-        case PipeType::FRAGMENT:
-            window_name = "FRAGMENT SHADER";
-            break;
-    }
-}
-
-void GraphicsPipe::initHere(GLFWwindow* w) {
-    window = w;
-    window_uniforms = getUniforms(window);
-    
-    switch (type) {
-        case PipeType::SPIN:
-            shader_interface = new SpinPatterns(clas, window_uniforms);
-            break;               
-        case PipeType::FRAGMENT:
-            shader_interface = new FragPatterns(clas, window_uniforms);
-            break;
-        case PipeType::GAME:
-            shader_interface = new GamePatterns(clas, window_uniforms);
-            break;
-    }
-    previousTime = glfwGetTime();
-    frameCount = 0;
-}
-
-void GraphicsPipe::initWindowed() {
-    GLFWwindow* window = initializeWindow(1024, 1024, window_name, 
-                                clas.fullscreen, clas.monitorIndex);
-    initHere(window);
-    window = nullptr;
-}
-
-void GraphicsPipe::establishShaders() {
-    shader_interface->compile();
-
-    window_uniforms->last_time = glfwGetTime();    
-    window_uniforms->loading = false;
-    
-    glEnable(GL_DEPTH_TEST);
-    glDepthFunc(GL_LESS);
-}
-
-void GraphicsPipe::renderNextFrame(bool swapBuffers) {
-    if (window_uniforms->loading) establishShaders();
-
-    time = glfwGetTime();
-    window_uniforms->this_time = time;
-    frameCount++;
-
-    if (time - previousTime >= 1.0) {
-        std::string fpsTitle = std::string(window_name) + " - FPS: " + std::to_string(frameCount);
-        glfwSetWindowTitle(window, fpsTitle.c_str());
-        frameCount = 0;
-        previousTime = time;
-    }
-    
-    glClearColor(0.f, 0.f, 0.f, 1.0f);
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-    
-    shader_interface->render();
-
-    if (swapBuffers) {
-        glfwSwapInterval(1);
-        glfwSwapBuffers(window);        
-    }
-    glfwPollEvents();
-    window_uniforms->last_time = time;
-}
-
-// Destructor to clean up dynamic allocation
-GraphicsPipe::~GraphicsPipe() {
-    if (shader_interface) {
-        delete shader_interface;
-    }
-} 

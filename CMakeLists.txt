@@ -28,9 +28,9 @@ message(STATUS "ASSIMP_LIBRARIES: ${ASSIMP_LIBRARIES}")
 message(STATUS "GLM_LIBRARIES: ${GLM_LIBRARIES}")
 
 file(GLOB SOURCES "src/*.cpp" "src/glad.c")
-add_executable(game ${SOURCES}  main/game.cpp main/graphicsPipe.cpp)
-add_executable(spin ${SOURCES}  main/spin.cpp main/graphicsPipe.cpp)
-add_executable(fragment ${SOURCES} main/fragment.cpp main/graphicsPipe.cpp)
+add_executable(game ${SOURCES}  main/game.cpp)
+add_executable(spin ${SOURCES}  main/spin.cpp)
+add_executable(fragment ${SOURCES} main/fragment.cpp)
 
 include(FetchContent)
 FetchContent_Declare(
@@ -49,7 +49,6 @@ set(IMGUI_BACKENDS
 add_executable(select
   main/select.cpp
   ${SOURCES}
-  main/graphicsPipe.cpp
   ./include/imnodes.cpp
   ${imgui_SOURCE_DIR}/imgui.h
   ${imgui_SOURCE_DIR}/imgui.cpp
