@@ -140,7 +140,7 @@ void PlayerContext::populateDodecaplexVAO() {
     populateDodecaplexVAO(normal_web);
 };
   
-void PlayerContext::populateDodecaplexVAO(RhombusPattern web_pattern){    
+void PlayerContext::populateDodecaplexVAO(RhombusPattern web_pattern, bool include_normals){    
     int* surface_ptr;
     dodecaplex_buffers.reset();
     for (SubSurface surface : map_data.adjacent_surfaces) {
@@ -148,13 +148,21 @@ void PlayerContext::populateDodecaplexVAO(RhombusPattern web_pattern){
         for (int f = 0; f < surface.num_faces; f++) {
             PentagonMemory& memory = map_data.pentagons[*surface_ptr++];
             memory.markStart(dodecaplex_buffers);
-            web_pattern.buildArrays(dodecaplex_buffers, memory);
+            web_pattern.buildArrays(dodecaplex_buffers, memory, include_normals);
             memory.markEnd(dodecaplex_buffers);
         }
     }
      
     dodecaplex_vao = VAO(dodecaplex_buffers);
-    dodecaplex_vao.LinkVecs({4,3}, 7);    
+    if (include_normals) {
+        dodecaplex_vao.LinkVecs({4,3,4}, 11);
+    } else {        
+        dodecaplex_vao.LinkVecs({4,3}, 7);
+    }
+};
+
+void PlayerContext::populateDodecaplexVAO(RhombusPattern web_pattern){
+    populateDodecaplexVAO(web_pattern, false);
 };
 
 void PlayerContext::damageOldPentagon(int map_index) {    

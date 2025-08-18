@@ -49,7 +49,7 @@ struct SpinPatterns : public ShaderInterface {
     PlayerContext player_context;
     
     GLuint U_RESOLUTION, U_MOUSE, U_SCROLL, U_TIME, U_BANDS, U_SCALE, 
-        U_BRIGHTNESS, U_HUESHIFT, U_VIGNETTE, U_LINE_PX, U_LINE_FADE;
+        U_BRIGHTNESS, U_HUESHIFT, U_VIGNETTE, U_LINE_PX, U_LINE_FADE, U_SHATTER;
     GLuint U_GLOBAL;
     SharedUniforms shared_uniforms = SharedUniforms(false);
 

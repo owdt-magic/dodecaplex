@@ -4,7 +4,7 @@
 #include <unistd.h>
 
 #define BAND_COUNT 4
-#define PARAM_COUNT 9
+#define PARAM_COUNT 10
 
 struct UniformStructure {
     float scale;
@@ -16,6 +16,7 @@ struct UniformStructure {
     float vignette;
     float linePx;
     float lineFade;
+    float shatter;
 
     float volume; 
     float band_volumes[BAND_COUNT];  // Individual band volume controls
@@ -29,8 +30,9 @@ struct UniformStructure {
                             volume(1.0f),
                             scroll(0.0f),
                             vignette(0.5f),
-                            linePx(1.0f),
-                            lineFade(0.5f) {
+                            linePx(0.5f),
+                            lineFade(0.5f),
+                            shatter(0.0f) {
         for(int i = 0; i < BAND_COUNT; i++) {
             audio_bands[i] = 0.0f;
             band_volumes[i] = 1.0f;  // Default to full volume for each band
@@ -65,8 +67,9 @@ struct SharedUniforms {
               UniformMeta(nullptr, 0.0f, 360.0f, "Hue Shift"),
               UniformMeta(nullptr, -100.0f, 100.0f, "Scroll"),
               UniformMeta(nullptr, 0.0f, 1.0f, "Vignette"),
-              UniformMeta(nullptr, 0.0f, 10.0f, "Line Px"),
-              UniformMeta(nullptr, 0.0f, 2.0f, "Line Fade")
+              UniformMeta(nullptr, 0.0f, 1.0f, "Line Px"),
+              UniformMeta(nullptr, 0.0f, 2.0f, "Line Fade"),
+              UniformMeta(nullptr, 0.0f, 100.0f, "Shatter")
           }
     {
         writeable ? openRW() : openR();
@@ -80,6 +83,7 @@ struct SharedUniforms {
         metadata[6].value = &data->vignette;
         metadata[7].value = &data->linePx;
         metadata[8].value = &data->lineFade;
+        metadata[9].value = &data->shatter;
     };
 
 private:

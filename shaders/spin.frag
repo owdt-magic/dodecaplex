@@ -33,7 +33,7 @@ void main(){
     
     vec4 base = u_audio_bands * vec4(u_brightness) + 0.1 * vec4(u_brightness);
     base /= max(zDepth * 1.0, 1.0);
-    base *= (1.0 - pow(length(uv)/1.2, u_vignette));
+    base *= smoothstep(0.0, 1.0, 1.0 - pow(length(uv)/1.2, u_vignette));
     base.rgb = hueShift(base.rgb, u_hueShift);
     base.rgb = pow(base.rgb, 1.0 - vec3(u_scale));
 
@@ -43,11 +43,12 @@ void main(){
     float d2 = edgeDistPx(p, wP2, wP0);
     float d  = min(d0, min(d1, d2));
 
-    float t = u_linePx/max(pow(zDepth, 0.5), 1.0);
-    float s = max(u_lineFade, 0.0001);
-
-    float edge = 1.0 - smoothstep(t, t + s, d);
-
-    color = vec4(base.rgb, edge);
-    if (color.a <= 0.001) discard;
+    float edge_vect = 1.0 - d;
+    float edge_grad = max(bary_Coords.x, max(bary_Coords.y, bary_Coords.z));
+    edge_grad = pow(edge_grad, 1.0 - u_lineFade);
+    color.rgb = edge_grad*base.rgb;
+    edge_vect *= max(0.1, -model_Coords.z);
+    float edge_mix = mix(edge_vect, edge_grad, u_linePx);    
+    color.rgb = base.rgb*edge_mix;   
+    if (edge_mix <= 0.01) discard;
 }

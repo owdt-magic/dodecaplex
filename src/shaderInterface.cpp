@@ -109,7 +109,7 @@ SpinPatterns::SpinPatterns(CLAs c, Uniforms* w) : ShaderInterface(c, w) {
         SHADER_DIR "/spin.frag", false);
     
     player_context.initializeMapData();
-    player_context.populateDodecaplexVAO(RhombusPattern(WebType::DOUBLE_STAR, false));
+    player_context.populateDodecaplexVAO(RhombusPattern(WebType::DOUBLE_STAR, false), true);
 
     glGenBuffers(1, &U_GLOBAL);
     glBindBuffer(GL_UNIFORM_BUFFER, U_GLOBAL);
@@ -132,6 +132,7 @@ void SpinPatterns::compile() {
     U_VIGNETTE    = glGetUniformLocation(spin_shader.ID, "u_vignette");
     U_LINE_PX     = glGetUniformLocation(spin_shader.ID, "u_linePx");
     U_LINE_FADE   = glGetUniformLocation(spin_shader.ID, "u_lineFade");
+    U_SHATTER     = glGetUniformLocation(spin_shader.ID, "u_shatter");
 
     window_uniforms->player_context = &player_context;
 }
@@ -167,6 +168,7 @@ void SpinPatterns::render() {
     glUniform1f(U_VIGNETTE,   shared_uniforms.data->vignette);
     glUniform1f(U_LINE_PX,    shared_uniforms.data->linePx);
     glUniform1f(U_LINE_FADE,  shared_uniforms.data->lineFade);
+    glUniform1f(U_SHATTER,    shared_uniforms.data->shatter);
 
     player_context.drawMainVAO();
 }
