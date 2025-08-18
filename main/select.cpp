@@ -357,9 +357,16 @@ int main() {
                     node_positions[i] = ImVec2(left_x, start_y + i * node_spacing);
                 }
                 
-                // Position parameters on the right
+                const int rows = 4;
+                float param_spacing_x = 120.0f;
+                float param_spacing_y = 75.0f;
+                
                 for (int j = 0; j < PARAM_COUNT; ++j) {
-                    node_positions[valueManager.getSourceCount() + j] = ImVec2(right_x, start_y + j * node_spacing);
+                    int row = j / rows;
+                    int col = j % rows;
+                    float x = right_x + row * param_spacing_x;
+                    float y = start_y + col * param_spacing_y;
+                    node_positions[valueManager.getSourceCount() + j] = ImVec2(x, y);
                 }                
             }
             // Output nodes (value sources) - left justified
@@ -451,6 +458,10 @@ int main() {
                 ImNodes::PopColorStyle();
             }
             nodes_initialized = true;
+            
+            // Add mini-map for navigation overview
+            ImNodes::MiniMap(0.2f, ImNodesMiniMapLocation_TopRight);
+            
             ImNodes::EndNodeEditor();
 
             // Handle deferred removals
