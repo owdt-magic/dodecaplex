@@ -1,4 +1,7 @@
-# OWDT's SHADER Engine
+# Dodecaplex
+
+For images and videos documenting this project:
+https://owdt-magic.org/dodecaplex.html
 
 A sophisticated OpenGL-based graphics engine and shader development platform featuring audio-reactive visualizations, real-time shader editing, and multiple rendering modes. This project has evolved from a simple shader sandbox into a comprehensive graphics programming toolkit. It also contains a simple 4D game engine.
 
@@ -84,7 +87,7 @@ sudo port install cmake glfw glm assimp
 ## 📁 Project Structure
 
 ```
-SHADER/
+dodecaplex/
 ├── main/           # Executable entry points
 ├── src/            # Core engine source files
 ├── include/        # Header files and external libraries
