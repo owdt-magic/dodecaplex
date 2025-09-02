@@ -1,20 +1,19 @@
 # OWDT's SHADER Engine
 
-A sophisticated OpenGL-based graphics engine and shader development platform featuring audio-reactive visualizations, real-time shader editing, and multiple rendering modes. This project has evolved from a simple shader sandbox into a comprehensive graphics programming toolkit.
+A sophisticated OpenGL-based graphics engine and shader development platform featuring audio-reactive visualizations, real-time shader editing, and multiple rendering modes. This project has evolved from a simple shader sandbox into a comprehensive graphics programming toolkit. It also contains a simple 4D game engine.
 
 ## 🎮 Features
 
 ### Multiple Rendering Modes
-- **Game Mode** (`./game`) - Interactive 3D world with spell casting mechanics and grimoire system
+- **Game Mode** (`./game`) - Interactive 4D projected world with spell casting mechanics and grimoire system
 - **Spin Mode** (`./spin`) - Audio-reactive geometric visualizations with real-time music analysis
 - **Fragment Mode** (`./fragment`) - Fullscreen fragment shader playground for experimentation
-- **Select Mode** (`./select`) - Visual node-based shader editor with ImGui interface
+- **Select Mode** (`./select`) - Visual node-based shader editor with ImGui interface (START HERE)
 
 ### Audio Integration
 - Real-time audio input processing using Miniaudio
 - FFT-based frequency band analysis (4-band system)
 - Audio-reactive shader uniforms for music visualization
-- Support for separated audio stems and live input
 
 ### Graphics Pipeline
 - Modern OpenGL 3.3+ with GLAD loader
@@ -26,7 +25,7 @@ A sophisticated OpenGL-based graphics engine and shader development platform fea
 ### Development Tools
 - Visual node editor for shader composition
 - Real-time shader hot-reloading
-- Python scripting for automation and analysis
+- Python scripting for automation, generation, and analysis
 - Multi-display management and calibration tools
 
 ## 🏗️ Architecture
@@ -99,12 +98,6 @@ SHADER/
 
 ## 🎨 Shader Development
 
-### Available Shaders
-- **World Shaders** - 3D environment and lighting
-- **Spell Shaders** - Magical effects and particle systems
-- **Audio Shaders** - Music-reactive visualizations
-- **Geometry Shaders** - Procedural geometry generation
-
 ### Node Editor Features
 - Visual shader composition
 - Real-time parameter adjustment
@@ -119,12 +112,6 @@ SHADER/
 - Audio-reactive shader uniforms
 - Support for separated audio stems
 
-### Audio Variables
-- `U_AUDIO_BANDS` - Frequency band amplitudes
-- `U_BRIGHTNESS` - Audio-driven brightness
-- `U_HUESHIFT` - Frequency-based color shifting
-- `U_SCALE` - Audio-reactive scaling
-
 ## 🔧 Development Workflow
 
 ### Shader Development
@@ -133,8 +120,8 @@ SHADER/
 3. Test with `./fragment` for fullscreen preview
 4. Integrate audio with `./spin` for music visualization
 
-### 3D World Development
-1. Use `./game` for interactive 3D testing
+### 4D World Development
+1. Use `./game` for interactive 4D testing
 2. Implement new spells and effects
 3. Test collision and physics systems
 4. Develop new geometry patterns
@@ -147,23 +134,7 @@ Check out the project in action:
 ## 🌐 Links
 
 - **Website**: [owdt-magic.org](https://owdt-magic.org)
-- **YouTube**: [OWDT Magic](https://www.youtube.com/@owdt-magic)
-
-## 🛠️ Current Development
-
-### Active Features
-- Audio-reactive shader system
-- Multi-display management
-- Visual node editor
-- Real-time shader hot-reloading
-- 3D spell casting mechanics
-
-### Planned Features
-- Enhanced collision detection
-- Improved shrapnel spawning system
-- Multi-display auto-population
-- Advanced audio visualization tools
-- Performance optimization
+- **YouTube**: [Guy^1,000,000](https://www.youtube.com/@Guytothemillionth)
 
 ## 📝 License
 
