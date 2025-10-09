@@ -80,11 +80,6 @@ GLFWwindow* initializeWindow(unsigned int width, unsigned int height, const char
 
     glfwMakeContextCurrent(window);
     gladLoadGL();
-    glViewport(0, 0, width, height);
-
-    int system_width, system_height;
-    glfwGetFramebufferSize(window, &system_width, &system_height);
-    glViewport(0, 0, system_width, system_height);
 
     // GLAD loader check
     if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress)) {
@@ -196,8 +191,19 @@ GLuint getSpellSubroutine(Uniforms* uniforms, Grimoire& grimoire, GLuint shader_
 }
 
 
-Uniforms* getUniforms(GLFWwindow* window) {
-    return static_cast<Uniforms*>(glfwGetWindowUserPointer(window));
+Uniforms* getUniforms(GLFWwindow* window) {        
+    Uniforms* window_uniforms = static_cast<Uniforms*>(glfwGetWindowUserPointer(window));
+    
+    int system_width, system_height;
+    
+    glfwGetFramebufferSize(window, &system_width, &system_height);
+    
+    window_uniforms->windHeight = system_height;
+    window_uniforms->windWidth = system_width;
+    
+    glViewport(0, 0, system_width, system_height);
+    
+    return window_uniforms;
 }
 
 std::array<bool, 4> Uniforms::getWASD() { 
