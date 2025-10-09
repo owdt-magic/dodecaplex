@@ -1,5 +1,6 @@
 #include <iostream>
 #include <complex>
+#include <cstdio>
 #define MINIAUDIO_IMPLEMENTATION
 #include "audio.h"
 

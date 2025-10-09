@@ -1,5 +1,9 @@
 #pragma once
 #include <vector>
+#include <array>
+#include <atomic>
+#include <string>
+#include <cstdio>
 #include "miniaudio/miniaudio.h"
 
 constexpr int SAMPLE_RATE = 48000;

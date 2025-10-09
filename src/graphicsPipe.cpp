@@ -7,19 +7,16 @@ int GraphicsPipe::frameCount = 0;
 void GraphicsPipe::initHere(GLFWwindow* w) {
     window = w;
     window_uniforms = getUniforms(window);
-    
+
     switch (type) {
         case PipeType::SPIN:
             shader_interface = new SpinPatterns(clas, window_uniforms);
-            window_name = "DODECAPLEX";
-            break;               
+            break;
         case PipeType::FRAGMENT:
             shader_interface = new FragPatterns(clas, window_uniforms);
-            window_name = "SPINNING DODECAPLEX";
             break;
         case PipeType::GAME:
             shader_interface = new GamePatterns(clas, window_uniforms);
-            window_name = "FRAGMENT SHADER";
             break;
     }
     previousTime = glfwGetTime();
@@ -27,7 +24,20 @@ void GraphicsPipe::initHere(GLFWwindow* w) {
 }
 
 void GraphicsPipe::initWindowed() {
-    GLFWwindow* window = initializeWindow(1024, 1024, window_name, 
+    // Set window_name based on type before creating window
+    switch (type) {
+        case PipeType::SPIN:
+            window_name = "DODECAPLEX";
+            break;
+        case PipeType::FRAGMENT:
+            window_name = "SPINNING DODECAPLEX";
+            break;
+        case PipeType::GAME:
+            window_name = "FRAGMENT SHADER";
+            break;
+    }
+
+    GLFWwindow* window = initializeWindow(1024, 1024, window_name,
                                 clas.fullscreen, clas.monitorIndex);
     initHere(window);
     window = nullptr;
