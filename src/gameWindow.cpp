@@ -150,30 +150,27 @@ void accountSpin(Uniforms* uniforms, CameraInfo &camera_info, float scale, float
 }
 
 GLuint getSpellSubroutine(Uniforms* uniforms, Grimoire& grimoire, GLuint shader_id) {
-    static GLuint subroutine_index = 0;
-    static float spell_click_time = 0.0f;
+    static GLuint subroutine_index = 0;    
     float current_time = glfwGetTime();
-
-    if (uniforms->click_states[0] && !grimoire.getSpellLife() && !grimoire.flipping()) {
+    if (uniforms->click_states[0] && !grimoire.active_spell->spell_life && !grimoire.flipping()) {
         // The mouse is being held down... AND the spell is not currently running.
-        if(!spell_click_time) {
-            subroutine_index = glGetSubroutineIndex(shader_id, GL_FRAGMENT_SHADER,
-                                                    grimoire.getCurrentCastSubroutine());
+        if(!grimoire.active_spell->click_time) {
+            subroutine_index = glGetSubroutineIndex(shader_id, GL_FRAGMENT_SHADER, 
+                                                    grimoire.active_spell->cast_subroutine);
             // And it's the first frame of it being held down...
-            spell_click_time = current_time;
+            grimoire.active_spell->click_time = current_time;
         }
         grimoire.chargeSpell(current_time, uniforms->player_context);
-    } else if (spell_click_time) {
+    } else if (grimoire.active_spell->click_time) {        
         subroutine_index = glGetSubroutineIndex(shader_id, GL_FRAGMENT_SHADER,
-                                                grimoire.getCurrentReleaseSubroutine());
+                                                grimoire.active_spell->release_subroutine);
         // The mouse was JUST released
         grimoire.startSpell(current_time, uniforms->player_context);
-        spell_click_time = 0.0f; // Reset click time after release
-    } else if (grimoire.getSpellLife()) {
+    } else if (grimoire.active_spell->spell_life) {
         // The spell has been cast, and will decay from 1.0f to 0.0f
         // If its at 0.0f this will not be triggered..
         grimoire.updateSpellLife(current_time, uniforms->player_context);
-        if (grimoire.getSpellLife() == 0.0f) {
+        if (grimoire.active_spell->spell_life == 0.0f) {
             subroutine_index = glGetSubroutineIndex(shader_id, GL_FRAGMENT_SHADER, "emptySpell");
             // The spell is complete, we change the subroutine for the last pass..
             grimoire.updateSpellLife(current_time, uniforms->player_context);
@@ -186,7 +183,7 @@ GLuint getSpellSubroutine(Uniforms* uniforms, Grimoire& grimoire, GLuint shader_
             grimoire.flipRight(current_time);
         } else if (uniforms->key_states[GLFW_KEY_Q]) {
             grimoire.flipLeft(current_time);
-        } else if (grimoire.flipping()) {
+        } else if ( abs(current_time-grimoire.flip_start) < grimoire.flip_durration*1.1f) {
             grimoire.updateFlip(current_time);
         }
     }
