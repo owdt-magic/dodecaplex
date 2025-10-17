@@ -83,18 +83,17 @@ void GamePatterns::render() {
 
     glUniformSubroutinesuiv(GL_FRAGMENT_SHADER, 1, &subroutine_index);
 
-    glUniform1f(U_CAST_LIFE,    grimoire.active_spell->cast_life);
-    glUniform1f(U_SPELL_LIFE,   grimoire.active_spell->spell_life);
-    glUniform3f(U_SPELL_FOCUS,  grimoire.active_spell->spell_focus.x,
-                                grimoire.active_spell->spell_focus.y,
-                                grimoire.active_spell->spell_focus.z);
-    glUniform3f(U_SPELL_HEAD,   grimoire.active_spell->spell_head.x,
-                                grimoire.active_spell->spell_head.y,
-                                grimoire.active_spell->spell_head.z);
+    glm::vec3 spell_focus = grimoire.getSpellFocus();
+    glm::vec3 spell_head = grimoire.getSpellHead();
+
+    glUniform1f(U_CAST_LIFE,    grimoire.getCastLife());
+    glUniform1f(U_SPELL_LIFE,   grimoire.getSpellLife());
+    glUniform3f(U_SPELL_FOCUS,  spell_focus.x, spell_focus.y, spell_focus.z);
+    glUniform3f(U_SPELL_HEAD,   spell_head.x, spell_head.y, spell_head.z);
     player_context.drawMainVAO();
-    
+
     fx_shader.Activate();
-    glUniform1f(S_SPELL_LIFE,   grimoire.active_spell->spell_life);
+    glUniform1f(S_SPELL_LIFE,   grimoire.getSpellLife());
     player_context.drawShrapnelVAOs();
 
     gui_shader.Activate();
