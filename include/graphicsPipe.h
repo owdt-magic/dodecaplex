@@ -31,7 +31,6 @@ struct GamePatterns : public ShaderInterface {
     PlayerContext player_context;
     TextureLibrary texture_library;
     Grimoire grimoire;
-    VAO background_quad;
 
     GLuint  U_RESOLUTION, U_MOUSE, U_SCROLL, U_TIME,
             U_SPELL_LIFE, U_CAST_LIFE, U_SPELL_FOCUS, U_SPELL_HEAD,
@@ -43,7 +42,6 @@ struct GamePatterns : public ShaderInterface {
     GamePatterns(CLAs c, Uniforms* w);
     void compile() override;
     void render() override;
-    void updateBackgroundQuad();  // Update background based on camera
 };
 
 struct SpinPatterns : public ShaderInterface {

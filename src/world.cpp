@@ -143,6 +143,24 @@ void PlayerContext::populateDodecaplexVAO() {
 void PlayerContext::populateDodecaplexVAO(RhombusPattern web_pattern, bool include_normals){    
     int* surface_ptr;
     dodecaplex_buffers.reset();
+
+    const float FLAG_W = -999.0f;
+    const float Z_FAR = 0.9999f;
+    GLfloat bg_verts[] = {
+        -1.0f, -1.0f, Z_FAR, FLAG_W,  1.0f, 0.0f, 0.0f,
+         1.0f, -1.0f, Z_FAR, FLAG_W,  1.0f, 0.0f, 0.0f,
+         1.0f,  1.0f, Z_FAR, FLAG_W,  1.0f, 0.0f, 0.0f,
+        -1.0f,  1.0f, Z_FAR, FLAG_W,  1.0f, 0.0f, 0.0f
+    };
+    GLuint bg_indices[] = {0, 1, 2, 2, 3, 0};
+
+    memcpy(&dodecaplex_buffers.v_buff[0], bg_verts, sizeof(bg_verts));
+    dodecaplex_buffers.v_head = 28;
+    
+    memcpy(&dodecaplex_buffers.i_buff[0], bg_indices, sizeof(bg_indices));
+    dodecaplex_buffers.i_head = 6;
+    dodecaplex_buffers.offset = 4;
+
     for (SubSurface surface : map_data.adjacent_surfaces) {
         surface_ptr = surface.indeces_ptr;
         for (int f = 0; f < surface.num_faces; f++) {
