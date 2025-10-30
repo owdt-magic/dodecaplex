@@ -11,11 +11,17 @@ out vec3 texture_Coords;
 out float zDepth;
 
 
+bool isBackgroundTriangle() {
+    // Background triangles are marked with texture_Coords.r = 1.0 (red)
+    // Check if ALL vertices are marked (more robust than any)
+    return (abs(tCoords[0].r) > 0.9 && abs(tCoords[1].r) > 0.9 && abs(tCoords[2].r) > 0.9);
+}
+
 bool goodTriangle() {
     float leg;
     float longest = -1.0;
-    float max_offset =  max(length(wCoords[0].xyz), 
-                        max(length(wCoords[1].xyz), 
+    float max_offset =  max(length(wCoords[0].xyz),
+                        max(length(wCoords[1].xyz),
                             length(wCoords[2].xyz)));
     vec3 arc_tans;
 
@@ -37,11 +43,12 @@ bool goodTriangle() {
 }
 
 void main() {
-    if (goodTriangle()) {
+
+    if (isBackgroundTriangle() || goodTriangle()) {
         for(int i = 0; i < 3; i++) {
-            gl_Position     = gl_in[i].gl_Position;            
+            gl_Position     = gl_in[i].gl_Position;
             model_Coords    = mCoords[i];
-            texture_Coords  = tCoords[i];       
+            texture_Coords  = tCoords[i];
             zDepth          = gl_Position.z;
             EmitVertex();
         }

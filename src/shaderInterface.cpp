@@ -23,6 +23,11 @@ GamePatterns::GamePatterns(CLAs c, Uniforms* w) : ShaderInterface(c, w) {
     
     player_context.initializeMapData();
     player_context.populateDodecaplexVAO();
+    
+    GLfloat bgVertices[4 * 7];
+    GLuint bgIndices[] = {0, 1, 2, 2, 3, 0};
+    background_quad = VAO(bgVertices, sizeof(bgVertices), bgIndices, sizeof(bgIndices));
+    background_quad.LinkVecs({4, 3}, 7);
 
     glGenBuffers(1, &U_GLOBAL);
     glBindBuffer(GL_UNIFORM_BUFFER, U_GLOBAL);
@@ -91,6 +96,10 @@ void GamePatterns::render() {
     glUniform3f(U_SPELL_HEAD,   grimoire.active_spell->spell_head.x,
                                 grimoire.active_spell->spell_head.y,
                                 grimoire.active_spell->spell_head.z);
+
+    updateBackgroundQuad();
+    background_quad.DrawElements(GL_TRIANGLES);
+
     player_context.drawMainVAO();
     
     fx_shader.Activate();
@@ -100,6 +109,34 @@ void GamePatterns::render() {
     gui_shader.Activate();
     glUniform1f(U_TIME_BOOK, time);
     grimoire.drawGrimoireVAOs(U_FLIP_PROGRESS);
+}
+
+void GamePatterns::updateBackgroundQuad() {
+    const float FLAG_W = -999.0f;  // Special marker for vertex shader
+    const float SCALE = 50.0f;  // For spatial variation in spell effects
+
+    glm::vec4 corners[4] = {
+        glm::vec4(-1.0f, -1.0f, 0.9999f, FLAG_W),  // Bottom-left
+        glm::vec4( 1.0f, -1.0f, 0.9999f, FLAG_W),  // Bottom-right
+        glm::vec4( 1.0f,  1.0f, 0.9999f, FLAG_W),  // Top-right
+        glm::vec4(-1.0f,  1.0f, 0.9999f, FLAG_W)   // Top-left
+    };
+
+    GLfloat bgVertices[4 * 7]; 
+    for (int i = 0; i < 4; i++) {
+        // Store clip-space position with special w flag
+        bgVertices[i * 7 + 0] = corners[i].x;
+        bgVertices[i * 7 + 1] = corners[i].y;
+        bgVertices[i * 7 + 2] = corners[i].z;
+        bgVertices[i * 7 + 3] = FLAG_W;  // Special flag
+
+        // Texture coords: RED for debugging (change to 0,0,0 for black)
+        bgVertices[i * 7 + 4] = 1.0f;
+        bgVertices[i * 7 + 5] = 0.0f;
+        bgVertices[i * 7 + 6] = 0.0f;
+    }
+
+    background_quad.UpdateAttribSubset(background_quad.vbo, 0, sizeof(bgVertices), bgVertices);
 }
 
 SpinPatterns::SpinPatterns(CLAs c, Uniforms* w) : ShaderInterface(c, w) {
