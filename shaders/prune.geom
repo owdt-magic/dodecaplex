@@ -14,7 +14,9 @@ out float zDepth;
 bool isBackgroundTriangle() {
     // Background triangles are marked with texture_Coords.r = 1.0 (red)
     // Check if ALL vertices are marked (more robust than any)
-    return (abs(tCoords[0].r) > 0.9 && abs(tCoords[1].r) > 0.9 && abs(tCoords[2].r) > 0.9);
+    return (abs(tCoords[0].r) > 0.9 && 
+            abs(tCoords[1].r) > 0.9 && 
+            abs(tCoords[2].r) > 0.9);
 }
 
 bool goodTriangle() {
